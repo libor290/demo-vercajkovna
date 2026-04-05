@@ -533,7 +533,7 @@ const passwordsMatch = computed(() => {
 
 const registerTermsLabel = "Souhlasím s podmínkami a zpracováním osobních údajů.";
 const authHeading = computed(() =>
-  authMode.value === "login" ? { submitLabel: "Přihlásit se" } : { submitLabel: "Registrovat se" },
+  authMode.value === "login" ? { submitLabel: "test" } : { submitLabel: "Registrovat se" },
 );
 
 function persistAuth(remember: boolean, name: string, email: string) {

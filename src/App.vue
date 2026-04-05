@@ -180,6 +180,7 @@ const screenLabels: Record<Screen, string> = {
 const selectedListing = computed<Listing>(
   () => listings.find((listing) => listing.id === selectedListingId.value) ?? listings[0],
 );
+const requestDateError = computed(() => requestStep.value === 1 && !requestDate.value.trim());
 const pendingListing = computed<Listing>(
   () => listings.find((listing) => listing.id === pendingRequest.listingId) ?? listings[0],
 );

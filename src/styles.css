@@ -154,6 +154,13 @@ a {
   font-size: 0.95rem;
 }
 
+.icon-button-initials {
+  font-family: var(--font-raw);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
 .auth-shell {
   min-height: calc(100vh - 76px);
   display: grid;
@@ -975,20 +982,30 @@ a {
   padding: 14px;
   background: #fff;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) max-content;
   gap: 12px;
   text-align: left;
   box-shadow: none;
 }
 
+.profile-item.is-dimmed {
+  opacity: 0.45;
+  background: #faf7f3;
+}
+
 .profile-item-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .profile-item-title {
+  display: block;
   font-weight: 700;
   color: var(--brand);
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .profile-item-meta {
@@ -996,16 +1013,32 @@ a {
   color: var(--muted);
 }
 
+.profile-item-meta {
+  white-space: nowrap;
+}
+
 .profile-item-status {
   align-self: start;
   padding: 4px 8px;
   border-radius: 999px;
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   background: rgba(58, 37, 25, 0.1);
   color: var(--brand);
+  white-space: nowrap;
+}
+
+.profile-item-side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.profile-item-side .profile-item-status {
+  justify-self: end;
+  text-align: center;
 }
 
 .profile-item-status.is-green {
@@ -1164,6 +1197,33 @@ a {
   gap: 10px;
 }
 
+.profile-list-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.profile-list-pill {
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(58, 37, 25, 0.16);
+  background: #fcf8f3;
+  color: #7a6a5f;
+  font-family: var(--font-raw);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.profile-list-pill.is-active {
+  background: rgba(27, 84, 49, 0.06);
+  border-color: rgba(27, 84, 49, 0.18);
+  color: #1b5431;
+}
+
 .profile-list-tab {
   height: 40px;
   width: 100%;
@@ -1294,11 +1354,6 @@ a {
   color: #6e4a1c;
 }
 
-.pending-request-status.is-pickup-done {
-  border-color: rgba(27, 84, 49, 0.38);
-  background: rgba(27, 84, 49, 0.15);
-  color: #1b5431;
-}
 
 .pending-request-status.is-return-waiting {
   border-color: rgba(117, 106, 96, 0.35);
@@ -1534,6 +1589,41 @@ a {
   padding: 0;
   text-align: center;
   font-size: 0.78rem;
+}
+
+.problem-report-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.problem-report-pill {
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(58, 37, 25, 0.18);
+  background: #fff;
+  font-family: var(--font-raw);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: #6b5849;
+}
+
+.problem-report-pill.is-active {
+  background: rgba(171, 48, 48, 0.12);
+  border-color: rgba(171, 48, 48, 0.35);
+  color: #9f2a2a;
+}
+
+.problem-report-note {
+  border-radius: 12px;
+  border: 1px solid rgba(58, 37, 25, 0.14);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  resize: vertical;
 }
 
 .pending-request-owner {
@@ -3811,6 +3901,53 @@ a {
   border-color: rgba(27, 84, 49, 0.25);
   background: #edf6ef;
   color: #1b5431;
+}
+
+.return-rating {
+  display: grid;
+  gap: 10px;
+  width: min(420px, 100%);
+  text-align: left;
+  padding: 14px 0 0;
+}
+
+.return-rating > span {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b5849;
+  font-weight: 700;
+}
+
+.return-rating-stars {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  gap: 6px;
+  color: #1b5431;
+}
+
+.return-rating-note {
+  border-radius: 14px;
+  border: 1px solid rgba(58, 37, 25, 0.14);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  resize: vertical;
+}
+
+.return-rating-skip {
+  border: 0;
+  background: transparent;
+  color: #8a7a6e;
+  font-family: var(--font-raw);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0;
+  text-align: center;
+  font-size: 0.78rem;
 }
 
 .confirmation-icon .pi {

@@ -943,6 +943,27 @@ a {
   color: #6b5849;
 }
 
+.profile-panel summary.profile-panel-head {
+  list-style: none;
+  cursor: pointer;
+}
+
+.profile-panel summary.profile-panel-head::-webkit-details-marker {
+  display: none;
+}
+
+.profile-panel summary.profile-panel-head::after {
+  content: "▾";
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.profile-panel[open] summary.profile-panel-head::after {
+  transform: rotate(180deg);
+}
+
 .profile-panel-link {
   padding: 0;
   background: transparent;
@@ -1431,14 +1452,50 @@ a {
   color: var(--muted);
 }
 
-.pending-request-summary {
+.pending-request-summary,
+.pending-request-delivery {
+  border: 1px solid rgba(58, 37, 25, 0.12);
+  border-radius: 18px;
+  background: #fff;
+  padding: 16px 18px;
   display: grid;
-  gap: 14px;
-  border-bottom: 1px solid rgba(58, 37, 25, 0.1);
-  padding-bottom: 18px;
+  gap: 12px;
 }
 
-.pending-request-summary div {
+.pending-request-summary summary,
+.pending-request-delivery summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-raw);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  color: var(--brand);
+}
+
+.pending-request-summary summary::-webkit-details-marker,
+.pending-request-delivery summary::-webkit-details-marker {
+  display: none;
+}
+
+.pending-request-summary summary::after,
+.pending-request-delivery summary::after {
+  content: "▾";
+  font-size: 0.85rem;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.pending-request-summary[open] summary::after,
+.pending-request-delivery[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.pending-request-summary > div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1680,16 +1737,11 @@ a {
   pointer-events: none;
 }
 
-.pending-request-delivery {
-  display: grid;
-  gap: 10px;
-  font-size: 0.9rem;
-}
-
 .pending-request-delivery p {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+  font-size: 0.9rem;
 }
 
 .pending-request-cancel {
@@ -1704,6 +1756,46 @@ a {
   text-align: center;
   font-size: 0.78rem;
   margin-bottom: 8px;
+}
+
+.pending-approval-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.pending-approval-card > strong {
+  font-family: var(--font-raw);
+  font-size: 1rem;
+  color: var(--brand);
+}
+
+.pending-approval-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.pending-approval-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.pending-approval-ghost {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(58, 37, 25, 0.2);
+  background: #fff;
+  color: var(--brand);
+  font-family: var(--font-raw);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .confirm-modal {
@@ -1747,6 +1839,29 @@ a {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.5;
+}
+
+.confirm-modal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.confirm-modal-field label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8f7c6e;
+  font-weight: 700;
+}
+
+.confirm-modal-field textarea {
+  border-radius: 12px;
+  border: 1px solid rgba(58, 37, 25, 0.16);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  resize: vertical;
 }
 
 .confirm-modal-actions {

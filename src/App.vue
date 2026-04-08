@@ -117,10 +117,14 @@ const agreeTerms = ref(false);
 const showCalendar = ref(false);
 const cancelPendingRequestOpen = ref(false);
 const confirmPaymentOpen = ref(false);
+const confirmApprovalOpen = ref(false);
+const confirmRejectOpen = ref(false);
+const rejectReason = ref("");
 const confirmPickupOpen = ref(false);
 const confirmReturnOpen = ref(false);
 const ratingSubmitted = ref(false);
 const requestStatusFilter = ref<"active" | "inactive">("active");
+const offerStatusFilter = ref<"active" | "inactive">("active");
 const problemReportOpen = ref(false);
 const problemReportType = ref("Nepředáno");
 const problemReportNote = ref("");
@@ -132,6 +136,9 @@ const requestStatusOptions = [
 ] as const;
 const setRequestStatusFilter = (value: "active" | "inactive") => {
   requestStatusFilter.value = value;
+};
+const setOfferStatusFilter = (value: "active" | "inactive") => {
+  offerStatusFilter.value = value;
 };
 const datePickerInput = ref<HTMLInputElement | null>(null);
 const detailDateRow = ref<HTMLElement | null>(null);
@@ -152,6 +159,7 @@ const pendingRequest = reactive({
   serviceFee: 80,
   deposit: 2000,
   ownerName: "Petr S.",
+  renterName: "Lucie K.",
   accountNumber: "123456789/0100",
   paymentNote: "Půjčovné - Vrtačka Bosch",
   pickupDate: "15. 10. 2023",
@@ -221,6 +229,28 @@ const confirmPendingPayment = () => {
   pendingRequest.statusLabel = "Platba odeslána – čeká na potvrzení";
   setScreen("payment-confirmation");
 };
+const approvePendingRequest = () => {
+  confirmApprovalOpen.value = true;
+};
+const closeConfirmApprovalModal = () => {
+  confirmApprovalOpen.value = false;
+};
+const confirmApproval = () => {
+  confirmApprovalOpen.value = false;
+  pendingRequest.statusLabel = "Schváleno - čeká na platbu";
+};
+const rejectPendingRequest = () => {
+  confirmRejectOpen.value = true;
+};
+const closeConfirmRejectModal = () => {
+  confirmRejectOpen.value = false;
+  rejectReason.value = "";
+};
+const confirmReject = () => {
+  confirmRejectOpen.value = false;
+  rejectReason.value = "";
+  pendingRequest.statusLabel = "Zamítnuto";
+};
 const closeConfirmPickupModal = () => {
   confirmPickupOpen.value = false;
 };
@@ -251,11 +281,17 @@ const submitProblemReport = () => {
   problemReported.value = true;
   problemReportOpen.value = false;
 };
-const openRatingFlow = () => {
+const openRatingFlow = (role: "tenant" | "owner") => {
+  pendingRole.value = role;
+  ratingSubmitted.value = false;
   setScreen("return-confirmation");
 };
 const openProfileRequestsList = () => {
   profileListTab.value = "requests";
+  setScreen("profile-list");
+};
+const openProfileOffersList = () => {
+  profileListTab.value = "offers";
   setScreen("profile-list");
 };
 const pendingRequestActionsDisabled = computed(
@@ -397,6 +433,7 @@ const profileOffers = computed(() => {
       const listing = listings.find((item) => item.id === id);
       if (!listing) return null;
       const status = offerStatusMap[id] ?? { label: "Čeká na schválení", tone: "is-brown" };
+      const dateRange = requestDateRanges[id] ?? "—";
       return {
         id,
         title: listing.title,
@@ -404,6 +441,7 @@ const profileOffers = computed(() => {
         location: listing.location,
         statusLabel: status.label,
         statusTone: status.tone,
+        dateRange,
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -462,6 +500,31 @@ const filteredProfileRequests = computed(() => {
   }
   return items;
 });
+
+const filteredProfileOffers = computed(() => {
+  let items = [...profileOffers.value];
+  const inactiveStatuses = ["Pronájem ukončen", "Zamítnutí", "Zrušeno"];
+  if (offerStatusFilter.value === "active") {
+    items = items.filter((item) => !inactiveStatuses.includes(item.statusLabel));
+  } else {
+    items = items.filter((item) => inactiveStatuses.includes(item.statusLabel));
+  }
+  return items;
+});
+
+const activeProfileOffers = computed(() =>
+  profileOffers.value.filter(
+    (item) =>
+      !["Pronájem ukončen", "Zamítnutí", "Zrušeno"].includes(item.statusLabel),
+  ),
+);
+
+const activeProfileRequests = computed(() =>
+  profileRequests.value.filter(
+    (item) =>
+      !["Pronájem ukončen", "Zamítnutí", "Zrušeno"].includes(item.statusLabel),
+  ),
+);
 
 const calendarInfo = computed(() => {
   const base = requestDate.value ? new Date(requestDate.value) : new Date();
@@ -1982,10 +2045,23 @@ if (typeof window !== "undefined") {
           <div class="confirmation-icon is-payment">
             <i class="pi pi-check"></i>
           </div>
-          <h1>Platba odeslána</h1>
-          <p>Majitel dostal informaci o úhradě a potvrdí ji co nejdříve.</p>
-          <button class="confirmation-button" type="button" @click="openProfileRequestsList">
-            Zpět na moje poptávky
+          <h1>
+            <span v-if="pendingRole === 'tenant'">Platba odeslána</span>
+            <span v-else>Platba potvrzena</span>
+          </h1>
+          <p v-if="pendingRole === 'tenant'">
+            Majitel dostal informaci o úhradě a potvrdí ji co nejdříve.
+          </p>
+          <p v-else>
+            Platbu jste potvrdili. Nájemce byl informován a může si vercajk vyzvednout.
+          </p>
+          <button
+            class="confirmation-button"
+            type="button"
+            @click="pendingRole === 'tenant' ? openProfileRequestsList() : openProfileOffersList()"
+          >
+            <span v-if="pendingRole === 'tenant'">Zpět na moje poptávky</span>
+            <span v-else>Zpět na moje nabídky</span>
           </button>
         </div>
 
@@ -1994,12 +2070,19 @@ if (typeof window !== "undefined") {
             <i class="pi pi-check"></i>
           </div>
           <h1>Pronájem ukončen</h1>
-          <p>
+          <p v-if="pendingRole === 'tenant'">
             Vercajk je vrácen a pronájem byl uzavřen. Kauci by měl majitel vercajku vrátit do 2
             pracovních dnů zpět na váš účet.
           </p>
+          <p v-else>
+            Vercajk je vrácen a pronájem byl uzavřen. Nezapomeňte vrátit kauci nájemci do 2
+            pracovních dnů.
+          </p>
           <div class="return-rating">
-            <span>Ohodnotit majitele</span>
+            <span>
+              <span v-if="pendingRole === 'tenant'">Ohodnotit majitele</span>
+              <span v-else>Ohodnotit nájemce</span>
+            </span>
             <div class="return-rating-stars">
               <i class="pi pi-star"></i>
               <i class="pi pi-star"></i>
@@ -2023,8 +2106,13 @@ if (typeof window !== "undefined") {
           </div>
           <h1>Hodnocení odesláno</h1>
           <p>Děkujeme za zpětnou vazbu. Pomáháte tím zlepšovat komunitu.</p>
-          <button class="confirmation-button" type="button" @click="openProfileRequestsList">
-            Zpět na moje poptávky
+          <button
+            class="confirmation-button"
+            type="button"
+            @click="pendingRole === 'tenant' ? openProfileRequestsList() : openProfileOffersList()"
+          >
+            <span v-if="pendingRole === 'tenant'">Zpět na moje poptávky</span>
+            <span v-else>Zpět na moje nabídky</span>
           </button>
         </div>
 
@@ -2248,7 +2336,8 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <div class="pending-request-summary">
+          <details class="pending-request-summary" open>
+            <summary>Souhrn ceny</summary>
             <div>
               <span>Cena za zapůjčení</span>
               <strong>{{ pendingSummary.rental }} Kč</strong>
@@ -2265,7 +2354,7 @@ if (typeof window !== "undefined") {
               <span>Celkem</span>
               <strong>{{ pendingSummary.total }} Kč</strong>
             </div>
-          </div>
+          </details>
 
           <div
             v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Schváleno - čeká na platbu'"
@@ -2310,10 +2399,15 @@ if (typeof window !== "undefined") {
           </div>
 
           <div class="pending-request-owner">
-            <div class="pending-owner-avatar">{{ pendingRequest.ownerName.charAt(0) }}</div>
+            <div class="pending-owner-avatar">
+              {{
+                (pendingRole === 'tenant' ? pendingRequest.ownerName : pendingRequest.renterName)
+                  .charAt(0)
+              }}
+            </div>
             <div>
-              <strong>{{ pendingRequest.ownerName }}</strong>
-              <span>Majitel</span>
+              <strong>{{ pendingRole === 'tenant' ? pendingRequest.ownerName : pendingRequest.renterName }}</strong>
+              <span>{{ pendingRole === 'tenant' ? "Majitel" : "Nájemce" }}</span>
             </div>
             <div class="pending-owner-actions">
               <button
@@ -2343,9 +2437,78 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <div class="pending-request-delivery">
-            <strong>Způsob předání</strong>
+          <details class="pending-request-delivery" open>
+            <summary>Způsob předání</summary>
             <p>{{ pendingRequest.pickupNote }}</p>
+          </details>
+
+          <div
+            v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Čeká na schválení'"
+            class="pending-approval-card"
+          >
+            <strong>Schválení rezervace</strong>
+            <p>Zkontrolujte termín a potvrďte, zda můžete rezervaci přijmout.</p>
+            <div class="pending-approval-actions">
+              <button type="button" class="pending-handover-primary" @click="approvePendingRequest">
+                Schválit rezervaci
+              </button>
+              <button type="button" class="pending-approval-ghost" @click="rejectPendingRequest">
+                Zamítnout
+              </button>
+            </div>
+          </div>
+          <div v-if="confirmApprovalOpen" class="confirm-modal">
+            <button
+              class="confirm-modal-backdrop"
+              type="button"
+              @click="closeConfirmApprovalModal"
+              aria-label="Zavřít potvrzení"
+            ></button>
+            <div class="confirm-modal-card">
+              <p class="confirm-modal-title">Opravdu chceš schválit rezervaci?</p>
+              <p class="confirm-modal-copy">
+                Po schválení dostane nájemce výzvu k platbě a rezervace se posune do dalšího kroku.
+              </p>
+              <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-primary" @click="confirmApproval">
+                  Schválit rezervaci
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="closeConfirmApprovalModal">
+                  Zpět
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-if="confirmRejectOpen" class="confirm-modal">
+            <button
+              class="confirm-modal-backdrop"
+              type="button"
+              @click="closeConfirmRejectModal"
+              aria-label="Zavřít potvrzení"
+            ></button>
+            <div class="confirm-modal-card">
+              <p class="confirm-modal-title">Opravdu chceš zamítnout rezervaci?</p>
+              <p class="confirm-modal-copy">
+                Po zamítnutí se žádost ukončí a nájemce bude informován o výsledku.
+              </p>
+              <div class="confirm-modal-field">
+                <label for="rejectReason">Důvod zamítnutí</label>
+                <textarea
+                  id="rejectReason"
+                  v-model="rejectReason"
+                  rows="3"
+                  placeholder="Např. termín je obsazený"
+                ></textarea>
+              </div>
+              <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-primary" @click="confirmReject">
+                  Zamítnout rezervaci
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="closeConfirmRejectModal">
+                  Zpět
+                </button>
+              </div>
+            </div>
           </div>
 
           <div
@@ -2477,13 +2640,22 @@ if (typeof window !== "undefined") {
               aria-label="Zavřít potvrzení"
             ></button>
             <div class="confirm-modal-card">
-              <p class="confirm-modal-title">Potvrdit vrácení vercajku?</p>
+              <p class="confirm-modal-title">
+                <span v-if="pendingRole === 'tenant'">Potvrdit vrácení vercajku?</span>
+                <span v-else>Potvrdit převzetí vercajku zpět?</span>
+              </p>
               <p class="confirm-modal-copy">
-                Opravdu jste zařízení vrátili? Tímto se uzavře pronájem.
+                <span v-if="pendingRole === 'tenant'">
+                  Opravdu jste zařízení vrátili? Tímto se uzavře pronájem.
+                </span>
+                <span v-else>
+                  Opravdu potvrzujete, že jste zařízení převzali zpět? Tímto se uzavře pronájem.
+                </span>
               </p>
               <div class="confirm-modal-actions">
                 <button type="button" class="confirm-modal-primary" @click="confirmReturn">
-                  Ano, vráceno
+                  <span v-if="pendingRole === 'tenant'">Ano, vráceno</span>
+                  <span v-else>Ano, převzato zpět</span>
                 </button>
                 <button type="button" class="confirm-modal-ghost" @click="closeConfirmReturnModal">
                   Zpět
@@ -2508,35 +2680,8 @@ if (typeof window !== "undefined") {
           >
             Potvrdit přijetí platby
           </button>
-          <div v-if="confirmPaymentOpen" class="confirm-modal">
-            <button
-              class="confirm-modal-backdrop"
-              type="button"
-              @click="closeConfirmPaymentModal"
-              aria-label="Zavřít potvrzení"
-            ></button>
-            <div class="confirm-modal-card">
-              <p class="confirm-modal-title">Potvrdit odeslání platby?</p>
-              <p class="confirm-modal-copy">
-                <span v-if="pendingRole === 'tenant'">
-                  Opravdu jste platbu odeslali? Po potvrzení informujeme majitele o úhradě.
-                </span>
-                <span v-else>
-                  Opravdu potvrzujete přijetí platby? Nájemce bude informován.
-                </span>
-              </p>
-              <div class="confirm-modal-actions">
-                <button type="button" class="confirm-modal-primary" @click="confirmPendingPayment">
-                  <span v-if="pendingRole === 'tenant'">Ano, platba odeslána</span>
-                  <span v-else>Ano, platba přijata</span>
-                </button>
-                <button type="button" class="confirm-modal-ghost" @click="closeConfirmPaymentModal">
-                  Zpět
-                </button>
-              </div>
-            </div>
-          </div>
           <button
+            v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'"
             class="pending-request-cancel"
             type="button"
             @click="cancelPendingRequestOpen = true"
@@ -2565,6 +2710,37 @@ if (typeof window !== "undefined") {
               </div>
             </div>
           </div>
+          <div v-if="confirmPaymentOpen" class="confirm-modal">
+            <button
+              class="confirm-modal-backdrop"
+              type="button"
+              @click="closeConfirmPaymentModal"
+              aria-label="Zavřít potvrzení"
+            ></button>
+            <div class="confirm-modal-card">
+              <p class="confirm-modal-title">
+                <span v-if="pendingRole === 'tenant'">Potvrdit odeslání platby?</span>
+                <span v-else>Potvrdit přijetí platby?</span>
+              </p>
+              <p class="confirm-modal-copy">
+                <span v-if="pendingRole === 'tenant'">
+                  Opravdu jste platbu odeslali? Po potvrzení informujeme majitele o úhradě.
+                </span>
+                <span v-else>
+                  Opravdu potvrzujete, že jste platbu přijali? Nájemce bude informován a může si vercajk vyzvednout.
+                </span>
+              </p>
+              <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-primary" @click="confirmPendingPayment">
+                  <span v-if="pendingRole === 'tenant'">Ano, platba odeslána</span>
+                  <span v-else>Ano, platba přijata</span>
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="closeConfirmPaymentModal">
+                  Zpět
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-else-if="screen === 'profile-list'" class="screen-inner profile-page profile-list-page">
@@ -2589,24 +2765,42 @@ if (typeof window !== "undefined") {
 
           <div class="profile-list-body">
             <div v-if="profileListTab === 'offers'" class="profile-panel-list">
+              <div class="profile-list-controls">
+                <button
+                  v-for="option in requestStatusOptions"
+                  :key="`offer-filter-${option.value}`"
+                  type="button"
+                  class="profile-list-pill"
+                  :class="{ 'is-active': offerStatusFilter === option.value }"
+                  @click="setOfferStatusFilter(option.value)"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
               <button
-                v-for="offer in profileOffers"
+                v-for="offer in filteredProfileOffers"
                 :key="`page-offer-${offer.id}`"
                 class="profile-item"
+                :class="{
+                  'is-dimmed':
+                    offer.statusLabel === 'Pronájem ukončen' ||
+                  offer.statusLabel === 'Zamítnutí' ||
+                  offer.statusLabel === 'Zrušeno',
+                }"
                 type="button"
                 @click="
                   offer.statusLabel === 'Čeká na hodnocení'
-                    ? openRatingFlow()
+                    ? openRatingFlow('owner')
                     : openPendingOffer(offer)
                 "
               >
                 <div class="profile-item-copy">
                   <span class="profile-item-title">{{ offer.title }}</span>
-                  <span class="profile-item-meta">{{ offer.location }}</span>
+                  <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
                 </div>
                 <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
               </button>
-              <div v-if="!profileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
+              <div v-if="!filteredProfileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
             </div>
             <div v-else class="profile-panel-list">
               <div class="profile-list-controls">
@@ -2621,34 +2815,34 @@ if (typeof window !== "undefined") {
                   {{ option.label }}
                 </button>
               </div>
-                <button
-                  v-for="request in filteredProfileRequests"
-                  :key="`page-request-${request.id}`"
-                  class="profile-item"
-                  :class="{
-                    'is-dimmed':
-                      request.statusLabel === 'Pronájem ukončen' ||
-                    request.statusLabel === 'Zamítnutí' ||
-                    request.statusLabel === 'Zrušeno',
-                }"
-                type="button"
-                @click="
-                  request.statusLabel === 'Čeká na hodnocení'
-                    ? openRatingFlow()
-                    : isRequestReservationStatus(request.statusLabel)
-                      ? openPendingRequest(request)
-                      : openListing(request.id)
-                "
-              >
-                <div class="profile-item-copy">
-                  <span class="profile-item-title">{{ request.title }}</span>
-                  <span class="profile-item-meta">
-                    {{ request.location }} · {{ request.dateRange }}
-                  </span>
-                </div>
-                <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
-              </button>
-              <div v-if="!profileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
+              <button
+                v-for="request in filteredProfileRequests"
+                :key="`page-request-${request.id}`"
+                class="profile-item"
+                :class="{
+                  'is-dimmed':
+                    request.statusLabel === 'Pronájem ukončen' ||
+                  request.statusLabel === 'Zamítnutí' ||
+                  request.statusLabel === 'Zrušeno',
+              }"
+              type="button"
+              @click="
+                request.statusLabel === 'Čeká na hodnocení'
+                  ? openRatingFlow('tenant')
+                  : isRequestReservationStatus(request.statusLabel)
+                    ? openPendingRequest(request)
+                    : openListing(request.id)
+              "
+            >
+              <div class="profile-item-copy">
+                <span class="profile-item-title">{{ request.title }}</span>
+                <span class="profile-item-meta">
+                  {{ request.location }} · {{ request.dateRange }}
+                </span>
+              </div>
+              <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
+            </button>
+              <div v-if="!filteredProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
             </div>
           </div>
         </div>
@@ -2755,26 +2949,26 @@ if (typeof window !== "undefined") {
           </div>
 
           <div class="profile-summary">
-            <div class="profile-panel">
-              <div class="profile-panel-head">
+            <details class="profile-panel" open>
+              <summary class="profile-panel-head">
                 <strong>Moje nabídky</strong>
-                <span class="profile-count">{{ profileOffers.length }}</span>
-              </div>
+                <span class="profile-count">{{ activeProfileOffers.length }}</span>
+              </summary>
               <div class="profile-panel-list">
               <button
-                v-for="offer in profileOffers"
+                v-for="offer in activeProfileOffers.slice(0, 3)"
                 :key="offer.id"
                 class="profile-item"
                 type="button"
                 @click="
                   offer.statusLabel === 'Čeká na hodnocení'
-                    ? openRatingFlow()
+                    ? openRatingFlow('owner')
                     : openPendingOffer(offer)
                 "
               >
                 <div class="profile-item-copy">
                   <span class="profile-item-title">{{ offer.title }}</span>
-                  <span class="profile-item-meta">{{ offer.location }}</span>
+                  <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
                 </div>
                   <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
                 </button>
@@ -2785,18 +2979,18 @@ if (typeof window !== "undefined") {
                 >
                   Zobrazit vše
                 </button>
-                <div v-if="!profileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
+                <div v-if="!activeProfileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
               </div>
-            </div>
+            </details>
 
-            <div class="profile-panel">
-              <div class="profile-panel-head">
+            <details class="profile-panel" open>
+              <summary class="profile-panel-head">
                 <strong>Moje poptávky</strong>
-                <span class="profile-count">{{ profileRequests.length }}</span>
-              </div>
+                <span class="profile-count">{{ activeProfileRequests.length }}</span>
+              </summary>
               <div class="profile-panel-list">
                 <button
-                  v-for="request in profileRequests"
+                  v-for="request in activeProfileRequests.slice(0, 3)"
                   :key="request.id"
                   class="profile-item"
                   :class="{
@@ -2808,7 +3002,7 @@ if (typeof window !== "undefined") {
                   type="button"
                   @click="
                     request.statusLabel === 'Čeká na hodnocení'
-                      ? openRatingFlow()
+                      ? openRatingFlow('tenant')
                       : isRequestReservationStatus(request.statusLabel)
                         ? openPendingRequest(request)
                         : openListing(request.id)
@@ -2833,9 +3027,9 @@ if (typeof window !== "undefined") {
                 >
                   Zobrazit vše
                 </button>
-                <div v-if="!profileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
+                <div v-if="!activeProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
               </div>
-            </div>
+            </details>
           </div>
 
           <div class="profile-section">

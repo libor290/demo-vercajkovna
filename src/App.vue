@@ -8,6 +8,7 @@ type Screen =
   | "favorites"
   | "detail"
   | "public-profile"
+  | "profile-personal"
   | "profile-list"
   | "public-profile-list"
   | "rules"
@@ -26,6 +27,7 @@ type AuthMode = "login" | "register";
 
 const AUTH_KEY = "vercajkovna-authenticated";
 const USER_KEY = "vercajkovna-user";
+const PERSONAL_KEY = "vercajkovna-personal";
 const SCREEN_KEY = "vercajkovna-screen";
 const REMEMBER_KEY = "vercajkovna-remember";
 const FAVORITES_KEY = "vercajkovna-favorites";
@@ -33,7 +35,41 @@ const FAVORITES_KEY = "vercajkovna-favorites";
 function readStoredUser() {
   try {
     const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as { name?: string; email?: string }) : null;
+    return raw
+      ? (JSON.parse(raw) as {
+          name?: string;
+          email?: string;
+          phone?: string;
+          location?: string;
+          firstName?: string;
+          lastName?: string;
+          address?: string;
+          emailVerified?: boolean;
+          phoneVerified?: boolean;
+          photo?: string;
+        })
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredPersonal() {
+  try {
+    const raw = localStorage.getItem(PERSONAL_KEY) ?? sessionStorage.getItem(PERSONAL_KEY);
+    return raw
+      ? (JSON.parse(raw) as {
+          phone?: string;
+          location?: string;
+          firstName?: string;
+          lastName?: string;
+          address?: string;
+          email?: string;
+          emailVerified?: boolean;
+          phoneVerified?: boolean;
+          photo?: string;
+        })
+      : null;
   } catch {
     return null;
   }
@@ -57,10 +93,55 @@ const pendingAuthScreen = ref<Screen | null>(null);
 const screen = ref<Screen>("market");
 const authMode = ref<AuthMode>("login");
 const rememberedUser = readStoredUser();
+const rememberedPersonal = readStoredPersonal();
+const MOCK_PROFILE = {
+  firstName: "Tomáš",
+  lastName: "Novák",
+  email: "tomas@vercajkovna.cz",
+  phone: "+420 777 123 456",
+  address: "Dlouhá 123, Praha 1",
+};
+const rememberedNameParts = (rememberedUser?.name ?? "Demo uživatel").trim().split(/\s+/);
+const rememberedFirstName =
+  rememberedUser?.firstName ??
+  rememberedPersonal?.firstName ??
+  rememberedNameParts[0] ??
+  MOCK_PROFILE.firstName;
+const rememberedLastName =
+  rememberedUser?.lastName ??
+  rememberedPersonal?.lastName ??
+  rememberedNameParts.slice(1).join(" ") ??
+  MOCK_PROFILE.lastName;
 
 const user = reactive({
   name: rememberedUser?.name ?? "Demo uživatel",
   email: rememberedUser?.email ?? "demo@vercajkovna.cz",
+});
+
+const personal = reactive({
+  firstName: rememberedFirstName,
+  lastName: rememberedLastName || MOCK_PROFILE.lastName,
+  email: rememberedUser?.email ?? rememberedPersonal?.email ?? user.email ?? MOCK_PROFILE.email,
+  phone: rememberedUser?.phone ?? rememberedPersonal?.phone ?? MOCK_PROFILE.phone,
+  address: rememberedUser?.address ?? rememberedPersonal?.address ?? MOCK_PROFILE.address,
+  emailVerified: rememberedUser?.emailVerified ?? rememberedPersonal?.emailVerified ?? true,
+  phoneVerified: rememberedUser?.phoneVerified ?? rememberedPersonal?.phoneVerified ?? false,
+  photo: rememberedUser?.photo ?? rememberedPersonal?.photo ?? MOCK_PROFILE.firstName.charAt(0),
+  saved: false,
+});
+const personalEditOpen = ref(false);
+const personalEditField = ref<"firstName" | "lastName" | "email" | "phone" | "address" | null>(null);
+const personalEditValue = ref("");
+const personalPhotoOpen = ref(false);
+
+const personalEditMeta = computed(() => {
+  const field = personalEditField.value;
+  if (field === "firstName") return { label: "Jméno", type: "text", placeholder: "Např. Tomáš" };
+  if (field === "lastName") return { label: "Příjmení", type: "text", placeholder: "Např. Novák" };
+  if (field === "email") return { label: "E-mail", type: "email", placeholder: "tomas@email.cz" };
+  if (field === "phone") return { label: "Telefon", type: "tel", placeholder: "+420 777 123 456" };
+  if (field === "address") return { label: "Adresa", type: "text", placeholder: "Dlouhá 123, Praha 1" };
+  return { label: "Údaj", type: "text", placeholder: "" };
 });
 
 const auth = reactive({
@@ -186,6 +267,7 @@ const screenLabels: Record<Screen, string> = {
   favorites: "Oblíbené",
   detail: "Detail",
   "public-profile": "Veřejný profil",
+  "profile-personal": "Osobní údaje",
   "profile-list": "Moje nabídky a poptávky",
   "public-profile-list": "Veřejné položky",
   rules: "Pravidla užívání",
@@ -687,7 +769,21 @@ function persistAuth(remember: boolean, name: string, email: string) {
   const storage = remember ? localStorage : sessionStorage;
   const otherStorage = remember ? sessionStorage : localStorage;
   storage.setItem(AUTH_KEY, "1");
-  storage.setItem(USER_KEY, JSON.stringify({ name, email }));
+  storage.setItem(
+    USER_KEY,
+    JSON.stringify({
+      name,
+      email,
+      phone: personal.phone,
+      location: personal.address,
+      firstName: personal.firstName,
+      lastName: personal.lastName,
+      address: personal.address,
+      emailVerified: personal.emailVerified,
+      phoneVerified: personal.phoneVerified,
+      photo: personal.photo,
+    }),
+  );
   storage.setItem(REMEMBER_KEY, remember ? "1" : "0");
   otherStorage.removeItem(AUTH_KEY);
   otherStorage.removeItem(USER_KEY);
@@ -698,11 +794,123 @@ function persistAuth(remember: boolean, name: string, email: string) {
 function clearAuth() {
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(PERSONAL_KEY);
   localStorage.removeItem(REMEMBER_KEY);
   sessionStorage.removeItem(AUTH_KEY);
   sessionStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(PERSONAL_KEY);
   sessionStorage.removeItem(REMEMBER_KEY);
   isAuthenticated.value = false;
+}
+
+function userStorage() {
+  if (localStorage.getItem(AUTH_KEY)) return localStorage;
+  if (sessionStorage.getItem(AUTH_KEY)) return sessionStorage;
+  return localStorage;
+}
+
+function persistPersonal() {
+  const storage = userStorage();
+  storage.setItem(
+    PERSONAL_KEY,
+    JSON.stringify({
+      firstName: personal.firstName,
+      lastName: personal.lastName,
+      email: personal.email,
+      phone: personal.phone,
+      location: personal.address,
+      address: personal.address,
+      emailVerified: personal.emailVerified,
+      phoneVerified: personal.phoneVerified,
+      photo: personal.photo,
+    }),
+  );
+  storage.setItem(
+    USER_KEY,
+    JSON.stringify({
+      name: user.name,
+      email: user.email,
+      phone: personal.phone,
+      location: personal.address,
+      firstName: personal.firstName,
+      lastName: personal.lastName,
+      address: personal.address,
+      emailVerified: personal.emailVerified,
+      phoneVerified: personal.phoneVerified,
+      photo: personal.photo,
+    }),
+  );
+  personal.saved = true;
+  window.setTimeout(() => {
+    personal.saved = false;
+  }, 1200);
+}
+
+function openPersonalEdit(field: "firstName" | "lastName" | "email" | "phone" | "address") {
+  personalEditField.value = field;
+  if (field === "firstName") personalEditValue.value = personal.firstName;
+  else if (field === "lastName") personalEditValue.value = personal.lastName;
+  else if (field === "email") personalEditValue.value = personal.email;
+  else if (field === "phone") personalEditValue.value = personal.phone;
+  else personalEditValue.value = personal.address;
+  personalEditOpen.value = true;
+}
+
+function closePersonalEdit() {
+  personalEditOpen.value = false;
+  personalEditField.value = null;
+  personalEditValue.value = "";
+}
+
+function savePersonalEdit() {
+  const field = personalEditField.value;
+  if (!field) return;
+  const value = personalEditValue.value.trim();
+  if (field === "firstName") personal.firstName = value;
+  if (field === "lastName") personal.lastName = value;
+  if (field === "email") {
+    personal.email = value;
+    personal.emailVerified = false;
+  }
+  if (field === "phone") personal.phone = value;
+  if (field === "address") personal.address = value;
+  if (field === "phone") personal.phoneVerified = false;
+  closePersonalEdit();
+}
+
+function savePersonalChanges() {
+  const fullName = `${personal.firstName} ${personal.lastName}`.trim();
+  user.name = fullName || user.name;
+  user.email = personal.email.trim() || user.email;
+  personal.email = user.email;
+  persistPersonal();
+}
+
+function verifyEmail() {
+  personal.emailVerified = true;
+}
+
+function verifyPhone() {
+  personal.phoneVerified = true;
+}
+
+function openPersonalPhotoEditor() {
+  personalPhotoOpen.value = true;
+}
+
+function closePersonalPhotoEditor() {
+  personalPhotoOpen.value = false;
+}
+
+function setPhotoFromInitial() {
+  const initial = (personal.firstName || user.name || "U").charAt(0).toUpperCase();
+  personal.photo = initial;
+  personalPhotoOpen.value = false;
+}
+
+function clearPhoto() {
+  personal.photo = "";
+  personalPhotoOpen.value = false;
 }
 
 function setScreen(next: Screen) {
@@ -796,6 +1004,14 @@ function openProfile() {
   requireAuth("profile");
 }
 
+function openProfilePersonal() {
+  const currentParts = user.name.trim().split(/\s+/);
+  personal.firstName = personal.firstName || currentParts[0] || "";
+  personal.lastName = personal.lastName || currentParts.slice(1).join(" ");
+  personal.email = user.email;
+  setScreen("profile-personal");
+}
+
 function openFavorites() {
   setScreen("favorites");
 }
@@ -830,6 +1046,10 @@ function submitAuth() {
     auth.hint = "";
     user.email = email;
     user.name = name || "Demo uživatel";
+    personal.email = user.email;
+    const nameParts = user.name.trim().split(/\s+/);
+    personal.firstName = personal.firstName || nameParts[0] || "";
+    personal.lastName = personal.lastName || nameParts.slice(1).join(" ");
     persistAuth(auth.remember, user.name, email);
     afterAuth();
     return;
@@ -861,6 +1081,11 @@ function submitAuth() {
   auth.hint = "";
   user.name = name;
   user.email = email;
+  const nameParts = name.trim().split(/\s+/);
+  personal.firstName = nameParts[0] ?? "";
+  personal.lastName = nameParts.slice(1).join(" ");
+  personal.email = email;
+  personal.emailVerified = true;
   persistAuth(true, name, email);
   afterAuth();
 }
@@ -2933,7 +3158,7 @@ if (typeof window !== "undefined") {
           </PvCard>
         </div>
 
-        <div v-else class="screen-inner profile-page">
+        <div v-else-if="screen === 'profile'" class="screen-inner profile-page">
           <div class="profile-hero">
             <div class="profile-avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
             <div class="profile-hero-copy">
@@ -2949,10 +3174,13 @@ if (typeof window !== "undefined") {
           </div>
 
           <div class="profile-summary">
-            <details class="profile-panel" open>
+            <details class="profile-panel">
               <summary class="profile-panel-head">
-                <strong>Moje nabídky</strong>
-                <span class="profile-count">{{ activeProfileOffers.length }}</span>
+                <span class="profile-panel-title">
+                  <i class="pi pi-tag"></i>
+                  <strong>Moje nabídky</strong>
+                </span>
+                <span class="profile-count">{{ profileOffers.length }}</span>
               </summary>
               <div class="profile-panel-list">
               <button
@@ -2983,10 +3211,13 @@ if (typeof window !== "undefined") {
               </div>
             </details>
 
-            <details class="profile-panel" open>
+            <details class="profile-panel">
               <summary class="profile-panel-head">
-                <strong>Moje poptávky</strong>
-                <span class="profile-count">{{ activeProfileRequests.length }}</span>
+                <span class="profile-panel-title">
+                  <i class="pi pi-inbox"></i>
+                  <strong>Moje poptávky</strong>
+                </span>
+                <span class="profile-count">{{ profileRequests.length }}</span>
               </summary>
               <div class="profile-panel-list">
                 <button
@@ -3035,19 +3266,9 @@ if (typeof window !== "undefined") {
           <div class="profile-section">
             <span class="profile-section-label">Správa profilu</span>
             <div class="profile-list">
-              <button class="profile-list-item" type="button">
+              <button class="profile-list-item" type="button" @click="openProfilePersonal">
                 <i class="pi pi-user"></i>
                 <span>Osobní údaje</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button">
-                <i class="pi pi-tag"></i>
-                <span>Moje nabídky</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button">
-                <i class="pi pi-inbox"></i>
-                <span>Moje poptávky</span>
                 <i class="pi pi-chevron-right"></i>
               </button>
               <button class="profile-list-item" type="button">
@@ -3091,6 +3312,187 @@ if (typeof window !== "undefined") {
 
           <div class="profile-actions">
             <PvButton class="button-secondary" @click="logout">Odhlásit se</PvButton>
+          </div>
+        </div>
+
+        <div v-else-if="screen === 'profile-personal'" class="screen-inner profile-page">
+          <div class="profile-section">
+            <div class="personal-photo-wrap">
+              <div class="personal-photo-circle">
+                <span v-if="personal.photo">{{ personal.photo }}</span>
+                <span v-else>FOTO</span>
+              </div>
+              <button type="button" class="personal-photo-edit" @click="openPersonalPhotoEditor">
+                Upravit
+              </button>
+            </div>
+            <div class="profile-personal-form">
+              <div class="personal-field">
+                <span class="personal-field-label">Jméno</span>
+                <div class="personal-field-box">
+                  <span class="personal-field-value">{{ personal.firstName || "—" }}</span>
+                  <button
+                    type="button"
+                    class="personal-field-edit"
+                    aria-label="Upravit jméno"
+                    @click="openPersonalEdit('firstName')"
+                  >
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="personal-field">
+                <span class="personal-field-label">Příjmení</span>
+                <div class="personal-field-box">
+                  <span class="personal-field-value">{{ personal.lastName || "—" }}</span>
+                  <button
+                    type="button"
+                    class="personal-field-edit"
+                    aria-label="Upravit příjmení"
+                    @click="openPersonalEdit('lastName')"
+                  >
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="personal-field">
+                <span class="personal-field-label">E-mail</span>
+                <div class="personal-field-box">
+                  <span class="personal-field-value">{{ personal.email || "—" }}</span>
+                  <button
+                    type="button"
+                    class="personal-field-edit"
+                    aria-label="Upravit e-mail"
+                    @click="openPersonalEdit('email')"
+                  >
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                </div>
+                <button
+                  v-if="!personal.emailVerified"
+                  type="button"
+                  class="personal-verify-link"
+                  @click="verifyEmail"
+                >
+                  Ověřit e-mail
+                </button>
+                <div v-else class="personal-verified-row">
+                  <i class="pi pi-check-circle"></i>
+                  Ověřeno
+                </div>
+              </div>
+
+              <div class="personal-field">
+                <span class="personal-field-label">Telefon</span>
+                <div class="personal-field-box">
+                  <span class="personal-field-value">{{ personal.phone || "—" }}</span>
+                  <button
+                    type="button"
+                    class="personal-field-edit"
+                    aria-label="Upravit telefon"
+                    @click="openPersonalEdit('phone')"
+                  >
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                </div>
+                <button
+                  v-if="!personal.phoneVerified"
+                  type="button"
+                  class="personal-verify-link"
+                  @click="verifyPhone"
+                >
+                  Ověřit telefon
+                </button>
+                <div v-else class="personal-verified-row">
+                  <i class="pi pi-check-circle"></i>
+                  Telefon ověřen
+                </div>
+              </div>
+
+              <div class="personal-field">
+                <span class="personal-field-label">Adresa</span>
+                <div class="personal-field-box">
+                  <span class="personal-field-value">{{ personal.address || "—" }}</span>
+                  <button
+                    type="button"
+                    class="personal-field-edit"
+                    aria-label="Upravit adresu"
+                    @click="openPersonalEdit('address')"
+                  >
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="profile-personal-actions">
+                <PvButton class="button-primary" @click="savePersonalChanges">Uložit změny</PvButton>
+                <div v-if="personal.saved" class="profile-personal-saved">Uloženo</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="personalEditOpen" class="confirm-modal">
+            <button
+              class="confirm-modal-backdrop"
+              type="button"
+              @click="closePersonalEdit"
+              aria-label="Zavřít úpravu"
+            ></button>
+            <div class="confirm-modal-card">
+              <p class="confirm-modal-title">Upravit {{ personalEditMeta.label.toLowerCase() }}</p>
+              <div class="confirm-modal-field">
+                <label :for="`personal-edit-${personalEditField ?? 'field'}`">{{ personalEditMeta.label }}</label>
+                <input
+                  :id="`personal-edit-${personalEditField ?? 'field'}`"
+                  v-model="personalEditValue"
+                  class="native-input"
+                  :type="personalEditMeta.type"
+                  :placeholder="personalEditMeta.placeholder"
+                />
+                <p
+                  v-if="personalEditField === 'email' || personalEditField === 'phone'"
+                  class="confirm-modal-copy"
+                >
+                  Při změně
+                  {{ personalEditField === "email" ? "e-mailu" : "telefonu" }},
+                  proběhne nové ověření.
+                </p>
+              </div>
+              <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-primary" @click="savePersonalEdit">
+                  Uložit
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="closePersonalEdit">
+                  Zpět
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="personalPhotoOpen" class="confirm-modal">
+            <button
+              class="confirm-modal-backdrop"
+              type="button"
+              @click="closePersonalPhotoEditor"
+              aria-label="Zavřít úpravu fotky"
+            ></button>
+            <div class="confirm-modal-card">
+              <p class="confirm-modal-title">Upravit foto</p>
+              <p class="confirm-modal-copy">Pro demo můžeš použít iniciálu nebo foto vyčistit.</p>
+              <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-primary" @click="setPhotoFromInitial">
+                  Použít iniciálu
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="clearPhoto">
+                  Odstranit foto
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="closePersonalPhotoEditor">
+                  Zpět
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

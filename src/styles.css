@@ -897,6 +897,17 @@ a {
   padding: 20px;
   display: grid;
   gap: 14px;
+  width: 100%;
+}
+
+.profile-panel:not([open]) {
+  width: 100%;
+  padding: 10px 14px;
+  gap: 0;
+}
+
+.profile-panel[open] {
+  width: 100%;
 }
 
 .public-profile-bio {
@@ -935,12 +946,24 @@ a {
 .profile-panel-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px;
   font-family: var(--font-raw);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.72rem;
   color: #6b5849;
+}
+
+.profile-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-panel-title .pi {
+  font-size: 0.82rem;
+  color: #7b685b;
 }
 
 .profile-panel summary.profile-panel-head {
@@ -956,7 +979,7 @@ a {
   content: "▾";
   font-size: 0.85rem;
   color: var(--muted);
-  margin-left: 8px;
+  margin-left: auto;
   transition: transform 0.2s ease;
 }
 
@@ -1206,6 +1229,137 @@ a {
 .profile-list {
   display: grid;
   gap: 12px;
+}
+
+.profile-personal-form {
+  display: grid;
+  gap: 14px;
+}
+
+.personal-photo-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.personal-photo-circle {
+  width: 94px;
+  height: 94px;
+  border-radius: 999px;
+  border: 2px dashed rgba(138, 122, 110, 0.28);
+  display: grid;
+  place-items: center;
+  color: #9a8f86;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #fffdf9;
+}
+
+.personal-photo-edit {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(58, 37, 25, 0.4);
+  background: #fff;
+  color: var(--brand);
+  font-family: var(--font-raw);
+  font-weight: 700;
+}
+
+.personal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.personal-field-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8f7c6e;
+  font-weight: 700;
+}
+
+.personal-field-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(58, 37, 25, 0.16);
+  background: #fff;
+  min-height: 46px;
+  padding: 8px 10px;
+}
+
+.personal-field-box.is-readonly {
+  background: #fffaf4;
+}
+
+.personal-field-value {
+  color: var(--brand);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personal-field-edit {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(58, 37, 25, 0.16);
+  background: #fff;
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.personal-field-edit:active {
+  transform: translateY(1px);
+}
+
+.personal-field-edit .pi {
+  font-size: 0.82rem;
+}
+
+.personal-verify-link {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.personal-verified-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.personal-verified-row .pi {
+  color: var(--brand-2);
+}
+
+.profile-personal-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.profile-personal-saved {
+  font-family: var(--font-raw);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--brand-2);
 }
 
 .profile-list-page {
@@ -1862,6 +2016,14 @@ a {
   font-size: 0.9rem;
   background: #fff;
   resize: vertical;
+}
+
+.confirm-modal-field .native-input {
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(58, 37, 25, 0.16);
+  background: #fff;
+  padding: 8px 12px;
 }
 
 .confirm-modal-actions {

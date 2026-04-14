@@ -9,6 +9,8 @@ type Screen =
   | "detail"
   | "public-profile"
   | "profile-personal"
+  | "help"
+  | "help-detail"
   | "profile-list"
   | "public-profile-list"
   | "rules"
@@ -133,6 +135,51 @@ const personalEditOpen = ref(false);
 const personalEditField = ref<"firstName" | "lastName" | "email" | "phone" | "address" | null>(null);
 const personalEditValue = ref("");
 const personalPhotoOpen = ref(false);
+
+const helpQuery = ref("");
+const helpSelectedId = ref<string | null>(null);
+const helpFeedback = ref<"yes" | "no" | null>(null);
+
+const helpFaq = [
+  {
+    id: "how-it-works",
+    title: "Jak funguje půjčování?",
+    body: [
+      "Půjčování na naší platformě je navrženo tak, aby bylo co nejjednodušší a nejbezpečnější pro obě strany.",
+      "Celý proces začíná vyhledáním věci, kterou právě potřebujete. Jakmile najdete vhodný předmět, zvolíte si termín a odešlete žádost majiteli.",
+      "Majitel má 24 hodin na to, aby vaši žádost schválil nebo zamítl. Po schválení provedete platbu dle instrukcí a domluvíte si předání.",
+      "Po skončení výpůjčky věc vrátíte majiteli ve stejném stavu a oba můžete přidat vzájemné hodnocení.",
+    ],
+  },
+  {
+    id: "payments",
+    title: "Platební metody",
+    body: [
+      "Platbu lze uhradit převodem/QR nebo kartou (dle dostupnosti v budoucí verzi).",
+      "U převodu vždy uvidíte číslo účtu, částku a poznámku pro příjemce. Po odeslání platby potvrdíte akci v aplikaci.",
+      "Majitel poté platbu potvrdí. Pokud platba není potvrzená do 24 hodin, zobrazí se upozornění a můžete kontaktovat podporu.",
+    ],
+  },
+  {
+    id: "security",
+    title: "Bezpečnost",
+    body: [
+      "Doporučujeme komunikovat a domlouvat předání přímo v aplikaci.",
+      "Při předání si věc prohlédněte a potvrďte převzetí až v momentě, kdy je vše v pořádku.",
+      "Kdykoliv můžete nahlásit problém a podpora vám pomůže situaci dořešit.",
+    ],
+  },
+];
+
+const filteredHelpFaq = computed(() => {
+  const q = helpQuery.value.trim().toLowerCase();
+  if (!q) return helpFaq;
+  return helpFaq.filter((item) => item.title.toLowerCase().includes(q));
+});
+
+const selectedHelpFaq = computed(
+  () => helpFaq.find((item) => item.id === helpSelectedId.value) ?? null,
+);
 
 const personalEditMeta = computed(() => {
   const field = personalEditField.value;
@@ -268,6 +315,8 @@ const screenLabels: Record<Screen, string> = {
   detail: "Detail",
   "public-profile": "Veřejný profil",
   "profile-personal": "Osobní údaje",
+  help: "Nápověda",
+  "help-detail": "Nápověda",
   "profile-list": "Moje nabídky a poptávky",
   "public-profile-list": "Veřejné položky",
   rules: "Pravidla užívání",
@@ -762,7 +811,7 @@ const passwordsMatch = computed(() => {
 
 const registerTermsLabel = "Souhlasím s podmínkami a zpracováním osobních údajů.";
 const authHeading = computed(() =>
-  authMode.value === "login" ? { submitLabel: "Přihlásit se" } : { submitLabel: "Registrovat se" },
+  authMode.value === "login" ? { submitLabel: "Přihlas se do účtu" } : { submitLabel: "Registrovat se" },
 );
 
 function persistAuth(remember: boolean, name: string, email: string) {
@@ -1032,6 +1081,19 @@ function openStatus() {
   requireAuth("status");
 }
 
+function openHelp() {
+  helpQuery.value = "";
+  helpSelectedId.value = null;
+  helpFeedback.value = null;
+  setScreen("help");
+}
+
+function openHelpDetail(id: string) {
+  helpSelectedId.value = id;
+  helpFeedback.value = null;
+  setScreen("help-detail");
+}
+
 function submitAuth() {
   const email = auth.email.trim();
   const password = auth.password.trim();
@@ -1293,7 +1355,7 @@ if (typeof window !== "undefined") {
             v-else
             class="icon-button"
             type="button"
-            aria-label="Přihlásit se"
+            aria-label="Přihlas se"
             @click="openAuth()"
           >
             <i class="pi pi-sign-in"></i>
@@ -1367,7 +1429,7 @@ if (typeof window !== "undefined") {
               </div>
 
               <div class="field">
-                <label for="authEmail">Email</label>
+                <label for="authEmail">E-mail</label>
                 <div class="input-shell">
                   <i class="pi pi-envelope input-icon"></i>
                   <PvInputText
@@ -1463,7 +1525,7 @@ if (typeof window !== "undefined") {
                     <span class="auth-demo-email">{{ profile.email }}</span>
                   </button>
                 </div>
-                <div class="auth-demo-hint">Klikni a rovnou přihlásíme vybraný profil.</div>
+                <div class="auth-demo-hint">Klikni a rovnou přihlasíme vybraný profil.</div>
               </div>
 
               <div class="auth-divider">
@@ -1722,7 +1784,7 @@ if (typeof window !== "undefined") {
           </div>
 
           <section class="market-section">
-            <div class="market-section-head">
+            <div class="market-section
               <h2>Nejbližší nabídky</h2>
             </div>
             <div class="market-card-grid market-card-grid-top">
@@ -2028,7 +2090,7 @@ if (typeof window !== "undefined") {
 
           <div class="detail-sticky-cta">
             <button class="detail-floating-cta" type="button" @click="handlePrimaryCTA">
-              <span>{{ isAuthenticated ? "Půjčit si vercajk" : "Přihlásit a půjčit" }}</span>
+              <span>{{ isAuthenticated ? "Půjčit si vercajk" : "Přihlas se a půjčit" }}</span>
               <i class="pi pi-arrow-right"></i>
             </button>
           </div>
@@ -2607,7 +2669,7 @@ if (typeof window !== "undefined") {
               </div>
             </div>
             <div class="pending-payment-hint">
-              Po odeslání platby potvrďte akci tlačítkem níže. Majitel bude o platbě informován.
+              Po odeslání platby potvrdíte akci tlačítkem níže. Majitel bude o platbě informován.
             </div>
           </div>
 
@@ -2666,75 +2728,6 @@ if (typeof window !== "undefined") {
             <summary>Způsob předání</summary>
             <p>{{ pendingRequest.pickupNote }}</p>
           </details>
-
-          <div
-            v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Čeká na schválení'"
-            class="pending-approval-card"
-          >
-            <strong>Schválení rezervace</strong>
-            <p>Zkontrolujte termín a potvrďte, zda můžete rezervaci přijmout.</p>
-            <div class="pending-approval-actions">
-              <button type="button" class="pending-handover-primary" @click="approvePendingRequest">
-                Schválit rezervaci
-              </button>
-              <button type="button" class="pending-approval-ghost" @click="rejectPendingRequest">
-                Zamítnout
-              </button>
-            </div>
-          </div>
-          <div v-if="confirmApprovalOpen" class="confirm-modal">
-            <button
-              class="confirm-modal-backdrop"
-              type="button"
-              @click="closeConfirmApprovalModal"
-              aria-label="Zavřít potvrzení"
-            ></button>
-            <div class="confirm-modal-card">
-              <p class="confirm-modal-title">Opravdu chceš schválit rezervaci?</p>
-              <p class="confirm-modal-copy">
-                Po schválení dostane nájemce výzvu k platbě a rezervace se posune do dalšího kroku.
-              </p>
-              <div class="confirm-modal-actions">
-                <button type="button" class="confirm-modal-primary" @click="confirmApproval">
-                  Schválit rezervaci
-                </button>
-                <button type="button" class="confirm-modal-ghost" @click="closeConfirmApprovalModal">
-                  Zpět
-                </button>
-              </div>
-            </div>
-          </div>
-          <div v-if="confirmRejectOpen" class="confirm-modal">
-            <button
-              class="confirm-modal-backdrop"
-              type="button"
-              @click="closeConfirmRejectModal"
-              aria-label="Zavřít potvrzení"
-            ></button>
-            <div class="confirm-modal-card">
-              <p class="confirm-modal-title">Opravdu chceš zamítnout rezervaci?</p>
-              <p class="confirm-modal-copy">
-                Po zamítnutí se žádost ukončí a nájemce bude informován o výsledku.
-              </p>
-              <div class="confirm-modal-field">
-                <label for="rejectReason">Důvod zamítnutí</label>
-                <textarea
-                  id="rejectReason"
-                  v-model="rejectReason"
-                  rows="3"
-                  placeholder="Např. termín je obsazený"
-                ></textarea>
-              </div>
-              <div class="confirm-modal-actions">
-                <button type="button" class="confirm-modal-primary" @click="confirmReject">
-                  Zamítnout rezervaci
-                </button>
-                <button type="button" class="confirm-modal-ghost" @click="closeConfirmRejectModal">
-                  Zpět
-                </button>
-              </div>
-            </div>
-          </div>
 
           <div
             v-if="
@@ -3302,7 +3295,7 @@ if (typeof window !== "undefined") {
                 <span>Jazyk</span>
                 <i class="pi pi-chevron-right"></i>
               </button>
-              <button class="profile-list-item" type="button">
+              <button class="profile-list-item" type="button" @click="openHelp">
                 <i class="pi pi-question-circle"></i>
                 <span>Nápověda</span>
                 <i class="pi pi-chevron-right"></i>
@@ -3495,6 +3488,83 @@ if (typeof window !== "undefined") {
             </div>
           </div>
         </div>
+
+        <div v-else-if="screen === 'help'" class="screen-inner profile-page help-page">
+          <div class="help-search">
+            <i class="pi pi-search"></i>
+            <input
+              v-model="helpQuery"
+              class="native-input"
+              type="text"
+              placeholder="Jak ti můžeme pomoci?"
+            />
+          </div>
+
+          <div class="help-section">
+            <span class="help-section-label">Časté dotazy</span>
+            <div class="help-faq">
+              <button
+                v-for="item in filteredHelpFaq"
+                :key="item.id"
+                type="button"
+                class="help-faq-item"
+                @click="openHelpDetail(item.id)"
+              >
+                <span>{{ item.title }}</span>
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="help-contact">
+            <button type="button" class="help-contact-card">
+              <i class="pi pi-comment"></i>
+              <span>Napiš nám</span>
+            </button>
+            <button type="button" class="help-contact-card">
+              <i class="pi pi-phone"></i>
+              <span>Zavolej nám</span>
+            </button>
+          </div>
+        </div>
+
+        <div v-else-if="screen === 'help-detail'" class="screen-inner profile-page help-detail-page">
+          <div class="help-detail">
+            <h1>{{ selectedHelpFaq?.title ?? "Nápověda" }}</h1>
+            <div v-if="selectedHelpFaq" class="help-detail-copy">
+              <p v-for="(paragraph, idx) in selectedHelpFaq.body" :key="`${selectedHelpFaq.id}-${idx}`">
+                {{ paragraph }}
+              </p>
+            </div>
+
+            <div class="help-detail-feedback">
+              <span>Pomohla ti tato odpověď?</span>
+              <div class="help-detail-actions">
+                <button
+                  type="button"
+                  class="help-detail-button"
+                  :class="{ 'is-active': helpFeedback === 'yes' }"
+                  @click="helpFeedback = 'yes'"
+                >
+                  <i class="pi pi-thumbs-up"></i>
+                  Ano
+                </button>
+                <button
+                  type="button"
+                  class="help-detail-button"
+                  :class="{ 'is-active': helpFeedback === 'no' }"
+                  @click="helpFeedback = 'no'"
+                >
+                  <i class="pi pi-thumbs-down"></i>
+                  Ne
+                </button>
+              </div>
+              <button type="button" class="help-detail-link" @click="setScreen('help')">
+                Kontaktovat podporu
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -3507,7 +3577,7 @@ if (typeof window !== "undefined") {
         <i class="pi pi-heart"></i>
         <span>Oblíbené</span>
       </button>
-      <button class="bottom-nav-item bottom-nav-center" type="button" @click="openRequest(selectedListing.id)">
+      <button class="bottom-nav-center" type="button" @click="setScreen('add-listing')">
         <i class="pi pi-plus"></i>
       </button>
       <button class="bottom-nav-item" :class="{ 'is-active': screen === 'status' }" type="button" @click="openStatus">

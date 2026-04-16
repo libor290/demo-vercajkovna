@@ -100,6 +100,15 @@
       </div>
     </div>
 
+    <div v-if="rules.other" class="form-group">
+      <label for="otherRules">Upřesněte pravidla a omezení</label>
+      <textarea
+        id="otherRules"
+        v-model="otherRules"
+        placeholder="Popište pravidla a omezení..."
+      ></textarea>
+    </div>
+
     <button @click="submitListing">Zveřejnit nabídku</button>
   </div>
 </template>

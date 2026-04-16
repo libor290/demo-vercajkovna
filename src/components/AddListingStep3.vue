@@ -34,7 +34,13 @@
         <option value="new">Nový</option>
         <option value="used">Použitý</option>
         <option value="damaged">Poškozený</option>
+        <option value="other">Jiné</option>
       </select>
+    </div>
+
+    <div v-if="condition === 'other'" class="form-group">
+      <label for="otherCondition">Upřesněte stav</label>
+      <input type="text" id="otherCondition" v-model="otherCondition" placeholder="Popište stav..." />
     </div>
 
     <div class="form-group">

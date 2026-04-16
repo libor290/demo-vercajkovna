@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { categories, listings, type Listing } from "@/data/mockData";
 
 type Screen =
@@ -245,14 +245,13 @@ const requestStep = ref<1 | 2 | 3>(1);
 
 type AddListingPhoto = { file: File; url: string };
 type AddListingDraft = {
-  photos: AddListingPhoto[];
+  photoSlots: Array<AddListingPhoto | null>;
   title: string;
   categoryId: string;
   pricePerDay: number;
   depositEnabled: boolean;
   depositAmount: number;
-  availabilityFrom: string;
-  availabilityTo: string;
+  availabilityDays: string[];
   locationMode: "profile" | "custom";
   customAddress: {
     street: string;
@@ -264,12 +263,10 @@ type AddListingDraft = {
   power: string;
   weight: string;
   accessories: string;
-  condition: "new" | "used" | "damaged";
+  condition: "new" | "like_new" | "used_good" | "used_ok" | "worn" | "damaged";
   additionalParams: string;
   pickupMethods: {
     personal: boolean;
-    garage: boolean;
-    delivery: boolean;
     other: boolean;
   };
   rules: {
@@ -282,15 +279,33 @@ type AddListingDraft = {
 };
 
 const addListingStep = ref<1 | 2 | 3>(1);
+const addListingProceedAttempt = ref(false);
+const availabilityMonth = reactive({ year: new Date().getFullYear(), month: new Date().getMonth() }); // 0-indexed
+const availabilityRangeStart = ref<string | null>(null);
+const addListingPhotoInput = ref<HTMLInputElement | null>(null);
+const pendingPhotoSlotIndex = ref(0);
+const draggingPhotoIndex = ref<number | null>(null);
+const dragOverPhotoIndex = ref<number | null>(null);
+const conditionOptions = [
+  { id: "new", label: "Nové", note: "Bez známek použití" },
+  { id: "like_new", label: "Jako nové", note: "Použité minimálně" },
+  { id: "used_good", label: "Velmi dobrý", note: "Běžné použití" },
+  { id: "used_ok", label: "Dobrý", note: "Viditelné známky" },
+  { id: "worn", label: "Opotřebené", note: "Funguje, ale je znát" },
+  { id: "damaged", label: "Poškozené", note: "Jen se slevou / popisem" },
+] as const satisfies ReadonlyArray<{
+  id: AddListingDraft["condition"];
+  label: string;
+  note: string;
+}>;
 const addListingDraft = reactive<AddListingDraft>({
-  photos: [],
+  photoSlots: Array.from({ length: 4 }, () => null),
   title: "",
   categoryId: categories.find((item) => item.id !== "all")?.id ?? "stavba",
   pricePerDay: 0,
   depositEnabled: false,
   depositAmount: 0,
-  availabilityFrom: "",
-  availabilityTo: "",
+  availabilityDays: [],
   locationMode: "profile",
   customAddress: { street: "", city: "", zip: "" },
   brand: "",
@@ -300,7 +315,7 @@ const addListingDraft = reactive<AddListingDraft>({
   accessories: "",
   condition: "new",
   additionalParams: "",
-  pickupMethods: { personal: false, garage: false, delivery: false, other: false },
+  pickupMethods: { personal: false, other: false },
   rules: { noModifications: false, purposeOnly: false, noThirdParty: false, depositForfeit: false, other: false },
 });
 const publishedListingId = ref<string | null>(null);
@@ -410,7 +425,7 @@ const addListingCategoryError = computed(
   () => addListingStep.value === 1 && !addListingDraft.categoryId.trim(),
 );
 const addListingPhotosError = computed(
-  () => addListingStep.value === 1 && addListingDraft.photos.length === 0,
+  () => addListingStep.value === 1 && addListingDraft.photoSlots.every((slot) => !slot),
 );
 const addListingPriceError = computed(
   () => addListingStep.value === 2 && (!Number.isFinite(addListingDraft.pricePerDay) || addListingDraft.pricePerDay <= 0),
@@ -424,8 +439,23 @@ const addListingDepositError = computed(
 const addListingAvailabilityError = computed(
   () =>
     addListingStep.value === 2 &&
-    (!addListingDraft.availabilityFrom.trim() || !addListingDraft.availabilityTo.trim()),
+    addListingDraft.availabilityDays.length === 0,
 );
+const selectedConditionNote = computed(() => {
+  const hit = conditionOptions.find((item) => item.id === addListingDraft.condition);
+  return hit?.note ?? "";
+});
+const selectedConditionLabel = computed(() => {
+  const hit = conditionOptions.find((item) => item.id === addListingDraft.condition);
+  return hit?.label ?? "Vyber stav";
+});
+const selectedConditionDisplay = computed(() => {
+  const label = selectedConditionLabel.value;
+  const note = selectedConditionNote.value;
+  return note ? `${label} - ${note}` : label;
+});
+const conditionDropdownOpen = ref(false);
+const conditionDropdownEl = ref<HTMLElement | null>(null);
 const pendingListing = computed<Listing>(
   () => listings.find((listing) => listing.id === pendingRequest.listingId) ?? listings[0],
 );
@@ -1139,15 +1169,16 @@ function openRequest(id?: string) {
 }
 
 function resetAddListingDraft() {
-  addListingDraft.photos.forEach((photo) => URL.revokeObjectURL(photo.url));
-  addListingDraft.photos = [];
+  addListingDraft.photoSlots.forEach((photo) => {
+    if (photo) URL.revokeObjectURL(photo.url);
+  });
+  addListingDraft.photoSlots = Array.from({ length: 4 }, () => null);
   addListingDraft.title = "";
   addListingDraft.categoryId = categories.find((item) => item.id !== "all")?.id ?? "stavba";
   addListingDraft.pricePerDay = 0;
   addListingDraft.depositEnabled = false;
   addListingDraft.depositAmount = 0;
-  addListingDraft.availabilityFrom = "";
-  addListingDraft.availabilityTo = "";
+  addListingDraft.availabilityDays = [];
   addListingDraft.locationMode = "profile";
   addListingDraft.customAddress.street = "";
   addListingDraft.customAddress.city = "";
@@ -1160,8 +1191,6 @@ function resetAddListingDraft() {
   addListingDraft.condition = "new";
   addListingDraft.additionalParams = "";
   addListingDraft.pickupMethods.personal = false;
-  addListingDraft.pickupMethods.garage = false;
-  addListingDraft.pickupMethods.delivery = false;
   addListingDraft.pickupMethods.other = false;
   addListingDraft.rules.noModifications = false;
   addListingDraft.rules.purposeOnly = false;
@@ -1173,21 +1202,28 @@ function resetAddListingDraft() {
 
 function openAddListing() {
   addListingStep.value = 1;
+  addListingProceedAttempt.value = false;
+  pendingPhotoSlotIndex.value = 0;
+  draggingPhotoIndex.value = null;
+  dragOverPhotoIndex.value = null;
   resetAddListingDraft();
   setScreen("add-listing");
 }
 
 function nextAddListingStep() {
+  addListingProceedAttempt.value = true;
   if (addListingStep.value === 1) {
     if (addListingPhotosError.value || addListingTitleError.value || addListingCategoryError.value) return;
   }
   if (addListingStep.value === 2) {
     if (addListingPriceError.value || addListingDepositError.value || addListingAvailabilityError.value) return;
   }
+  addListingProceedAttempt.value = false;
   addListingStep.value = (addListingStep.value + 1) as 1 | 2 | 3;
 }
 
 function prevAddListingStep() {
+  addListingProceedAttempt.value = false;
   if (addListingStep.value === 1) {
     goBack();
     return;
@@ -1195,23 +1231,157 @@ function prevAddListingStep() {
   addListingStep.value = (addListingStep.value - 1) as 1 | 2 | 3;
 }
 
+const availabilityCalendar = computed(() => {
+  const year = availabilityMonth.year;
+  const month = availabilityMonth.month;
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const mondayStart = (firstDay.getDay() + 6) % 7;
+  const cells = Array.from({ length: 42 }, (_, idx) => {
+    const day = idx - mondayStart + 1;
+    return day > 0 && day <= daysInMonth ? day : null;
+  });
+  const monthNames = [
+    "Leden",
+    "Únor",
+    "Březen",
+    "Duben",
+    "Květen",
+    "Červen",
+    "Červenec",
+    "Srpen",
+    "Září",
+    "Říjen",
+    "Listopad",
+    "Prosinec",
+  ];
+  return { year, month, label: `${monthNames[month]} ${year}`, cells };
+});
+
+function setAvailabilityMonth(delta: number) {
+  const next = new Date(availabilityMonth.year, availabilityMonth.month + delta, 1);
+  availabilityMonth.year = next.getFullYear();
+  availabilityMonth.month = next.getMonth();
+  availabilityRangeStart.value = null;
+}
+
+function toggleAvailabilityDay(day: number) {
+  const month = availabilityMonth.month + 1;
+  const formatted = `${availabilityMonth.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  if (!availabilityRangeStart.value) {
+    const idx = addListingDraft.availabilityDays.indexOf(formatted);
+    if (idx >= 0) {
+      // Single-day toggle off should not arm range selection.
+      addListingDraft.availabilityDays.splice(idx, 1);
+      return;
+    }
+    availabilityRangeStart.value = formatted;
+    addListingDraft.availabilityDays.push(formatted);
+    return;
+  }
+
+  const [sy, sm, sd] = availabilityRangeStart.value.split("-").map((part) => Number(part));
+  const start = new Date(sy, (sm || 1) - 1, sd || 1);
+  const end = new Date(availabilityMonth.year, availabilityMonth.month, day);
+  const from = start <= end ? start : end;
+  const to = start <= end ? end : start;
+
+  const set = new Set(addListingDraft.availabilityDays);
+  for (let cursor = new Date(from); cursor <= to; cursor.setDate(cursor.getDate() + 1)) {
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth() + 1;
+    const d = cursor.getDate();
+    set.add(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+  }
+  const merged = Array.from(set).sort();
+  addListingDraft.availabilityDays.splice(0, addListingDraft.availabilityDays.length, ...merged);
+  availabilityRangeStart.value = null;
+}
+
+function isAvailabilitySelected(day: number) {
+  const month = availabilityMonth.month + 1;
+  const formatted = `${availabilityMonth.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return addListingDraft.availabilityDays.includes(formatted);
+}
+
 function handleAddListingFiles(event: Event) {
   const input = event.target as HTMLInputElement | null;
   const files = input?.files ? Array.from(input.files) : [];
   if (!files.length) return;
   const images = files.filter((file) => file.type.startsWith("image/"));
+  if (!images.length) return;
+
+  let slotIndex = Math.min(3, Math.max(0, pendingPhotoSlotIndex.value));
   images.forEach((file) => {
+    if (slotIndex > 3) return;
     const url = URL.createObjectURL(file);
-    addListingDraft.photos.push({ file, url });
+    const nextPhoto: AddListingPhoto = { file, url };
+    const existing = addListingDraft.photoSlots[slotIndex];
+    if (existing) URL.revokeObjectURL(existing.url);
+    addListingDraft.photoSlots[slotIndex] = nextPhoto;
+    slotIndex += 1;
   });
   if (input) input.value = "";
 }
 
 function removeAddListingPhoto(index: number) {
-  const photo = addListingDraft.photos[index];
+  const photo = addListingDraft.photoSlots[index];
   if (!photo) return;
   URL.revokeObjectURL(photo.url);
-  addListingDraft.photos.splice(index, 1);
+  addListingDraft.photoSlots[index] = null;
+}
+
+function openAddListingPhotoPicker(index: number) {
+  pendingPhotoSlotIndex.value = Math.min(3, Math.max(0, index));
+  addListingPhotoInput.value?.click();
+}
+
+function openAddListingPhotoPickerForFirstEmpty() {
+  const idx = addListingDraft.photoSlots.findIndex((slot) => !slot);
+  openAddListingPhotoPicker(idx === -1 ? 0 : idx);
+}
+
+function setMainAddListingPhoto(index: number) {
+  if (index === 0) return;
+  const photo = addListingDraft.photoSlots[index];
+  if (!photo) return;
+  const first = addListingDraft.photoSlots[0];
+  addListingDraft.photoSlots[0] = photo;
+  addListingDraft.photoSlots[index] = first;
+}
+
+function handlePhotoDragStart(event: DragEvent, index: number) {
+  if (!addListingDraft.photoSlots[index]) return;
+  draggingPhotoIndex.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  }
+}
+
+function handlePhotoDragOver(event: DragEvent, index: number) {
+  if (draggingPhotoIndex.value === null) return;
+  dragOverPhotoIndex.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "move";
+  }
+}
+
+function handlePhotoDrop(index: number) {
+  const from = draggingPhotoIndex.value;
+  if (from === null || from === index) return;
+  const fromPhoto = addListingDraft.photoSlots[from];
+  if (!fromPhoto) return;
+  const toPhoto = addListingDraft.photoSlots[index];
+  addListingDraft.photoSlots[index] = fromPhoto;
+  addListingDraft.photoSlots[from] = toPhoto;
+  draggingPhotoIndex.value = null;
+  dragOverPhotoIndex.value = null;
+}
+
+function handlePhotoDragEnd() {
+  draggingPhotoIndex.value = null;
+  dragOverPhotoIndex.value = null;
 }
 
 function slugifyId(value: string) {
@@ -1272,7 +1442,34 @@ function submitAddListing() {
 }
 
 onBeforeUnmount(() => {
-  addListingDraft.photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+  addListingDraft.photoSlots.forEach((photo) => {
+    if (photo) URL.revokeObjectURL(photo.url);
+  });
+});
+
+function selectCondition(value: AddListingDraft["condition"]) {
+  addListingDraft.condition = value;
+  conditionDropdownOpen.value = false;
+}
+
+function toggleConditionDropdown() {
+  conditionDropdownOpen.value = !conditionDropdownOpen.value;
+}
+
+onMounted(() => {
+  document.addEventListener("pointerdown", onDocPointerDown);
+});
+
+function onDocPointerDown(event: PointerEvent) {
+  const root = conditionDropdownEl.value;
+  if (!root) return;
+  const target = event.target as Node | null;
+  if (target && root.contains(target)) return;
+  conditionDropdownOpen.value = false;
+}
+
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", onDocPointerDown);
 });
 
 function openProfile() {
@@ -3299,275 +3496,378 @@ if (typeof window !== "undefined") {
         </div>
 
         <div v-else-if="screen === 'add-listing'" class="screen-inner">
-          <PvCard class="request-card add-listing-card">
+          <PvCard class="add-flow">
             <template #content>
-              <span class="eyebrow">Nová nabídka</span>
-              <h1 v-if="addListingStep === 1">Základní info</h1>
-              <h1 v-else-if="addListingStep === 2">Nastavení pronájmu</h1>
-              <h1 v-else>Pravidla užívání</h1>
-              <p>Krok {{ addListingStep }} z 3</p>
-
-              <div class="request-steps">
-                <button class="request-step" :class="{ 'is-active': addListingStep === 1 }" type="button">
-                  <span>1</span>
-                  Info
-                </button>
-                <button class="request-step" :class="{ 'is-active': addListingStep === 2 }" type="button">
-                  <span>2</span>
-                  Pronájem
-                </button>
-                <button class="request-step" :class="{ 'is-active': addListingStep === 3 }" type="button">
-                  <span>3</span>
-                  Pravidla
-                </button>
+              <div class="add-flow-header">
+                <div class="add-flow-step-row">
+                  <span class="add-flow-step">Krok {{ addListingStep }} z 3</span>
+                  <span class="add-flow-step-label">
+                    {{
+                      addListingStep === 1
+                        ? "Základní info"
+                        : addListingStep === 2
+                          ? "Nastavení pronájmu"
+                          : "Pravidla užívání"
+                    }}
+                  </span>
+                </div>
+                <div class="add-flow-progress" aria-hidden="true">
+                  <div
+                    class="add-flow-progress-bar"
+                    :style="{ width: `${Math.round((addListingStep / 3) * 100)}%` }"
+                  />
+                </div>
               </div>
 
               <div v-if="addListingStep === 1" class="add-listing-body">
-                <div class="add-listing-photo-block" :class="{ 'is-error': addListingPhotosError }">
-                  <div class="add-listing-photo-head">
-                    <span class="add-listing-label">Fotografie předmětu</span>
-                    <span class="add-listing-hint">Nahraj alespoň 1 fotografii</span>
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Fotografie vercajku</div>
+
+                  <input
+                    ref="addListingPhotoInput"
+                    class="hidden"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    @change="handleAddListingFiles"
+                  />
+
+                  <div class="add-flow-dropzone" :class="{ 'is-error': addListingPhotosError }">
+                    <button
+                      type="button"
+                      class="add-flow-dropzone-inner"
+                      aria-label="Přidat fotky"
+                      @click="openAddListingPhotoPickerForFirstEmpty"
+                    >
+                      <template v-if="addListingDraft.photoSlots[0]">
+                        <img
+                          class="add-flow-dropzone-preview"
+                          :src="addListingDraft.photoSlots[0]?.url"
+                          alt="Hlavní fotografie"
+                          loading="lazy"
+                        />
+                        <div class="add-flow-dropzone-overlay" aria-hidden="true">
+                          <span class="add-flow-dropzone-badge">Hlavní fotka</span>
+                          <span class="add-flow-dropzone-plus add-flow-dropzone-plus-inline">
+                            <i class="pi pi-plus"></i>
+                          </span>
+                        </div>
+                      </template>
+                      <template v-else>
+                        <span class="add-flow-dropzone-plus" aria-hidden="true">
+                          <i class="pi pi-plus"></i>
+                        </span>
+                        <div class="add-flow-dropzone-copy">
+                          <strong>Přidat fotky</strong>
+                          <span>Nahrát alespoň 1 fotografii</span>
+                        </div>
+                      </template>
+                    </button>
+                  </div>
+                  <div v-if="addListingProceedAttempt && addListingPhotosError" class="add-flow-error">
+                    Nahraj alespoň 1 fotografii.
                   </div>
 
-                  <label class="add-listing-photo-picker" aria-label="Přidat fotky">
-                    <input
-                      class="hidden"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      @change="handleAddListingFiles"
-                    />
-                    <span class="add-listing-photo-plus" aria-hidden="true">
-                      <i class="pi pi-plus"></i>
-                    </span>
-                    <strong>Přidat fotky</strong>
-                  </label>
-
-                  <div v-if="addListingDraft.photos.length" class="add-listing-photo-thumbs">
+                  <div class="add-flow-thumbs">
                     <div
-                      v-for="(photo, idx) in addListingDraft.photos.slice(0, 4)"
-                      :key="photo.url"
-                      class="add-listing-thumb"
+                      v-for="idx in 4"
+                      :key="`add-flow-thumb-${idx}`"
+                      class="add-flow-thumb"
+                      :class="{
+                        'is-empty': !addListingDraft.photoSlots[idx - 1],
+                        'is-dragover': dragOverPhotoIndex === idx - 1,
+                        'is-main': idx === 1 && Boolean(addListingDraft.photoSlots[0]),
+                      }"
+                      :draggable="Boolean(addListingDraft.photoSlots[idx - 1])"
+                      @dragstart="handlePhotoDragStart($event, idx - 1)"
+                      @dragover.prevent="handlePhotoDragOver($event, idx - 1)"
+                      @drop.prevent="handlePhotoDrop(idx - 1)"
+                      @dragend="handlePhotoDragEnd"
+                      @click="openAddListingPhotoPicker(idx - 1)"
                     >
-                      <img :src="photo.url" alt="Nahraná fotografie" loading="lazy" />
-                      <button
-                        type="button"
-                        class="add-listing-thumb-remove"
-                        aria-label="Odebrat fotografii"
-                        @click="removeAddListingPhoto(idx)"
-                      >
-                        <i class="pi pi-times"></i>
-                      </button>
-                    </div>
-                    <div v-if="addListingDraft.photos.length > 4" class="add-listing-thumb-more">
-                      +{{ addListingDraft.photos.length - 4 }}
+                      <template v-if="addListingDraft.photoSlots[idx - 1]">
+                        <img :src="addListingDraft.photoSlots[idx - 1]?.url" alt="Nahraná fotografie" loading="lazy" />
+                        <button
+                          type="button"
+                          class="add-flow-thumb-main"
+                          :class="{ 'is-active': idx === 1 }"
+                          :aria-label="idx === 1 ? 'Hlavní fotka' : 'Nastavit jako hlavní'"
+                          @click.stop="setMainAddListingPhoto(idx - 1)"
+                        >
+                          <i :class="['pi', idx === 1 ? 'pi-star-fill' : 'pi-star']"></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="add-flow-thumb-remove"
+                          aria-label="Odebrat fotografii"
+                          @click.stop="removeAddListingPhoto(idx - 1)"
+                        >
+                          <i class="pi pi-times"></i>
+                        </button>
+                      </template>
+                      <template v-else>
+                        <i class="pi pi-image" aria-hidden="true"></i>
+                      </template>
                     </div>
                   </div>
                 </div>
 
-                <label class="field" :class="{ 'is-error': addListingTitleError }">
-                  <span>Název předmětu</span>
-                  <div class="input-shell">
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Název vercajku</div>
+                  <div class="add-flow-input" :class="{ 'is-error': addListingTitleError }">
                     <input
                       v-model="addListingDraft.title"
-                      class="native-input"
+                      class="add-flow-native"
                       type="text"
                       placeholder="Co dnes pronajímáte?"
                     />
                   </div>
-                </label>
+                  <div v-if="addListingProceedAttempt && addListingTitleError" class="add-flow-error">
+                    Vyplň název vercajku.
+                  </div>
+                </div>
 
-                <div class="field" :class="{ 'is-error': addListingCategoryError }">
-                  <span>Kategorie</span>
-                  <div class="chip-row add-listing-chips">
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Kategorie</div>
+                  <div class="add-flow-chips" :class="{ 'is-error': addListingCategoryError }">
                     <button
                       v-for="item in categories.filter((cat) => cat.id !== 'all')"
-                      :key="`add-listing-cat-${item.id}`"
+                      :key="`add-flow-cat-${item.id}`"
                       type="button"
-                      class="chip"
+                      class="add-flow-chip"
                       :class="{ 'is-active': addListingDraft.categoryId === item.id }"
                       @click="addListingDraft.categoryId = item.id"
                     >
-                      <span class="chip-dot" aria-hidden="true"></span>
                       {{ item.label }}
                     </button>
+                  </div>
+                  <div v-if="addListingProceedAttempt && addListingCategoryError" class="add-flow-error">
+                    Vyber kategorii.
                   </div>
                 </div>
               </div>
 
-              <div v-else-if="addListingStep === 2" class="add-listing-body">
-                <div class="request-grid">
-                  <label class="field" :class="{ 'is-error': addListingPriceError }">
-                    <span>Cena za den</span>
-                    <div class="input-shell input-shell-compact">
-                      <input v-model.number="addListingDraft.pricePerDay" class="native-input" type="number" min="0" />
-                      <span class="input-suffix">Kč</span>
-                    </div>
-                  </label>
-
-                  <div class="field" :class="{ 'is-error': addListingDepositError }">
-                    <div class="add-listing-row">
-                      <span>Vratná kauce</span>
-                      <label class="add-listing-toggle">
-                        <input v-model="addListingDraft.depositEnabled" type="checkbox" />
-                        <span aria-hidden="true"></span>
-                      </label>
-                    </div>
-                    <div v-if="addListingDraft.depositEnabled" class="input-shell input-shell-compact">
-                      <input v-model.number="addListingDraft.depositAmount" class="native-input" type="number" min="0" />
-                      <span class="input-suffix">Kč</span>
-                    </div>
+              <div v-else-if="addListingStep === 2" class="add-listing-body add-flow-step2">
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Cena za den</div>
+                  <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingPriceError }">
+                    <input v-model.number="addListingDraft.pricePerDay" class="add-flow-native" type="number" min="0" placeholder="0" />
+                    <span class="add-flow-suffix">Kč</span>
                   </div>
-
-                  <div class="field field-full" :class="{ 'is-error': addListingAvailabilityError }">
-                    <span>Dostupnost pro vypůjčení</span>
-                    <div class="add-listing-dates">
-                      <div class="input-shell input-shell-compact">
-                        <input v-model="addListingDraft.availabilityFrom" class="native-input" type="date" />
-                      </div>
-                      <div class="input-shell input-shell-compact">
-                        <input v-model="addListingDraft.availabilityTo" class="native-input" type="date" />
-                      </div>
-                    </div>
+                  <div v-if="addListingProceedAttempt && addListingPriceError" class="add-flow-error">
+                    Zadej cenu za den (alespoň 1 Kč).
                   </div>
                 </div>
 
-                <div class="add-listing-section">
-                  <span class="add-listing-label">Lokalita předmětu</span>
-                  <div class="add-listing-radio">
-                    <label class="add-listing-radio-item">
+                <div class="add-flow-section">
+                  <div class="add-flow-toggle-head">
+                    <div class="add-flow-section-title">Vratná kauce</div>
+                    <label class="add-flow-toggle">
+                      <input v-model="addListingDraft.depositEnabled" type="checkbox" />
+                      <span aria-hidden="true"></span>
+                    </label>
+                  </div>
+                  <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingDepositError }">
+                    <input
+                      v-model.number="addListingDraft.depositAmount"
+                      class="add-flow-native"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      :disabled="!addListingDraft.depositEnabled"
+                    />
+                    <span class="add-flow-suffix">Kč</span>
+                  </div>
+                  <div v-if="addListingProceedAttempt && addListingDepositError" class="add-flow-error">
+                    Zadej výši kauce (alespoň 1 Kč), nebo ji vypni.
+                  </div>
+                </div>
+
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Dostupnost pro vypůjčení</div>
+                  <div class="add-flow-calendar" :class="{ 'is-error': addListingAvailabilityError }">
+                    <div class="add-flow-calendar-head">
+                      <strong>{{ availabilityCalendar.label }}</strong>
+                      <div class="add-flow-calendar-nav">
+                        <button type="button" class="add-flow-calendar-btn" aria-label="Předchozí měsíc" @click="setAvailabilityMonth(-1)">
+                          <i class="pi pi-chevron-left"></i>
+                        </button>
+                        <button type="button" class="add-flow-calendar-btn" aria-label="Další měsíc" @click="setAvailabilityMonth(1)">
+                          <i class="pi pi-chevron-right"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="add-flow-calendar-week">
+                      <span>Po</span><span>Út</span><span>St</span><span>Čt</span><span>Pá</span><span>So</span><span>Ne</span>
+                    </div>
+                    <div class="add-flow-calendar-grid">
+                      <button
+                        v-for="(cell, idx) in availabilityCalendar.cells"
+                        :key="`avail-cell-${idx}`"
+                        type="button"
+                        class="add-flow-calendar-day"
+                        :class="{ 'is-empty': !cell, 'is-selected': cell && isAvailabilitySelected(cell) }"
+                        :disabled="!cell"
+                        @click="cell && toggleAvailabilityDay(cell)"
+                      >
+                        {{ cell ?? "" }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="add-flow-help">
+                    <span v-if="availabilityRangeStart">Vyberte poslední den rozmezí.</span>
+                    <span v-else>Označte dny, nebo rozmezí: klepněte na první a poslední den.</span>
+                  </div>
+                  <div v-if="addListingProceedAttempt && addListingAvailabilityError" class="add-flow-error">
+                    Vyber aspoň jeden den (nebo rozmezí) v kalendáři.
+                  </div>
+                </div>
+
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Lokalita vercajku</div>
+                  <div class="add-flow-radio">
+                    <label class="add-flow-radio-item">
                       <input v-model="addListingDraft.locationMode" type="radio" value="profile" />
                       <span>Stejná jako v profilu</span>
                     </label>
-                    <label class="add-listing-radio-item">
+                    <label class="add-flow-radio-item">
                       <input v-model="addListingDraft.locationMode" type="radio" value="custom" />
                       <span>Jiná adresa</span>
                     </label>
                   </div>
-                  <div v-if="addListingDraft.locationMode === 'custom'" class="add-listing-address">
-                    <div class="input-shell">
-                      <input v-model="addListingDraft.customAddress.street" class="native-input" type="text" placeholder="Ulice a číslo popisné" />
+                  <div v-if="addListingDraft.locationMode === 'custom'" class="add-flow-address">
+                    <div class="add-flow-input">
+                      <input v-model="addListingDraft.customAddress.street" class="add-flow-native" type="text" placeholder="Ulice a číslo popisné" />
                     </div>
-                    <div class="add-listing-address-row">
-                      <div class="input-shell">
-                        <input v-model="addListingDraft.customAddress.city" class="native-input" type="text" placeholder="Město" />
+                    <div class="add-flow-address-row">
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.customAddress.city" class="add-flow-native" type="text" placeholder="Město" />
                       </div>
-                      <div class="input-shell">
-                        <input v-model="addListingDraft.customAddress.zip" class="native-input" type="text" placeholder="PSČ" />
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.customAddress.zip" class="add-flow-native" type="text" placeholder="PSČ" />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div v-else class="add-listing-body">
-                <div class="add-listing-subhead">Technické parametry</div>
-                <div class="request-grid">
-                  <label class="field">
-                    <span>Značka</span>
-                    <div class="input-shell">
-                      <input v-model="addListingDraft.brand" class="native-input" type="text" placeholder="Např. Bosch, DeWalt..." />
+              <div v-else class="add-listing-body add-flow-step3">
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Technické parametry</div>
+                  <div class="add-flow-grid">
+                    <div class="add-flow-field">
+                      <span>Značka</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.brand" class="add-flow-native" type="text" placeholder="Např. Bosch, DeWalt..." />
+                      </div>
                     </div>
-                  </label>
-                  <label class="field">
-                    <span>Model</span>
-                    <div class="input-shell">
-                      <input v-model="addListingDraft.model" class="native-input" type="text" placeholder="Přesné označení modelu" />
+                    <div class="add-flow-field">
+                      <span>Model</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.model" class="add-flow-native" type="text" placeholder="Přesné označení modelu" />
+                      </div>
                     </div>
-                  </label>
-                  <label class="field">
-                    <span>Výkon</span>
-                    <div class="input-shell">
-                      <input v-model="addListingDraft.power" class="native-input" type="text" placeholder="Např. 1500W, 18V..." />
+                    <div class="add-flow-field">
+                      <span>Výkon</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.power" class="add-flow-native" type="text" placeholder="Např. 1500W, 18V..." />
+                      </div>
                     </div>
-                  </label>
-                  <label class="field">
-                    <span>Hmotnost</span>
-                    <div class="input-shell">
-                      <input v-model="addListingDraft.weight" class="native-input" type="text" placeholder="Např. 2.5 kg" />
+                    <div class="add-flow-field">
+                      <span>Hmotnost</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.weight" class="add-flow-native" type="text" placeholder="Např. 2.5 kg" />
+                      </div>
                     </div>
-                  </label>
-                  <label class="field field-full">
-                    <span>Příslušenství</span>
-                    <div class="input-shell">
-                      <input v-model="addListingDraft.accessories" class="native-input" type="text" placeholder="Např. kufr, náhradní baterie..." />
+                    <div class="add-flow-field add-flow-field-full">
+                      <span>Příslušenství</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." />
+                      </div>
                     </div>
-                  </label>
-                  <label class="field">
-                    <span>Stav</span>
-                    <div class="input-shell">
-                      <select v-model="addListingDraft.condition" class="native-input">
-                        <option value="new">Nový</option>
-                        <option value="used">Použitý</option>
-                        <option value="damaged">Poškozený</option>
-                      </select>
+                    <div class="add-flow-field">
+                      <span>Stav</span>
+                      <div ref="conditionDropdownEl" class="add-flow-dropdown" :class="{ 'is-open': conditionDropdownOpen }">
+                        <button
+                          type="button"
+                          class="add-flow-input add-flow-dropdown-trigger"
+                          aria-label="Stav vercajku"
+                          :aria-expanded="conditionDropdownOpen ? 'true' : 'false'"
+                          @click="toggleConditionDropdown"
+                        >
+                          <span class="add-flow-dropdown-value">{{ selectedConditionDisplay }}</span>
+                          <i class="pi pi-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div v-if="conditionDropdownOpen" class="add-flow-dropdown-menu" role="listbox" aria-label="Vyber stav">
+                          <button
+                            v-for="option in conditionOptions"
+                            :key="`condition-opt-${option.id}`"
+                            type="button"
+                            class="add-flow-dropdown-option"
+                            :class="{ 'is-active': addListingDraft.condition === option.id }"
+                            role="option"
+                            @click="selectCondition(option.id)"
+                          >
+                            {{ option.label }} - {{ option.note }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </label>
-                  <label class="field field-full">
-                    <span>Další parametry</span>
-                    <div class="input-shell input-shell-textarea">
-                      <textarea v-model="addListingDraft.additionalParams" class="native-input native-textarea" rows="4" placeholder="Výkon, rozměry, hmotnost nebo jiné důležité specifikace..."></textarea>
+                    <div class="add-flow-field add-flow-field-full">
+                      <span>Další parametry</span>
+                      <div class="add-flow-input add-flow-input-textarea">
+                        <textarea v-model="addListingDraft.additionalParams" class="add-flow-native" rows="4" placeholder="Výkon, rozměry, hmotnost nebo jiné důležité specifikace..."></textarea>
+                      </div>
                     </div>
-                  </label>
+                  </div>
                 </div>
 
-                <div class="add-listing-subhead">Způsob vyzvednutí</div>
-                <div class="add-listing-checklist">
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.pickupMethods.personal" type="checkbox" />
-                    <span>Osobní předání</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.pickupMethods.garage" type="checkbox" />
-                    <span>Garáž s kódem</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.pickupMethods.delivery" type="checkbox" />
-                    <span>Doručení</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.pickupMethods.other" type="checkbox" />
-                    <span>Jiné</span>
-                  </label>
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Způsob vyzvednutí</div>
+                  <div class="add-flow-checklist">
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.pickupMethods.personal" type="checkbox" />
+                      <span>Osobní vyzvednutí</span>
+                    </label>
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.pickupMethods.other" type="checkbox" />
+                      <span>Jiné</span>
+                    </label>
+                  </div>
                 </div>
 
-                <div class="add-listing-subhead">Pravidla a omezení</div>
-                <div class="add-listing-checklist">
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.rules.noModifications" type="checkbox" />
-                    <span>Zákaz provádění jakýchkoliv úprav na předmětu.</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.rules.purposeOnly" type="checkbox" />
-                    <span>Užívání pouze pro účely, ke kterým je předmět určen.</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.rules.noThirdParty" type="checkbox" />
-                    <span>Zákaz pronájmu třetím stranám.</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.rules.depositForfeit" type="checkbox" />
-                    <span>Propadnutí kauce v případě jakéhokoliv poškození.</span>
-                  </label>
-                  <label class="add-listing-check">
-                    <input v-model="addListingDraft.rules.other" type="checkbox" />
-                    <span>Jiné</span>
-                  </label>
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Pravidla a omezení</div>
+                  <div class="add-flow-checklist">
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.rules.noModifications" type="checkbox" />
+                      <span>Zákaz provádění jakýchkoliv úprav na vercajku.</span>
+                    </label>
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.rules.purposeOnly" type="checkbox" />
+                      <span>Užívání pouze pro účely, ke kterým je vercajk určen.</span>
+                    </label>
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.rules.noThirdParty" type="checkbox" />
+                      <span>Zákaz pronájmu třetím stranám.</span>
+                    </label>
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.rules.depositForfeit" type="checkbox" />
+                      <span>Propadnutí kauce v případě jakéhokoliv poškození.</span>
+                    </label>
+                    <label class="add-flow-check">
+                      <input v-model="addListingDraft.rules.other" type="checkbox" />
+                      <span>Jiné</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div class="request-actions">
-                <PvButton class="button-secondary" @click="prevAddListingStep">
-                  Zpět
-                </PvButton>
-                <PvButton v-if="addListingStep < 3" class="button-primary" @click="nextAddListingStep">
-                  Pokračovat
-                  <i class="pi pi-arrow-right"></i>
-                </PvButton>
-                <PvButton v-else class="button-primary" @click="submitAddListing">
-                  Zveřejnit nabídku
-                  <i class="pi pi-check"></i>
-                </PvButton>
+              <div class="add-flow-cta">
+                <button type="button" class="add-flow-cta-primary" @click="addListingStep < 3 ? nextAddListingStep() : submitAddListing()">
+                  {{ addListingStep < 3 ? "Pokračovat" : "Zveřejnit nabídku" }}
+                </button>
+                <button type="button" class="add-flow-cta-ghost" @click="prevAddListingStep">Zpět</button>
               </div>
             </template>
           </PvCard>

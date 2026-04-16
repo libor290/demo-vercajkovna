@@ -22,6 +22,7 @@ export const categories = [
   { id: "dilna", label: "Dílna" },
   { id: "udrzba", label: "Údržba" },
   { id: "mereni", label: "Měření" },
+  { id: "ostatni", label: "Ostatní" },
 ];
 
 export const listings: Listing[] = [

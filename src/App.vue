@@ -11,6 +11,9 @@ type Screen =
   | "add-listing-confirmation"
   | "public-profile"
   | "profile-personal"
+  | "profile-payments"
+  | "profile-security"
+  | "profile-language"
   | "help"
   | "help-detail"
   | "profile-list"
@@ -18,6 +21,7 @@ type Screen =
   | "rules"
   | "payment"
   | "payment-bank"
+  | "payment-card"
   | "confirmation"
   | "cancel-confirmation"
   | "payment-confirmation"
@@ -226,6 +230,7 @@ const search = ref("");
 const category = ref<string>("all");
 const filtersOpen = ref(false);
 const filtersAdvancedOpen = ref(false);
+const searchExpanded = ref(false);
 const filters = reactive({
   location: "",
   minPrice: 0,
@@ -320,6 +325,39 @@ const addListingDraft = reactive<AddListingDraft>({
   rules: { noModifications: false, purposeOnly: false, noThirdParty: false, depositForfeit: false, other: false, otherDescription: "" },
   });const publishedListingId = ref<string | null>(null);
 const paymentMethod = ref<"bank" | "card" | null>(null);
+const cardForm = reactive({
+  subMethod: "card" as "card" | "apple" | "google",
+  savedCards: [
+    { id: "c1", brand: "Visa", last4: "4242", expiry: "12/26", isDefault: true },
+    { id: "c2", brand: "Mastercard", last4: "8888", expiry: "09/25", isDefault: false },
+  ],
+  selectedCardId: "c1",
+  isSelectorOpen: false,
+  isProcessing: false,
+});
+
+function openPaymentCard() {
+  cardForm.isProcessing = false;
+  setScreen("payment-card");
+}
+
+function fillTestData() {
+  cardForm.number = "4242 4242 4242 4242";
+  cardForm.expiry = "12/26";
+  cardForm.cvc = "123";
+  cardForm.name = "TOMÁŠ TESTER";
+}
+
+function submitCardPayment() {
+  cardForm.isProcessing = true;
+  // Simulace zpracování platby
+  setTimeout(() => {
+    cardForm.isProcessing = false;
+    pendingRequest.statusLabel = "Platba potvrzena - od majitele";
+    setScreen("payment-confirmation");
+  }, 2000);
+}
+
 const agreeTerms = ref(false);
 const showCalendar = ref(false);
 const cancelPendingRequestOpen = ref(false);
@@ -396,8 +434,12 @@ const screenLabels: Record<Screen, string> = {
   "add-listing-confirmation": "Hotovo",
   "public-profile": "Veřejný profil",
   "profile-personal": "Osobní údaje",
+  "profile-payments": "Platební metody",
+  "profile-security": "Zabezpečení",
+  "profile-language": "Jazyk a měna",
   help: "Nápověda",
   "help-detail": "Nápověda",
+  "help-contact": "Napište nám",
   "profile-list": "Moje nabídky a poptávky",
   "public-profile-list": "Veřejné položky",
   rules: "Pravidla užívání",
@@ -412,6 +454,8 @@ const screenLabels: Record<Screen, string> = {
   request: "Žádost",
   status: "Stav",
   profile: "Profil",
+  "payment-bank": "Rezervace",
+  "payment-card": "Rezervace",
 };
 
 const selectedListing = computed<Listing>(
@@ -839,7 +883,7 @@ const priceSummary = computed(() => {
 const filteredListings = computed(() => {
   const query = search.value.trim().toLowerCase();
   const locationQuery = filters.location.trim().toLowerCase();
-  return listings.filter((listing) => {
+  let result = listings.filter((listing) => {
     const matchesCategory = category.value === "all" || listing.category === category.value;
     const matchesQuery =
       !query ||
@@ -867,6 +911,16 @@ const filteredListings = computed(() => {
       matchesRating
     );
   });
+
+  if (filters.sortBy === "price_asc") {
+    result.sort((a, b) => a.priceValue - b.priceValue);
+  } else if (filters.sortBy === "price_desc") {
+    result.sort((a, b) => b.priceValue - a.priceValue);
+  } else if (filters.sortBy === "rating") {
+    result.sort((a, b) => b.rating - a.rating);
+  }
+
+  return result;
 });
 
 const categoryButtons = computed(() =>
@@ -909,7 +963,7 @@ function toggleFavorite(id: string) {
   persistFavorites(next);
 }
 
-const featuredListings = computed(() => filteredListings.value.slice(0, 2));
+const featuredListings = computed(() => filteredListings.value.slice(0, 6));
 const allMarketplaceListings = computed(() => filteredListings.value);
 const marketResultsCount = computed(() => filteredListings.value.length);
 const activeFilterCount = computed(() => {
@@ -1213,13 +1267,13 @@ function resetAddListingDraft() {
 }
 
 function openAddListing() {
+  if (!requireAuth("add-listing")) return;
   addListingStep.value = 1;
   addListingProceedAttempt.value = false;
   pendingPhotoSlotIndex.value = 0;
   draggingPhotoIndex.value = null;
   dragOverPhotoIndex.value = null;
   resetAddListingDraft();
-  setScreen("add-listing");
 }
 
 function nextAddListingStep() {
@@ -1232,6 +1286,8 @@ function nextAddListingStep() {
   }
   if (addListingStep.value === 3) {
     if (addListingOtherRuleError.value || addListingOtherPickupError.value) return;
+    submitAddListing();
+    return;
   }
   addListingProceedAttempt.value = false;
   addListingStep.value = (addListingStep.value + 1) as 1 | 2 | 3;
@@ -1493,15 +1549,171 @@ function openProfile() {
 }
 
 function openProfilePersonal() {
+  if (!requireAuth("profile-personal")) return;
   const currentParts = user.name.trim().split(/\s+/);
   personal.firstName = personal.firstName || currentParts[0] || "";
   personal.lastName = personal.lastName || currentParts.slice(1).join(" ");
   personal.email = user.email;
-  setScreen("profile-personal");
 }
 
+function openProfilePayments() {
+  if (!requireAuth("profile-payments")) return;
+  setScreen("profile-payments");
+}
+
+const cardToDelete = ref<string | null>(null);
+const confirmLogoutAllOpen = ref(false);
+
+function requestLogoutAll() {
+  confirmLogoutAllOpen.value = true;
+}
+
+function confirmLogoutAll() {
+  confirmLogoutAllOpen.value = false;
+  logout();
+}
+
+function requestRemoveCard(cardId: string) {
+  cardToDelete.value = cardId;
+}
+
+function confirmRemoveCard() {
+  if (cardToDelete.value) {
+    removeCard(cardToDelete.value);
+    cardToDelete.value = null;
+  }
+}
+
+function removeCard(cardId: string) {
+  cardForm.savedCards = cardForm.savedCards.filter(c => c.id !== cardId);
+  if (cardForm.selectedCardId === cardId && cardForm.savedCards.length > 0) {
+    cardForm.selectedCardId = cardForm.savedCards[0].id;
+  }
+}
+
+const isAddingCard = ref(false);
+const newCardData = reactive({
+  number: "",
+  expiry: "",
+  cvc: ""
+});
+
+function addNewCard() {
+  if (!newCardData.number || !newCardData.expiry) return;
+  const brand = newCardData.number.startsWith('4') ? 'Visa' : 'Mastercard';
+  const last4 = newCardData.number.slice(-4);
+  const id = 'c' + Date.now();
+  
+  cardForm.savedCards.push({
+    id,
+    brand,
+    last4,
+    expiry: newCardData.expiry,
+    isDefault: cardForm.savedCards.length === 0
+  });
+  
+  newCardData.number = "";
+  newCardData.expiry = "";
+  newCardData.cvc = "";
+  isAddingCard.value = false;
+}
+
+function openProfileSecurity() {
+  if (!requireAuth("profile-security")) return;
+  setScreen("profile-security");
+}
+
+const securityForm = reactive({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+  twoFactorEnabled: false,
+  twoFactorStep: 1, // 1: password, 2: method, 3: setup, 4: success
+  twoFactorMethod: "app" as "app" | "sms",
+  twoFactorPassword: "",
+  twoFactorPhone: "",
+  twoFactorCode: "",
+  isSetupOpen: false,
+  isChangingPassword: false
+});
+const showSecurityPasswords = ref(false);
+
+const securityPasswordRules = computed(() => {
+  const value = securityForm.newPassword;
+  return [
+    { label: "Min. 8 znaků", ok: value.length >= 8 },
+    { label: "Velké písmeno", ok: /[A-Z]/.test(value) },
+    { label: "Malé písmeno", ok: /[a-z]/.test(value) },
+    { label: "Číslice", ok: /[0-9]/.test(value) },
+  ];
+});
+
+function changePassword() {
+  const failedRule = securityPasswordRules.value.find((rule) => !rule.ok);
+  if (failedRule || !securityForm.newPassword || securityForm.newPassword !== securityForm.confirmPassword) {
+    alert("Heslo nesplňuje všechny požadavky nebo se neshoduje s potvrzením.");
+    return;
+  }
+  securityForm.isChangingPassword = true;
+  setTimeout(() => {
+    securityForm.isChangingPassword = false;
+    securityForm.currentPassword = "";
+    securityForm.newPassword = "";
+    securityForm.confirmPassword = "";
+    alert("Heslo bylo úspěšně změněno.");
+  }, 1500);
+}
+
+function start2FASetup() {
+  securityForm.twoFactorStep = 1;
+  securityForm.twoFactorPassword = "";
+  securityForm.twoFactorPhone = "";
+  securityForm.twoFactorCode = "";
+  securityForm.isSetupOpen = true;
+}
+
+function verify2FAPassword() {
+  if (securityForm.twoFactorPassword === "demo1234") {
+    securityForm.twoFactorStep = 2;
+  } else {
+    alert("Nesprávné heslo (zkuste demo1234)");
+  }
+}
+
+function select2FAMethod(method: "app" | "sms") {
+  securityForm.twoFactorMethod = method;
+  securityForm.twoFactorStep = 3;
+}
+
+function complete2FASetup() {
+  if (securityForm.twoFactorCode.length === 6) {
+    securityForm.twoFactorStep = 4;
+    securityForm.twoFactorEnabled = true;
+  } else {
+    alert("Zadejte platný 6místný kód.");
+  }
+}
+
+function close2FASetup() {
+  securityForm.isSetupOpen = false;
+}
+
+function disable2FA() {
+  securityForm.twoFactorEnabled = false;
+}
+
+function openProfileLanguage() {
+  if (!requireAuth("profile-language")) return;
+  setScreen("profile-language");
+}
+
+const settings = reactive({
+  language: "cz",
+  currency: "CZK"
+});
+
 function openFavorites() {
-  setScreen("favorites");
+  requireAuth("favorites");
 }
 
 function openRules() {
@@ -1525,6 +1737,29 @@ function openHelp() {
   helpSelectedId.value = null;
   helpFeedback.value = null;
   setScreen("help");
+}
+
+const contactForm = reactive({
+  topic: "Průběh výpůjčky",
+  message: "",
+  isSending: false
+});
+
+function openHelpContact() {
+  contactForm.topic = "Průběh výpůjčky";
+  contactForm.message = "";
+  contactForm.isSending = false;
+  setScreen("help-contact");
+}
+
+function submitContact() {
+  if (!contactForm.message.trim()) return;
+  contactForm.isSending = true;
+  setTimeout(() => {
+    contactForm.isSending = false;
+    alert("Vaše zpráva byla odeslána. Brzy se vám ozveme!");
+    setScreen("help");
+  }, 1500);
 }
 
 function openHelpDetail(id: string) {
@@ -1718,6 +1953,7 @@ function toggleFilters() {
 }
 
 function openSearchFilters() {
+  searchExpanded.value = true;
   if (window.matchMedia("(max-width: 720px)").matches) {
     filtersOpen.value = true;
   }
@@ -1767,7 +2003,6 @@ if (typeof window !== "undefined") {
         screen !== 'pending-request' &&
         screen !== 'rules' &&
         screen !== 'payment' &&
-        screen !== 'payment-bank' &&
         screen !== 'confirmation'
       "
       class="topbar topbar-app"
@@ -2027,7 +2262,7 @@ if (typeof window !== "undefined") {
             </div>
 
             <div class="market-page-controls">
-              <div class="market-search-shell market-search-shell-hero" @click="openSearchFilters">
+              <div class="market-search-shell market-search-shell-hero" @mousedown.capture="openSearchFilters" @click.capture="openSearchFilters">
                 <i class="pi pi-search"></i>
                 <PvInputText
                   v-model="search"
@@ -2038,7 +2273,7 @@ if (typeof window !== "undefined") {
               </div>
             </div>
 
-            <div class="market-primary-filters" aria-label="Hlavní filtry">
+            <div v-show="searchExpanded" class="market-primary-filters" aria-label="Hlavní filtry">
               <label class="market-primary-field">
                 <span>Lokalita</span>
                 <div class="market-primary-input">
@@ -2080,7 +2315,7 @@ if (typeof window !== "undefined") {
             </button>
           </div>
 
-            <div class="market-filter-shell">
+            <div v-show="searchExpanded" class="market-filter-shell">
             <div class="market-filter-panel" :class="{ 'is-open': filtersOpen }">
               <div class="market-filter-panel-mobile-top">
                 <div class="market-search-shell market-search-shell-overlay">
@@ -2102,31 +2337,38 @@ if (typeof window !== "undefined") {
                 </button>
               </div>
 
-              <div class="market-filter-panel-head">
-                <div>
-                  <span class="market-filter-kicker">Filtry</span>
-                  <strong>Upřesni nabídky</strong>
-                </div>
-                <div class="market-filter-panel-head-actions">
-                  <button class="market-filter-reset" type="button" @click="toggleAdvancedFilters">
-                    {{ filtersAdvancedOpen ? "Méně" : "Více možností" }}
-                  </button>
-                  <button class="market-filter-reset" type="button" @click="resetFilters">Resetovat</button>
+              <div class="market-filter-panel-head" style="display:flex; align-items:center; justify-content:space-between;">
+                <strong>Upřesni nabídky</strong>
+                <button class="market-filter-reset" type="button" @click="resetFilters">Resetovat</button>
+              </div>
+
+              <div class="market-filter-section">
+                <span class="market-filter-group-label">Řadit podle</span>
+                <div class="input-shell" style="margin-top: 8px; display: grid; grid-template-columns: 1fr auto; align-items: center;">
+                  <select v-model="filters.sortBy" class="auth-input" style="appearance: none; background: transparent; border: 0; width: 100%; font-weight: 600; color: var(--brand); grid-column: 1;">
+                    <option value="newest">Nejnovější</option>
+                    <option value="price_asc">Nejlevnější</option>
+                    <option value="price_desc">Nejdražší</option>
+                    <option value="rating">Nejlépe hodnocené</option>
+                  </select>
+                  <i class="pi pi-chevron-down" style="font-size: 0.8rem; opacity: 0.5; grid-column: 2;"></i>
                 </div>
               </div>
 
-              <div class="market-filter-quick">
-                <button
-                  v-for="item in categoryButtons"
-                  :key="`filter-${item.id}`"
-                  class="market-filter-chip"
-                  :class="{ 'is-active': category === item.id }"
-                  type="button"
-                  @click="noteCategorySelected(item.id)"
-                >
-                  {{ item.label }}
-                </button>
-              </div>
+              <div class="market-filter-section">
+                <span class="market-filter-group-label">Kategorie</span>
+                <div class="market-filter-quick">
+                  <button
+                    v-for="item in categoryButtons"
+                    :key="item.id"
+                    class="market-filter-chip"
+                    :class="{ 'is-active': category === item.id }"
+                    type="button"
+                    @click="category = item.id"
+                  >
+                    {{ item.label }}
+                  </button>
+                </div>
 
               <div class="market-filter-grid">
                 <label class="field filter-field">
@@ -2225,6 +2467,7 @@ if (typeof window !== "undefined") {
                 </button>
               </div>
             </div>
+            </div>
           </div>
 
           <section class="market-section">
@@ -2238,7 +2481,9 @@ if (typeof window !== "undefined") {
                 class="market-item-card"
                 @click="openListing(listing.id)"
               >
-                <div class="market-item-thumb" aria-hidden="true"></div>
+                <div class="market-item-thumb" aria-hidden="true">
+                  <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
+                </div>
                 <button
                   class="market-item-favorite"
                   :class="{ 'is-active': isFavorite(listing.id) }"
@@ -2255,9 +2500,6 @@ if (typeof window !== "undefined") {
                   <p class="market-item-location">{{ listing.location }} • {{ listing.distance }}</p>
                   <div class="market-item-meta">
                     <span class="market-item-price">{{ listing.price }}</span>
-                    <span class="market-item-status" :class="{ 'is-green': !listing.depositRequired }">
-                      {{ listing.depositRequired ? "Záloha" : "Bez zálohy" }}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -2267,9 +2509,6 @@ if (typeof window !== "undefined") {
           <section class="market-section">
             <div class="market-section-head market-section-head-row">
               <h2>Všechny nabídky</h2>
-              <div class="market-section-actions">
-                <button class="market-filter-btn" type="button">Řadit</button>
-              </div>
             </div>
             <div class="market-card-grid">
               <div
@@ -2278,7 +2517,9 @@ if (typeof window !== "undefined") {
                 class="market-item-card"
                 @click="openListing(listing.id)"
               >
-                <div class="market-item-thumb" aria-hidden="true"></div>
+                <div class="market-item-thumb" aria-hidden="true">
+                  <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
+                </div>
                 <button
                   class="market-item-favorite"
                   :class="{ 'is-active': isFavorite(listing.id) }"
@@ -2295,9 +2536,6 @@ if (typeof window !== "undefined") {
                   <p class="market-item-location">{{ listing.location }} • {{ listing.distance }}</p>
                   <div class="market-item-meta">
                     <span class="market-item-price">{{ listing.price }}</span>
-                    <span class="market-item-status" :class="{ 'is-green': !listing.depositRequired }">
-                      {{ listing.depositRequired ? "Záloha" : "Bez zálohy" }}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -2614,8 +2852,8 @@ if (typeof window !== "undefined") {
           <div class="detail-hero">
             <div class="detail-hero-copy">
               <span class="eyebrow">Platba</span>
-              <h1>Vyber způsob platby</h1>
-              <p>Jen pro interní test flow. Vybereme, kudy půjde platba.</p>
+              <h1>Zvolte platbu</h1>
+              <p>Slouží pro interní účely, pro flow procesu</p>
             </div>
           </div>
 
@@ -2658,7 +2896,7 @@ if (typeof window !== "undefined") {
             <PvButton
               class="button-primary"
               :disabled="!paymentMethod"
-              @click="paymentMethod === 'bank' ? openPaymentBank() : openRequest(selectedListing.id)"
+              @click="paymentMethod === 'bank' ? openPaymentBank() : openPaymentCard()"
             >
               Pokračovat
               <i class="pi pi-arrow-right"></i>
@@ -2666,14 +2904,153 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'payment-bank'" class="screen-inner payment-page">
-          <div class="reservation-header">
-            <button class="reservation-back" type="button" aria-label="Zpět" @click="goBack">
-              <i class="pi pi-arrow-left"></i>
-            </button>
-            <strong>Rezervace</strong>
+        <div v-else-if="screen === 'payment-card'" class="screen-inner payment-page">
+          <!-- Identický přehled jako u převodu -->
+          <div class="reservation-card">
+            <div class="reservation-thumb" aria-hidden="true"></div>
+            <div>
+              <strong>{{ selectedListing.title }}</strong>
+              <span>{{ selectedListing.priceValue }} Kč / den</span>
+            </div>
           </div>
 
+          <div class="reservation-section">
+            <strong>Vybrané datum</strong>
+            <div class="calendar-summary">
+              <div class="calendar-summary-row">
+                <span>{{ requestDate || "Nevybráno" }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="reservation-summary">
+            <div>
+              <span>Cena za den</span>
+              <strong>{{ priceSummary.daily }} Kč</strong>
+            </div>
+            <div>
+              <span>Počet dní</span>
+              <strong>{{ priceSummary.days }} dny</strong>
+            </div>
+            <div>
+              <span>Servisní poplatek</span>
+              <strong>{{ priceSummary.serviceFee }} Kč</strong>
+            </div>
+            <div>
+              <span>Vratná kauce</span>
+              <strong>{{ priceSummary.deposit }} Kč</strong>
+            </div>
+            <div class="reservation-total">
+              <span>Celkem</span>
+              <strong>{{ priceSummary.total }} Kč</strong>
+            </div>
+          </div>
+
+          <!-- Volba konkrétní metody -->
+          <div class="reservation-section" style="margin-top: 24px;">
+            <strong>Způsob platby kartou</strong>
+            <div class="payment-method-selector" style="margin-top: 12px;">
+              <button 
+                type="button" 
+                class="method-pill" 
+                :class="{ 'is-active': cardForm.subMethod === 'card' }"
+                @click="cardForm.subMethod = 'card'"
+              >
+                <i class="pi pi-credit-card"></i>
+                Karta
+              </button>
+              <button 
+                type="button" 
+                class="method-pill" 
+                :class="{ 'is-active': cardForm.subMethod === 'apple' }"
+                @click="cardForm.subMethod = 'apple'"
+              >
+                <i class="pi pi-apple"></i>
+                Apple Pay
+              </button>
+              <button 
+                type="button" 
+                class="method-pill" 
+                :class="{ 'is-active': cardForm.subMethod === 'google' }"
+                @click="cardForm.subMethod = 'google'"
+              >
+                <i class="pi pi-google"></i>
+                Google Pay
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamický formulář podle volby -->
+          <div class="card-checkout-form" style="margin-top: 10px;">
+            <template v-if="cardForm.subMethod === 'card'">
+              <div class="saved-card-selector">
+                <!-- Selected Card (Trigger) -->
+                <button 
+                  type="button" 
+                  class="selected-card-display" 
+                  @click="cardForm.isSelectorOpen = !cardForm.isSelectorOpen"
+                >
+                  <div class="card-info-main">
+                    <i :class="['pi', cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.brand === 'Visa' ? 'pi-credit-card' : 'pi-credit-card']" style="font-size: 1.2rem;"></i>
+                    <div class="card-text">
+                      <strong>{{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.brand }} •••• {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.last4 }}</strong>
+                      <span>Platnost {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.expiry }}</span>
+                    </div>
+                  </div>
+                  <i class="pi" :class="cardForm.isSelectorOpen ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+                </button>
+
+                <!-- Expanded List -->
+                <div v-if="cardForm.isSelectorOpen" class="card-options-list">
+                  <button 
+                    v-for="card in cardForm.savedCards" 
+                    :key="card.id"
+                    type="button"
+                    class="card-option-item"
+                    :class="{ 'is-selected': cardForm.selectedCardId === card.id }"
+                    @click="cardForm.selectedCardId = card.id; cardForm.isSelectorOpen = false;"
+                  >
+                    <div class="card-option-info">
+                       <i class="pi pi-credit-card"></i>
+                       <span>{{ card.brand }} •••• {{ card.last4 }}</span>
+                    </div>
+                    <i v-if="cardForm.selectedCardId === card.id" class="pi pi-check" style="color: var(--brand-2);"></i>
+                  </button>
+                  
+                  <button type="button" class="add-new-card-link" @click="openProfilePersonal">
+                    <i class="pi pi-plus-circle"></i>
+                    <span>Spravovat karty v profilu</span>
+                  </button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="express-payment-placeholder" style="padding: 24px;">
+                <div class="express-icon">
+                  <i :class="['pi', cardForm.subMethod === 'apple' ? 'pi-apple' : 'pi-google']"></i>
+                </div>
+                <p>Platba bude potvrzena pomocí {{ cardForm.subMethod === 'apple' ? 'FaceID' : 'Google Pay' }}</p>
+              </div>
+            </template>
+          </div>
+
+          <label class="reservation-terms" style="margin-top: 20px;">
+            <PvCheckbox v-model="agreeTerms" binary />
+            <span>Souhlasím s pravidly užívání a platbou.</span>
+          </label>
+
+          <button
+            class="reservation-submit"
+            style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 16px;"
+            :disabled="!agreeTerms || cardForm.isProcessing"
+            @click="submitCardPayment"
+          >
+            <i v-if="cardForm.isProcessing" class="pi pi-spin pi-spinner"></i>
+            <span>{{ cardForm.isProcessing ? 'Platba probíhá...' : 'Zaplatit ' + priceSummary.total + ' Kč' }}</span>
+          </button>
+        </div>
+
+        <div v-else-if="screen === 'payment-bank'" class="screen-inner payment-page">
           <div class="reservation-card">
             <div class="reservation-thumb" aria-hidden="true"></div>
             <div>
@@ -3531,8 +3908,7 @@ if (typeof window !== "undefined") {
                   <div
                     class="add-flow-progress-bar"
                     :style="{ width: `${Math.round((addListingStep / 3) * 100)}%` }"
-                  />
-                </div>
+                  />                </div>
               </div>
 
               <div v-if="addListingStep === 1" class="add-listing-body">
@@ -3899,8 +4275,8 @@ if (typeof window !== "undefined") {
               </div>
 
               <div class="add-flow-cta">
-                <button type="button" class="add-flow-cta-primary" @click="addListingStep < 3 ? nextAddListingStep() : submitAddListing()">
-                  {{ addListingStep < 3 ? "Pokračovat" : "Zveřejnit nabídku" }}
+                <button type="button" class="add-flow-cta-primary" @click="nextAddListingStep">
+                  {{ addListingStep === 3 ? "Zveřejnit nabídku" : "Pokračovat" }}
                 </button>
                 <button type="button" class="add-flow-cta-ghost" @click="prevAddListingStep">Zpět</button>
               </div>
@@ -3911,6 +4287,14 @@ if (typeof window !== "undefined") {
         <div v-else-if="screen === 'add-listing-confirmation'" class="screen-inner">
           <PvCard class="status-card">
             <template #content>
+              <button
+                class="status-card-eye"
+                type="button"
+                aria-label="Zobrazit nabídku"
+                @click="publishedListingId ? openListing(publishedListingId) : setScreen('market')"
+              >
+                <i class="pi pi-eye"></i>
+              </button>
               <span class="eyebrow">Nabídka zveřejněna</span>
               <h1>Hotovo</h1>
               <p>
@@ -4141,14 +4525,14 @@ if (typeof window !== "undefined") {
                 <span>Osobní údaje</span>
                 <i class="pi pi-chevron-right"></i>
               </button>
-              <button class="profile-list-item" type="button">
-                <i class="pi pi-clock"></i>
-                <span>Historie</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button">
+              <button class="profile-list-item" type="button" @click="openProfilePayments">
                 <i class="pi pi-credit-card"></i>
                 <span>Platební metody</span>
+                <i class="pi pi-chevron-right"></i>
+              </button>
+              <button class="profile-list-item" type="button" @click="openProfileSecurity">
+                <i class="pi pi-lock"></i>
+                <span>Zabezpečení</span>
                 <i class="pi pi-chevron-right"></i>
               </button>
             </div>
@@ -4162,14 +4546,9 @@ if (typeof window !== "undefined") {
                 <span>Oznámení</span>
                 <i class="pi pi-chevron-right"></i>
               </button>
-              <button class="profile-list-item" type="button">
-                <i class="pi pi-shield"></i>
-                <span>Zabezpečení</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button">
+              <button class="profile-list-item" type="button" @click="openProfileLanguage">
                 <i class="pi pi-globe"></i>
-                <span>Jazyk</span>
+                <span>Jazyk a měna</span>
                 <i class="pi pi-chevron-right"></i>
               </button>
               <button class="profile-list-item" type="button" @click="openHelp">
@@ -4182,6 +4561,211 @@ if (typeof window !== "undefined") {
 
           <div class="profile-actions">
             <PvButton class="button-secondary" @click="logout">Odhlásit se</PvButton>
+          </div>
+        </div>
+
+        <div v-else-if="screen === 'profile-language'" class="screen-inner profile-page">
+          <div class="profile-section">
+            <span class="profile-section-label">Jazyk aplikace</span>
+            <div class="profile-list">
+              <button 
+                v-for="lang in [{id:'cz', label:'Čeština', flag:'🇨🇿'}, {id:'sk', label:'Slovenčina', flag:'🇸🇰'}, {id:'en', label:'English', flag:'🇬🇧'}]" 
+                :key="lang.id"
+                type="button" 
+                class="profile-list-item card-item-static"
+                style="cursor: pointer;"
+                @click="settings.language = lang.id"
+              >
+                <div class="card-item-info">
+                  <span style="font-size: 1.2rem; width: 24px; display: grid; place-items: center;">{{ lang.flag }}</span>
+                  <div class="card-item-text">
+                    <strong>{{ lang.label }}</strong>
+                  </div>
+                </div>
+                <i v-if="settings.language === lang.id" class="pi pi-check" style="color: var(--brand-2); font-weight: bold;"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <span class="profile-section-label">Preferovaná měna</span>
+            <div class="profile-list">
+              <button 
+                v-for="curr in [{id:'CZK', label:'Koruna česká (Kč)'}, {id:'EUR', label:'Euro (€)'}]" 
+                :key="curr.id"
+                type="button" 
+                class="profile-list-item card-item-static"
+                style="cursor: pointer;"
+                @click="settings.currency = curr.id"
+              >
+                <div class="card-item-info">
+                  <i class="pi pi-money-bill" style="font-size: 1.2rem; color: var(--brand);"></i>
+                  <div class="card-item-text">
+                    <strong>{{ curr.label }}</strong>
+                  </div>
+                </div>
+                <i v-if="settings.currency === curr.id" class="pi pi-check" style="color: var(--brand-2); font-weight: bold;"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="profile-actions" style="margin-top: 12px;">
+             <button class="button-primary" @click="goBack">Uložit a zpět</button>
+          </div>
+        </div>
+
+        <div v-else-if="screen === 'profile-security'" class="screen-inner profile-page">
+          <div class="profile-section">
+            <span class="profile-section-label">Změna hesla</span>
+            <div class="profile-panel">
+              <div class="auth-form">
+                <div class="field">
+                  <label>Současné heslo</label>
+                  <div class="input-shell">
+                    <i class="pi pi-lock input-icon"></i>
+                    <input v-model="securityForm.currentPassword" :type="showSecurityPasswords ? 'text' : 'password'" class="auth-input" placeholder="••••••••" />
+                    <button class="input-action" type="button" @click="showSecurityPasswords = !showSecurityPasswords">
+                      <i :class="['pi', showSecurityPasswords ? 'pi-eye-slash' : 'pi-eye']"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Nové heslo</label>
+                  <div class="input-shell">
+                    <i class="pi pi-lock input-icon"></i>
+                    <input v-model="securityForm.newPassword" :type="showSecurityPasswords ? 'text' : 'password'" class="auth-input" placeholder="••••••••" />
+                    <button class="input-action" type="button" @click="showSecurityPasswords = !showSecurityPasswords">
+                      <i :class="['pi', showSecurityPasswords ? 'pi-eye-slash' : 'pi-eye']"></i>
+                    </button>
+                  </div>
+                  <div class="password-rules" style="margin-top: 8px;">
+                    <div
+                      v-for="rule in securityPasswordRules"
+                      :key="rule.label"
+                      class="password-rule"
+                      :class="{ 'is-ok': rule.ok }"
+                    >
+                      <span class="password-rule-dot" />
+                      <span>{{ rule.label }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Potvrzení nového hesla</label>
+                  <div class="input-shell">
+                    <i class="pi pi-lock input-icon"></i>
+                    <input v-model="securityForm.confirmPassword" :type="showSecurityPasswords ? 'text' : 'password'" class="auth-input" placeholder="••••••••" />
+                    <button class="input-action" type="button" @click="showSecurityPasswords = !showSecurityPasswords">
+                      <i :class="['pi', showSecurityPasswords ? 'pi-eye-slash' : 'pi-eye']"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="profile-actions" style="margin-top: 8px;">
+                  <button 
+                    class="button-primary" 
+                    style="height: 48px; width: 100%;" 
+                    :disabled="securityForm.isChangingPassword || !securityForm.newPassword"
+                    @click="changePassword"
+                  >
+                    <i v-if="securityForm.isChangingPassword" class="pi pi-spin pi-spinner"></i>
+                    {{ securityForm.isChangingPassword ? 'Ukládám...' : 'Aktualizovat heslo' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <span class="profile-section-label">Extra zabezpečení</span>
+            <div class="profile-list">
+              <button 
+                type="button" 
+                class="profile-list-item card-item-static" 
+                style="width: 100%; text-align: left; background: transparent; cursor: pointer; border: 0;"
+                @click="!securityForm.twoFactorEnabled ? start2FASetup() : disable2FA()"
+              >
+                <div class="card-item-info">
+                  <i class="pi pi-shield"></i>
+                  <div class="card-item-text">
+                    <strong>Dvoufázové ověření (2FA)</strong>
+                    <span>{{ securityForm.twoFactorEnabled ? 'Aktivní' : 'Zvýší ochranu tvého účtu' }}</span>
+                  </div>
+                </div>
+                <PvInputSwitch 
+                  :modelValue="securityForm.twoFactorEnabled" 
+                  style="pointer-events: none;"
+                />
+              </button>
+            </div>
+          </div>
+          
+          <div class="profile-section">
+            <span class="profile-section-label">Přístup</span>
+            <button class="profile-list-item" type="button" @click="requestLogoutAll" style="color: var(--danger);">
+              <i class="pi pi-sign-out"></i>
+              <span>Odhlásit se ze všech zařízení</span>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div v-else-if="screen === 'profile-payments'" class="screen-inner profile-page">
+          <div class="profile-section">
+            <span class="profile-section-label">Tvoje karty</span>
+            <div class="profile-list">
+              <div v-for="card in cardForm.savedCards" :key="card.id" class="profile-list-item card-item-static">
+                <div class="card-item-info">
+                  <i class="pi pi-credit-card"></i>
+                  <div class="card-item-text">
+                    <strong>{{ card.brand }} •••• {{ card.last4 }}</strong>
+                    <span>Platnost {{ card.expiry }}</span>
+                  </div>
+                </div>
+                <button type="button" class="card-remove-btn" @click="requestRemoveCard(card.id)" aria-label="Odstranit kartu">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+              <div v-if="!cardForm.savedCards.length" class="profile-empty">Nemáte žádné uložené karty.</div>
+            </div>
+          </div>
+
+          <div v-if="!isAddingCard" class="profile-section">
+            <button class="button-secondary" type="button" @click="isAddingCard = true">
+              <i class="pi pi-plus"></i>
+              Přidat novou kartu
+            </button>
+          </div>
+
+          <div v-else class="profile-section">
+            <span class="profile-section-label">Nová karta</span>
+            <div class="profile-panel">
+              <div class="payment-fields">
+                <div class="field">
+                  <label>Číslo karty</label>
+                  <div class="input-shell">
+                    <input v-model="newCardData.number" class="auth-input" placeholder="0000 0000 0000 0000" maxlength="16" />
+                  </div>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label>Platnost</label>
+                    <div class="input-shell">
+                      <input v-model="newCardData.expiry" class="auth-input" placeholder="MM/RR" maxlength="5" />
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>CVC</label>
+                    <div class="input-shell">
+                      <input v-model="newCardData.cvc" class="auth-input" placeholder="000" maxlength="3" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="profile-actions" style="margin-top: 16px;">
+                <PvButton class="button-primary" @click="addNewCard">Uložit kartu</PvButton>
+                <PvButton class="button-ghost" @click="isAddingCard = false">Zrušit</PvButton>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -4394,7 +4978,7 @@ if (typeof window !== "undefined") {
           </div>
 
           <div class="help-contact">
-            <button type="button" class="help-contact-card">
+            <button type="button" class="help-contact-card" @click="openHelpContact">
               <i class="pi pi-comment"></i>
               <span>Napiš nám</span>
             </button>
@@ -4402,6 +4986,56 @@ if (typeof window !== "undefined") {
               <i class="pi pi-phone"></i>
               <span>Zavolej nám</span>
             </button>
+          </div>        </div>
+
+        <div v-else-if="screen === 'help-contact'" class="screen-inner profile-page">
+          <div class="profile-section">
+            <span class="profile-section-label">Napište nám</span>
+            <div class="profile-panel">
+              <div class="auth-form">
+                <div class="field">
+                  <label>Téma zprávy</label>
+                  <div class="input-shell">
+                    <select v-model="contactForm.topic" class="auth-input" style="appearance: none; background: transparent; border: 0;">
+                      <option>Průběh výpůjčky</option>
+                      <option>Problém s platbou</option>
+                      <option>Technická chyba</option>
+                      <option>Jiný dotaz</option>
+                    </select>
+                    <i class="pi pi-chevron-down" style="font-size: 0.8rem; opacity: 0.5;"></i>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Vaše zpráva</label>
+                  <div class="add-flow-input add-flow-input-textarea">
+                    <textarea 
+                      v-model="contactForm.message" 
+                      class="add-flow-native" 
+                      rows="6" 
+                      placeholder="Popište nám, s čím vám můžeme pomoci..."
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="profile-actions" style="margin-top: 12px;">
+                  <button 
+                    class="button-primary" 
+                    style="height: 52px; width: 100%;" 
+                    :disabled="contactForm.isSending || !contactForm.message.trim()"
+                    @click="submitContact"
+                  >
+                    <i v-if="contactForm.isSending" class="pi pi-spin pi-spinner"></i>
+                    {{ contactForm.isSending ? 'Odesílám...' : 'Odeslat zprávu' }}
+                  </button>
+                  <button class="button-ghost" @click="goBack">Zrušit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="profile-section">
+            <p style="text-align: center; color: var(--muted); font-size: 0.9rem; line-height: 1.5;">
+              Odpovíme vám na e-mailovou adresu, kterou máte registrovanou u svého profilu.
+            </p>
           </div>
         </div>
 
@@ -4472,5 +5106,119 @@ if (typeof window !== "undefined") {
         <span>Profil</span>
       </button>
     </footer>
+
+    <div v-if="cardToDelete" class="modal-overlay" @click.self="cardToDelete = null">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Odstranit kartu?</h2>
+          <p>Opravdu chcete tuto kartu trvale odstranit?</p>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+          <button class="button-secondary" style="flex: 1;" @click="cardToDelete = null">Zrušit</button>
+          <button class="button-primary" style="flex: 1; background: var(--danger);" @click="confirmRemoveCard">Odstranit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2FA Setup Modal -->
+    <div v-if="securityForm.isSetupOpen" class="modal-overlay" @click.self="close2FASetup">
+      <div class="modal-card 2fa-setup-card">
+        <div class="modal-head">
+          <span class="eyebrow" v-if="securityForm.twoFactorStep < 4">Krok {{ securityForm.twoFactorStep }} ze 3</span>
+          <h2>Nastavení 2FA</h2>
+        </div>
+
+        <!-- Step 1: Password Verification -->
+        <div v-if="securityForm.twoFactorStep === 1" class="setup-content">
+          <p>Pro pokračování prosím zadejte své heslo.</p>
+          <div class="field" style="margin-top: 16px;">
+            <div class="input-shell">
+              <i class="pi pi-lock input-icon"></i>
+              <input v-model="securityForm.twoFactorPassword" type="password" class="auth-input" placeholder="Heslo (demo1234)" />
+            </div>
+          </div>
+          <div class="modal-footer" style="margin-top: 24px;">
+            <PvButton class="button-primary w-full" @click="verify2FAPassword">Pokračovat</PvButton>
+          </div>
+        </div>
+
+        <!-- Step 2: Method Selection -->
+        <div v-else-if="securityForm.twoFactorStep === 2" class="setup-content">
+          <p>Vyberte metodu druhého faktoru:</p>
+          <div class="method-options" style="display: grid; gap: 12px; margin-top: 20px;">
+            <button class="method-option-card" @click="select2FAMethod('app')">
+              <i class="pi pi-mobile"></i>
+              <div class="method-text">
+                <strong>Autentizační aplikace</strong>
+                <span>Google Authenticator, Authy atd.</span>
+              </div>
+            </button>
+            <button class="method-option-card" @click="select2FAMethod('sms')">
+              <i class="pi pi-comment"></i>
+              <div class="method-text">
+                <strong>SMS zpráva</strong>
+                <span>Kód zaslaný na váš telefon</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Setup (App or SMS) -->
+        <div v-else-if="securityForm.twoFactorStep === 3" class="setup-content">
+          <template v-if="securityForm.twoFactorMethod === 'app'">
+            <div class="qr-placeholder" style="width: 160px; height: 160px; background: #eee; margin: 0 auto; display: grid; place-items: center; border-radius: 12px;">
+              <i class="pi pi-qrcode" style="font-size: 100px; color: #333;"></i>
+            </div>
+            <p style="text-align: center; margin-top: 16px; font-size: 0.9rem;">Naskenujte QR kód ve své aplikaci a zadejte 6místný kód.</p>
+          </template>
+          <template v-else>
+            <div class="field">
+              <label>Telefonní číslo</label>
+              <div class="input-shell">
+                <input v-model="securityForm.twoFactorPhone" class="auth-input" placeholder="+420 777 666 555" />
+              </div>
+            </div>
+            <p style="margin-top: 12px; font-size: 0.9rem;">Zašleme vám SMS s potvrzovacím kódem.</p>
+          </template>
+
+          <div class="field" style="margin-top: 20px;">
+            <label>Ověřovací kód</label>
+            <div class="input-shell">
+              <input v-model="securityForm.twoFactorCode" class="auth-input" placeholder="000 000" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: 800;" />
+            </div>
+          </div>
+          
+          <div class="modal-footer" style="margin-top: 24px;">
+            <button class="button-primary w-full" @click="complete2FASetup">Dokončit nastavení</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Success -->
+        <div v-else-if="securityForm.twoFactorStep === 4" class="setup-content success-view" style="text-align: center;">
+          <div class="success-icon" style="width: 64px; height: 64px; background: var(--brand-2); color: #fff; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px;">
+            <i class="pi pi-check" style="font-size: 2rem;"></i>
+          </div>
+          <h3>2FA bylo aktivováno</h3>
+          <p>Váš účet je nyní lépe chráněn.</p>
+          <div class="modal-footer" style="margin-top: 24px;">
+            <button class="button-primary w-full" @click="close2FASetup">Hotovo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Logout All Modal -->
+    <div v-if="confirmLogoutAllOpen" class="modal-overlay" @click.self="confirmLogoutAllOpen = false">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Odhlásit ze všech zařízení?</h2>
+          <p>Budete odhlášeni na tomto i na všech ostatních zařízeních, kde jste přihlášeni.</p>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+          <button class="button-secondary" style="flex: 1;" @click="confirmLogoutAllOpen = false">Zrušit</button>
+          <button class="button-primary" style="flex: 1; background: var(--danger);" @click="confirmLogoutAll">Odhlásit vše</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

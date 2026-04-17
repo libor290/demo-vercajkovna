@@ -3143,18 +3143,18 @@ a {
 
 .market-item-thumb-badge {
   position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
+  left: auto;
+  right: 8px;
+  bottom: 8px;
   display: inline-flex;
   justify-content: center;
-  padding: 7px 10px;
+  padding: 3px 7px;
   border-radius: 999px;
   background: rgba(27, 84, 49, 0.22);
   border: 1px solid rgba(27, 84, 49, 0.34);
   color: var(--brand-2);
   font-family: var(--font-raw);
-  font-size: 0.64rem;
+  font-size: 0.52rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -5920,9 +5920,10 @@ a {
   }
 
   .market-card-grid-top {
-    grid-auto-flow: row;
-    grid-auto-columns: unset;
-    overflow: visible;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(280px, 320px);
+    overflow-x: auto;
+    overflow-y: visible;
   }
 
   .market-page {
@@ -6184,9 +6185,11 @@ a {
 
   .market-search-shell-overlay {
     flex: 1;
-    min-height: 30px;
-    padding-inline: 0;
-    border-radius: 0;
+    min-height: 48px;
+    padding-inline: 14px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(58, 37, 25, 0.2);
+    background: #fff;
   }
 
   .market-filter-panel {
@@ -6239,7 +6242,8 @@ a {
   }
 
   .market-filter-panel-head {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
   }
 
   .market-filter-panel-head-actions {
@@ -6318,4 +6322,680 @@ a {
     min-height: 52px;
     border-radius: 16px;
   }
+}
+
+/* Preview Styles */
+.add-flow-preview {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.preview-card-frame {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 10px;
+}
+
+.preview-mock-listing {
+  background: #fff;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-image-section {
+  width: 100%;
+  height: 200px;
+  background: var(--surface-muted);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.preview-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-no-img {
+  color: var(--muted-2);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.preview-content-section {
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.preview-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-category {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-2);
+}
+
+.preview-rating {
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.preview-rating i {
+  color: #f59e0b;
+}
+
+.preview-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.preview-location {
+  font-size: 0.88rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preview-price-box {
+  background: var(--surface-muted);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.preview-price-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.preview-price-unit {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.preview-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.preview-detail-item strong {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.preview-description {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.preview-description strong {
+  display: block;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.preview-rules-section {
+  font-size: 0.9rem;
+  background: var(--bg-soft);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.preview-rules-section strong {
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.preview-rules-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--brand);
+}
+
+.preview-rules-list li {
+  margin-bottom: 4px;
+}
+
+/* Status Card Eye Icon */
+.status-card {
+  position: relative;
+}
+
+.status-card-eye {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.status-card-eye:hover {
+  background: #fff;
+  border-color: var(--brand-2);
+  color: var(--brand-2);
+  transform: translateY(-1px);
+}
+
+.status-card-eye i {
+  font-size: 1.1rem;
+}
+
+/* Card Payment Styles */
+.card-checkout-form {
+  display: grid;
+  gap: 24px;
+  padding: 10px 0;
+}
+
+.card-mockup {
+  width: 100%;
+  aspect-ratio: 1.58 / 1;
+  background: linear-gradient(135deg, #3a2519 0%, #24140d 100%);
+  border-radius: 18px;
+  padding: 24px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 20px;
+  position: relative;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+}
+
+.card-mockup.is-visa {
+  background: linear-gradient(135deg, #1a1f71 0%, #0055a4 100%);
+}
+
+.card-mockup.is-mc {
+  background: linear-gradient(135deg, #eb001b 0%, #f79e1b 100%);
+}
+
+.card-mockup-chip {
+  width: 44px;
+  height: 34px;
+  background: linear-gradient(135deg, #f0d080 0%, #d4a030 100%);
+  border-radius: 6px;
+  position: absolute;
+  top: 40px;
+  left: 24px;
+}
+
+.card-mockup-number {
+  font-family: monospace;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.card-mockup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.payment-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.payment-secure-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.payment-secure-hint i {
+  color: var(--brand-2);
+}
+
+/* Fill Test Data Button */
+.fill-test-data {
+  margin-top: 10px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fill-test-data:hover {
+  background: var(--surface-muted);
+  border-color: var(--brand-2);
+  color: var(--brand-2);
+}
+
+.fill-test-data i {
+  color: #f59e0b;
+}
+
+/* Payment Method Selector & Express */
+.payment-method-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.method-pill {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.method-pill.is-active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+.method-pill i {
+  font-size: 1rem;
+}
+
+.express-payment-placeholder {
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  padding: 40px 20px;
+  text-align: center;
+  display: grid;
+  gap: 16px;
+}
+
+.express-icon {
+  width: 64px;
+  height: 64px;
+  background: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  box-shadow: var(--shadow-soft);
+}
+
+.express-icon i {
+  font-size: 1.8rem;
+  color: var(--brand);
+}
+
+.express-payment-placeholder p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Saved Card Selector Styles */
+.saved-card-selector {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.selected-card-display {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border: 0;
+}
+
+.card-info-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-info-main i {
+  color: var(--brand);
+}
+
+.card-text {
+  display: grid;
+  gap: 2px;
+}
+
+.card-text strong {
+  font-size: 0.95rem;
+  color: var(--brand);
+}
+
+.card-text span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.card-options-list {
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+  display: grid;
+}
+
+.card-option-item {
+  width: 100%;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(58, 37, 25, 0.05);
+  cursor: pointer;
+  text-align: left;
+}
+
+.card-option-item:hover {
+  background: rgba(58, 37, 25, 0.03);
+}
+
+.card-option-item.is-selected {
+  background: #fff;
+}
+
+.card-option-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.card-option-info i {
+  font-size: 1rem;
+  opacity: 0.6;
+}
+
+.add-new-card-link {
+  width: 100%;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  color: var(--brand-2);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.add-new-card-link:hover {
+  background: rgba(27, 84, 49, 0.05);
+}
+
+/* Reservation Header Styles */
+.reservation-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  margin-right: 38px; /* Offset for balance against back button */
+}
+
+.reservation-title strong {
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.reservation-subtitle {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Profile Card Management Styles */
+.card-item-static {
+  cursor: default !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.card-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-item-info i {
+  font-size: 1.2rem;
+  color: var(--brand);
+}
+
+.card-item-text {
+  display: grid;
+  gap: 2px;
+}
+
+.card-item-text strong {
+  font-size: 0.95rem;
+}
+
+.card-item-text span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.card-remove-btn {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--danger);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.card-remove-btn:hover {
+  background: rgba(180, 77, 56, 0.1);
+}
+
+/* Modal Dialog Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(58, 37, 25, 0.4);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  animation: modalEnter 0.3s ease-out;
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-head h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  color: var(--brand);
+}
+
+.modal-head p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* 2FA Setup Styles */
+.method-option-card {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.method-option-card:hover {
+  border-color: var(--brand-2);
+  background: var(--bg-soft);
+  transform: translateY(-1px);
+}
+
+.method-option-card i {
+  font-size: 1.5rem;
+  color: var(--brand);
+  width: 40px;
+  height: 40px;
+  background: var(--surface-muted);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.method-text {
+  display: grid;
+  gap: 2px;
+}
+
+.method-text strong {
+  font-size: 0.95rem;
+  color: var(--brand);
+}
+
+.method-text span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Market Sort Row Styles */
+.market-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.market-sort-row::-webkit-scrollbar {
+  display: none;
+}
+
+.market-sort-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.market-sort-options {
+  display: flex;
+  gap: 8px;
+}
+
+.market-sort-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--brand);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.market-sort-pill.is-active {
+  background: var(--brand-2);
+  color: #fff;
+  border-color: var(--brand-2);
 }

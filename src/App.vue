@@ -266,8 +266,8 @@ type AddListingDraft = {
   condition: "new" | "like_new" | "used_good" | "used_ok" | "worn" | "damaged";
   additionalParams: string;
   pickupMethods: {
-    personal: boolean;
-    other: boolean;
+    mode: "personal" | "other";
+    otherPickupDescription: string;
   };
   rules: {
     noModifications: boolean;
@@ -275,6 +275,7 @@ type AddListingDraft = {
     noThirdParty: boolean;
     depositForfeit: boolean;
     other: boolean;
+    otherDescription: string;
   };
 };
 
@@ -315,10 +316,9 @@ const addListingDraft = reactive<AddListingDraft>({
   accessories: "",
   condition: "new",
   additionalParams: "",
-  pickupMethods: { personal: false, other: false },
-  rules: { noModifications: false, purposeOnly: false, noThirdParty: false, depositForfeit: false, other: false },
-});
-const publishedListingId = ref<string | null>(null);
+  pickupMethods: { mode: "personal", otherPickupDescription: "" },
+  rules: { noModifications: false, purposeOnly: false, noThirdParty: false, depositForfeit: false, other: false, otherDescription: "" },
+  });const publishedListingId = ref<string | null>(null);
 const paymentMethod = ref<"bank" | "card" | null>(null);
 const agreeTerms = ref(false);
 const showCalendar = ref(false);
@@ -440,6 +440,18 @@ const addListingAvailabilityError = computed(
   () =>
     addListingStep.value === 2 &&
     addListingDraft.availabilityDays.length === 0,
+);
+const addListingOtherRuleError = computed(
+  () =>
+    addListingStep.value === 3 &&
+    addListingDraft.rules.other &&
+    !addListingDraft.rules.otherDescription.trim(),
+);
+const addListingOtherPickupError = computed(
+  () =>
+    addListingStep.value === 3 &&
+    addListingDraft.pickupMethods.mode === "other" &&
+    !addListingDraft.pickupMethods.otherPickupDescription.trim(),
 );
 const selectedConditionNote = computed(() => {
   const hit = conditionOptions.find((item) => item.id === addListingDraft.condition);
@@ -1190,8 +1202,8 @@ function resetAddListingDraft() {
   addListingDraft.accessories = "";
   addListingDraft.condition = "new";
   addListingDraft.additionalParams = "";
-  addListingDraft.pickupMethods.personal = false;
-  addListingDraft.pickupMethods.other = false;
+  addListingDraft.pickupMethods.mode = "personal";
+  addListingDraft.pickupMethods.otherPickupDescription = "";
   addListingDraft.rules.noModifications = false;
   addListingDraft.rules.purposeOnly = false;
   addListingDraft.rules.noThirdParty = false;
@@ -1217,6 +1229,9 @@ function nextAddListingStep() {
   }
   if (addListingStep.value === 2) {
     if (addListingPriceError.value || addListingDepositError.value || addListingAvailabilityError.value) return;
+  }
+  if (addListingStep.value === 3) {
+    if (addListingOtherRuleError.value || addListingOtherPickupError.value) return;
   }
   addListingProceedAttempt.value = false;
   addListingStep.value = (addListingStep.value + 1) as 1 | 2 | 3;
@@ -1398,6 +1413,7 @@ function slugifyId(value: string) {
 function submitAddListing() {
   if (addListingPhotosError.value || addListingTitleError.value || addListingCategoryError.value) return;
   if (addListingPriceError.value || addListingDepositError.value || addListingAvailabilityError.value) return;
+  if (addListingOtherRuleError.value || addListingOtherPickupError.value) return;
   if (!requireAuth("add-listing")) return;
 
   const baseId = slugifyId(addListingDraft.title);
@@ -1857,7 +1873,7 @@ if (typeof window !== "undefined") {
               </div>
 
               <div class="field">
-                <label for="authEmail">E-mail</label>
+                <label for="authEmail">E-MAIL</label>
                 <div class="input-shell">
                   <i class="pi pi-envelope input-icon"></i>
                   <PvInputText
@@ -3826,16 +3842,25 @@ if (typeof window !== "undefined") {
                   <div class="add-flow-section-title">Způsob vyzvednutí</div>
                   <div class="add-flow-checklist">
                     <label class="add-flow-check">
-                      <input v-model="addListingDraft.pickupMethods.personal" type="checkbox" />
+                      <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="personal" name="pickup-mode" />
                       <span>Osobní vyzvednutí</span>
                     </label>
                     <label class="add-flow-check">
-                      <input v-model="addListingDraft.pickupMethods.other" type="checkbox" />
+                      <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="other" name="pickup-mode" />
                       <span>Jiné</span>
                     </label>
+                    <div v-if="addListingDraft.pickupMethods.mode === 'other'" class="add-flow-field" style="margin-top: 0.5rem;">
+                      <div class="add-flow-input add-flow-input-textarea" :class="{ 'is-invalid': addListingProceedAttempt && !addListingDraft.pickupMethods.otherPickupDescription.trim() }">
+                        <textarea
+                          v-model="addListingDraft.pickupMethods.otherPickupDescription"
+                          class="add-flow-native"
+                          placeholder="Upřesněte způsob (např. dovoz, zásilkovna...)"
+                          rows="2"
+                        ></textarea>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Pravidla a omezení</div>
                   <div class="add-flow-checklist">
@@ -3859,6 +3884,16 @@ if (typeof window !== "undefined") {
                       <input v-model="addListingDraft.rules.other" type="checkbox" />
                       <span>Jiné</span>
                     </label>
+                    <div v-if="addListingDraft.rules.other" class="add-flow-field" style="margin-top: 0.5rem;">
+                      <div class="add-flow-input add-flow-input-textarea" :class="{ 'is-invalid': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }">
+                        <textarea
+                          v-model="addListingDraft.rules.otherDescription"
+                          class="add-flow-native"
+                          placeholder="Popište vlastní pravidla (povinné)"
+                          rows="3"
+                        ></textarea>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

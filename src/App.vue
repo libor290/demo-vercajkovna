@@ -16,6 +16,7 @@ type Screen =
   | "profile-language"
   | "help"
   | "help-detail"
+  | "help-contact"
   | "profile-list"
   | "public-profile-list"
   | "rules"
@@ -239,6 +240,7 @@ const filters = reactive({
   deposit: "all" as "all" | "yes" | "no",
   minRating: 0,
   date: "",
+  sortBy: "newest" as "newest" | "price_asc" | "price_desc" | "rating",
 });
 const selectedListingId = ref(listings[0].id);
 const favoriteListingIds = ref<string[]>(readStoredFavorites());
@@ -334,6 +336,10 @@ const cardForm = reactive({
   selectedCardId: "c1",
   isSelectorOpen: false,
   isProcessing: false,
+  number: "",
+  expiry: "",
+  cvc: "",
+  name: "",
 });
 
 function openPaymentCard() {
@@ -445,6 +451,7 @@ const screenLabels: Record<Screen, string> = {
   rules: "Pravidla užívání",
   payment: "Platba",
   "payment-bank": "Platba převodem",
+  "payment-card": "Platba kartou",
   confirmation: "Potvrzení",
   "cancel-confirmation": "Zrušení žádosti",
   "payment-confirmation": "Platba odeslána",
@@ -454,8 +461,6 @@ const screenLabels: Record<Screen, string> = {
   request: "Žádost",
   status: "Stav",
   profile: "Profil",
-  "payment-bank": "Rezervace",
-  "payment-card": "Rezervace",
 };
 
 const selectedListing = computed<Listing>(

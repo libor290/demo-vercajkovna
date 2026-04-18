@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vercajkovna – Přihlášení</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #3a2519;
+      --brand-mid:  #5c3d2a;
+      --brand-soft: #f5ede6;
+      --green:      #1b5431;
+      --green-soft: #e8f2eb;
+      --text:       #1c1210;
+      --muted:      #6d584a;
+      --muted-2:    #9c8578;
+      --border:     rgba(58,37,25,.14);
+      --bg:         #faf7f4;
+      --white:      #ffffff;
+      --danger:     #c0392b;
+      --radius-lg:  18px;
+      --radius-md:  12px;
+      --radius-sm:  8px;
+      --font-h:     'Playfair Display', Georgia, serif;
+      --font-b:     'Inter', 'Helvetica Neue', Arial, sans-serif;
+      --shadow-card: 0 2px 4px rgba(58,37,25,.04), 0 12px 40px rgba(58,37,25,.10);
+    }
+
+    html, body {
+      min-height: 100vh;
+      font-family: var(--font-b);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── layout ─────────────────────────────── */
+    .page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* ── left panel ──────────────────────────── */
+    .hero {
+      background: var(--brand);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 44px 52px;
+      color: #fff8f1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 30% 20%, rgba(255,200,140,.10) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 80% 80%, rgba(27,84,49,.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+    }
+
+    .hero-mark {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      background: rgba(255,248,241,.12);
+      border: 1px solid rgba(255,248,241,.18);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-h);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.06em;
+      color: #fff8f1;
+    }
+
+    .hero-name { font-family: var(--font-b); font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
+    .hero-tagline { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: .55; margin-top: 2px; }
+
+    .hero-body {
+      position: relative;
+    }
+
+    .hero-body h2 {
+      font-family: var(--font-h);
+      font-size: clamp(2rem, 3vw, 2.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: #fff8f1;
+      margin-bottom: 18px;
+    }
+
+    .hero-body h2 em {
+      font-style: normal;
+      color: #f3c98b;
+    }
+
+    .hero-body p {
+      font-size: 0.92rem;
+      line-height: 1.65;
+      opacity: .65;
+      max-width: 34ch;
+    }
+
+    .hero-pills {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255,248,241,.08);
+      border: 1px solid rgba(255,248,241,.14);
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(255,248,241,.75);
+    }
+
+    .hero-pill-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #f3c98b;
+    }
+
+    .hero-footer {
+      font-size: 0.74rem;
+      opacity: .4;
+      letter-spacing: 0.02em;
+      position: relative;
+    }
+
+    /* ── right panel ─────────────────────────── */
+    .form-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px 40px;
+      background: var(--white);
+    }
+
+    .form-inner {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* ── tabs ────────────────────────────────── */
+    .tabs {
+      display: flex;
+      background: var(--brand-soft);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 32px;
+    }
+
+    .tab {
+      flex: 1;
+      height: 42px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-b);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+
+    .tab.is-active {
+      background: var(--white);
+      color: var(--brand);
+      box-shadow: 0 1px 6px rgba(58,37,25,.12);
+    }
+
+    .tab.is-active.is-register {
+      color: var(--green);
+    }
+
+    /* ── heading ─────────────────────────────── */
+    .form-head {
+      margin-bottom: 28px;
+    }
+
+    .form-kicker {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 6px;
+    }
+
+    .form-kicker.is-register { color: var(--green); }
+
+    .form-head h1 {
+      font-family: var(--font-h);
+      font-size: clamp(1.6rem, 2.5vw, 2rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      color: var(--brand);
+      margin-bottom: 8px;
+    }
+
+    .form-head p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* ── fields ──────────────────────────────── */
+    .fields { display: grid; gap: 14px; }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted-2);
+      font-size: 0.9rem;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      height: 50px;
+      padding: 0 44px 0 42px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-b);
+      font-size: 0.93rem;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .input-wrap input::placeholder { color: var(--muted-2); }
+
+    .input-wrap input:focus {
+      border-color: var(--brand);
+      background: var(--white);
+      box-shadow: 0 0 0 3px rgba(58,37,25,.08);
+    }
+
+    .input-wrap input.is-register:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(27,84,49,.08);
+    }
+
+    .input-action {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--muted-2);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .input-action:hover { color: var(--brand); background: var(--brand-soft); }
+
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .field-row label { margin-bottom: 0; }
+
+    .field-link {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--brand);
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-b);
+      padding: 0;
+      transition: opacity 0.15s;
+    }
+
+    .field-link:hover { opacity: .65; }
+
+    /* password rules */
+    .pw-rules {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .pw-rule {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--muted-2);
+    }
+
+    .pw-rule-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .pw-rule.ok .pw-rule-dot { background: var(--green); }
+    .pw-rule.ok { color: var(--green); }
+
+    /* ── meta row ────────────────────────────── */
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .checkbox {
+      width: 18px; height: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg);
+      cursor: pointer;
+      flex-shrink: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+
+    .checkbox:checked {
+      background: var(--brand);
+      border-color: var(--brand);
+    }
+
+    .checkbox:checked::after {
+      content: '';
+      position: absolute;
+      left: 4px; top: 1.5px;
+      width: 5px; height: 9px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .meta-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .meta-label a { color: var(--brand); text-decoration: none; font-weight: 600; }
+
+    /* ── submit button ───────────────────────── */
+    .btn-submit {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--brand);
+      color: #fff8f1;
+      font-family: var(--font-b);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+      box-shadow: 0 4px 16px rgba(58,37,25,.22);
+      margin-top: 6px;
+    }
+
+    .btn-submit:hover {
+      background: var(--brand-mid);
+      box-shadow: 0 6px 20px rgba(58,37,25,.28);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:active { transform: translateY(0); box-shadow: none; }
+    .btn-submit.is-register { background: var(--green); box-shadow: 0 4px 16px rgba(27,84,49,.22); }
+    .btn-submit.is-register:hover { background: #1a4e2d; box-shadow: 0 6px 20px rgba(27,84,49,.28); }
+
+    /* ── demo profiles ───────────────────────── */
+    .demo-group { margin-top: 20px; }
+
+    .demo-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted-2);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .demo-card {
+      background: var(--brand-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.12s;
+      font-family: var(--font-b);
+    }
+
+    .demo-card:hover { background: #eeddd2; border-color: rgba(58,37,25,.22); transform: translateY(-1px); }
+
+    .demo-name { font-size: 0.8rem; font-weight: 700; color: var(--brand); display: block; }
+    .demo-email { font-size: 0.7rem; color: var(--muted-2); display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .demo-hint { font-size: 0.7rem; color: var(--muted-2); text-align: center; margin-top: 8px; }
+
+    /* ── divider ─────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider span {
+      font-size: 0.72rem;
+      color: var(--muted-2);
+      white-space: nowrap;
+    }
+
+    /* ── social ──────────────────────────────── */
+    .social {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .social-btn {
+      height: 48px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-family: var(--font-b);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .social-btn:hover {
+      background: var(--bg);
+      border-color: rgba(58,37,25,.26);
+      box-shadow: 0 2px 8px rgba(58,37,25,.07);
+    }
+
+    .social-mark {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .g-mark { background: linear-gradient(135deg,#ea4335,#fbbc05,#34a853,#4285f4); color: #fff; font-size: 0.65rem; }
+    .a-mark { background: #000; color: #fff; font-size: 0.9rem; line-height: 1; display: flex; align-items: center; justify-content: center; }
+    .f-mark { background: #1877f2; color: #fff; }
+
+    /* ── support ─────────────────────────────── */
+    .support {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted-2);
+      margin-top: 18px;
+    }
+
+    .support strong { color: var(--brand); font-weight: 600; cursor: pointer; }
+
+    /* ── error ───────────────────────────────── */
+    .error {
+      background: #fef2f2;
+      border: 1px solid rgba(192,57,43,.2);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: var(--danger);
+      margin-top: 8px;
+    }
+
+    /* ── responsive ──────────────────────────── */
+    @media (max-width: 720px) {
+      .page { grid-template-columns: 1fr; }
+      .hero { display: none; }
+      .form-panel { padding: 32px 20px; min-height: 100vh; }
+      .form-inner { max-width: 100%; }
+    }
+
+    /* ── hidden sections ─────────────────────── */
+    .register-only { display: none; }
+    .login-only { display: block; }
+
+    body.is-register .register-only { display: block; }
+    body.is-register .login-only { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── LEFT HERO ── -->
+  <aside class="hero">
+    <div class="hero-brand">
+      <div class="hero-mark">V</div>
+      <div>
+        <div class="hero-name">Vercajkovna</div>
+        <div class="hero-tagline">Půjčujte chytře</div>
+      </div>
+    </div>
+
+    <div class="hero-body">
+      <h2>Půjčujte<br>a <em>sdílejte</em><br>bez starostí.</h2>
+      <p>Připoj se k tisícům lidí, kteří sdílejí nářadí, sport&shy;ovní vybavení i domácí spotřebiče ve svém okolí.</p>
+      <div class="hero-pills">
+        <span class="hero-pill"><span class="hero-pill-dot"></span>Ověření uživatelé</span>
+        <span class="hero-pill"><span class="hero-pill-dot"></span>Bezpečné platby</span>
+        <span class="hero-pill"><span class="hero-pill-dot"></span>Chat & podpora</span>
+      </div>
+    </div>
+
+    <div class="hero-footer">© 2025 Vercajkovna &nbsp;·&nbsp; Všechna práva vyhrazena</div>
+  </aside>
+
+  <!-- ── RIGHT FORM ── -->
+  <main class="form-panel">
+    <div class="form-inner">
+
+      <!-- TABS -->
+      <div class="tabs" role="tablist">
+        <button class="tab is-active" id="tab-login" role="tab" onclick="setMode('login')">Přihlášení</button>
+        <button class="tab" id="tab-register" role="tab" onclick="setMode('register')">Registrace</button>
+      </div>
+
+      <!-- HEADING -->
+      <div class="form-head">
+        <div class="form-kicker" id="kicker">Přihlášení</div>
+        <h1 id="heading">Přihlas se<br>do účtu</h1>
+        <p id="subheading">Pokračuj tam, kde jsi skončil.</p>
+      </div>
+
+      <!-- FIELDS -->
+      <form class="fields" onsubmit="return false;">
+
+        <!-- Name (register only) -->
+        <div class="field register-only">
+          <label for="name">Jméno</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input id="name" type="text" placeholder="Jan Novák" autocomplete="name" />
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label for="email">E-mail</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input id="email" type="email" placeholder="name@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <div class="field-row">
+            <label for="password">Heslo</label>
+            <button class="field-link login-only" type="button">Zapomenuté heslo?</button>
+          </div>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" oninput="checkPw(this.value)" />
+            <button class="input-action" type="button" onclick="togglePw()" title="Zobrazit/skrýt heslo">
+              <span id="eye-icon">👁</span>
+            </button>
+          </div>
+          <!-- Password rules (register only) -->
+          <div class="pw-rules register-only" id="pw-rules">
+            <div class="pw-rule" id="rule-len"><span class="pw-rule-dot"></span>Min. 8 znaků</div>
+            <div class="pw-rule" id="rule-upper"><span class="pw-rule-dot"></span>Velké písmeno</div>
+            <div class="pw-rule" id="rule-num"><span class="pw-rule-dot"></span>Číslo</div>
+            <div class="pw-rule" id="rule-spec"><span class="pw-rule-dot"></span>Spec. znak</div>
+          </div>
+        </div>
+
+        <!-- Confirm password (register only) -->
+        <div class="field register-only">
+          <label for="confirm">Potvrzení hesla</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input id="confirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+          </div>
+        </div>
+
+        <!-- Meta row -->
+        <div class="meta-row">
+          <input class="checkbox" type="checkbox" id="meta-check" />
+          <label class="meta-label" for="meta-check" id="meta-label">Zapamatovat si mě</label>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn-submit" id="btn-submit" type="submit">Přihlas se do účtu</button>
+
+        <!-- Demo profiles (login only) -->
+        <div class="demo-group login-only">
+          <div class="demo-label">Demo profily</div>
+          <div class="demo-grid">
+            <button class="demo-card" type="button" onclick="fillDemo('Jana Nováková','jana@example.com')">
+              <span class="demo-name">Jana N.</span>
+              <span class="demo-email">jana@example.com</span>
+            </button>
+            <button class="demo-card" type="button" onclick="fillDemo('Pavel Kovář','pavel@example.com')">
+              <span class="demo-name">Pavel K.</span>
+              <span class="demo-email">pavel@example.com</span>
+            </button>
+            <button class="demo-card" type="button" onclick="fillDemo('Lucie Horáčková','lucie@example.com')">
+              <span class="demo-name">Lucie H.</span>
+              <span class="demo-email">lucie@example.com</span>
+            </button>
+            <button class="demo-card" type="button" onclick="fillDemo('Tomáš Blaha','tomas@example.com')">
+              <span class="demo-name">Tomáš B.</span>
+              <span class="demo-email">tomas@example.com</span>
+            </button>
+          </div>
+          <div class="demo-hint">Klikni a rovnou přihlasíme vybraný profil.</div>
+        </div>
+
+        <!-- Divider -->
+        <div class="divider"><span>Nebo pokračujte přes</span></div>
+
+        <!-- Social -->
+        <div class="social">
+          <button class="social-btn" type="button">
+            <span class="social-mark g-mark">G</span>
+            Google
+          </button>
+          <button class="social-btn" type="button">
+            <span class="social-mark a-mark">⌘</span>
+            Apple
+          </button>
+          <button class="social-btn" type="button">
+            <span class="social-mark f-mark">f</span>
+            Facebook
+          </button>
+        </div>
+
+      </form>
+
+      <div class="support">Potíže s přihlášením? <strong>Kontaktujte podporu</strong></div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  let isRegister = false;
+  let showPw = false;
+
+  function setMode(mode) {
+    isRegister = mode === 'register';
+    document.body.classList.toggle('is-register', isRegister);
+
+    document.getElementById('tab-login').classList.toggle('is-active', !isRegister);
+    document.getElementById('tab-register').classList.toggle('is-active', isRegister);
+    document.getElementById('tab-register').classList.toggle('is-register', isRegister);
+
+    document.getElementById('kicker').textContent      = isRegister ? 'Registrace' : 'Přihlášení';
+    document.getElementById('kicker').classList.toggle('is-register', isRegister);
+    document.getElementById('heading').innerHTML       = isRegister ? 'Vytvoř si<br>účet' : 'Přihlas se<br>do účtu';
+    document.getElementById('subheading').textContent  = isRegister
+      ? 'Začni během minuty a přidej se k lidem, kteří sdílejí věci.'
+      : 'Pokračuj tam, kde jsi skončil.';
+
+    document.getElementById('meta-label').textContent = isRegister
+      ? 'Souhlasím s podmínkami služby'
+      : 'Zapamatovat si mě';
+
+    document.getElementById('btn-submit').textContent = isRegister ? 'Registrovat se' : 'Přihlas se do účtu';
+    document.getElementById('btn-submit').classList.toggle('is-register', isRegister);
+
+    // update input focus color
+    document.querySelectorAll('.input-wrap input').forEach(el => {
+      el.classList.toggle('is-register', isRegister);
+    });
+  }
+
+  function togglePw() {
+    showPw = !showPw;
+    ['password', 'confirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.type = showPw ? 'text' : 'password';
+    });
+    document.getElementById('eye-icon').textContent = showPw ? '🙈' : '👁';
+  }
+
+  function checkPw(val) {
+    if (!isRegister) return;
+    toggle('rule-len',   val.length >= 8);
+    toggle('rule-upper', /[A-Z]/.test(val));
+    toggle('rule-num',   /[0-9]/.test(val));
+    toggle('rule-spec',  /[^A-Za-z0-9]/.test(val));
+  }
+
+  function toggle(id, ok) {
+    document.getElementById(id).classList.toggle('ok', ok);
+  }
+
+  function fillDemo(name, email) {
+    document.getElementById('email').value    = email;
+    document.getElementById('password').value = 'demo1234';
+  }
+</script>
+</body>
+</html>

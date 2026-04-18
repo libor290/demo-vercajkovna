@@ -135,3 +135,114 @@ export const listings: Listing[] = [
     badges: ["Dostupné ihned", "Top rating", "Fotky stavu"],
   },
 ];
+
+export type ChatStatusType =
+  | "reservation-sent"
+  | "reservation-accepted"
+  | "reservation-rejected"
+  | "reservation-cancelled"
+  | "payment-sent"
+  | "payment-confirmed"
+  | "handover"
+  | "return"
+  | "rating";
+
+export type ChatMessage =
+  | {
+      id: string;
+      type: "message";
+      text: string;
+      sender: "me" | "them";
+      time: string;
+    }
+  | {
+      id: string;
+      type: "status";
+      statusType: ChatStatusType;
+      statusText: string;
+      time: string;
+    };
+
+export type Conversation = {
+  id: string;
+  contactName: string;
+  listingId: string;
+  listingTitle: string;
+  unread: number;
+  lastMessage: string;
+  lastTime: string;
+  messages: ChatMessage[];
+};
+
+export const chatStatusMeta: Record<ChatStatusType, { icon: string; label: string; tone: "neutral" | "success" | "danger" | "warning" }> = {
+  "reservation-sent":     { icon: "pi-send",         label: "Rezervace odeslána",    tone: "neutral"  },
+  "reservation-accepted": { icon: "pi-check-circle",  label: "Rezervace přijata",     tone: "success"  },
+  "reservation-rejected": { icon: "pi-times-circle",  label: "Rezervace zamítnuta",   tone: "danger"   },
+  "reservation-cancelled":{ icon: "pi-ban",           label: "Rezervace zrušena",     tone: "danger"   },
+  "payment-sent":         { icon: "pi-credit-card",   label: "Platba odeslána",       tone: "warning"  },
+  "payment-confirmed":    { icon: "pi-check-circle",  label: "Platba potvrzena",      tone: "success"  },
+  "handover":             { icon: "pi-box",           label: "Předání proběhlo",      tone: "success"  },
+  "return":               { icon: "pi-replay",        label: "Vrácení potvrzeno",     tone: "success"  },
+  "rating":               { icon: "pi-star-fill",     label: "Hodnocení odesláno",    tone: "success"  },
+};
+
+export const conversations: Conversation[] = [
+  {
+    id: "conv-1",
+    contactName: "Tomáš",
+    listingId: "festool-ts55",
+    listingTitle: "Kompaktní kotoučová pila Festool TS 55",
+    unread: 2,
+    lastMessage: "Super, tak v pátek v 9 hodin u mě.",
+    lastTime: "9:41",
+    messages: [
+      { id: "m1", type: "message", text: "Dobrý den, mám zájem o půjčení pily na víkend. Je k dispozici od pátku?", sender: "me", time: "Pá 8:12" },
+      { id: "m2", type: "message", text: "Ahoj! Ano, je volná. Na jak dlouho by to bylo?", sender: "them", time: "Pá 8:30" },
+      { id: "m3", type: "message", text: "Pátek–neděle, takže 3 dny. Jaká je záloha?", sender: "me", time: "Pá 8:45" },
+      { id: "m4", type: "message", text: "Záloha je 500 Kč, vrátím po vrácení v pořádku. Platba přes platformu.", sender: "them", time: "Pá 9:02" },
+      { id: "m5", type: "message", text: "Perfektní, to mi vyhovuje. Kde probíhá předání?", sender: "me", time: "Pá 9:15" },
+      { id: "m6", type: "message", text: "Super, tak v pátek v 9 hodin u mě.", sender: "them", time: "Pá 9:41" },
+      { id: "s1", type: "status", statusType: "reservation-sent", statusText: "Odeslali jste žádost o rezervaci na 12.–14. 6.", time: "Pá 9:50" },
+      { id: "s2", type: "status", statusType: "reservation-accepted", statusText: "Tomáš přijal vaši rezervaci.", time: "Pá 10:15" },
+      { id: "s3", type: "status", statusType: "payment-sent", statusText: "Platba 1 435 Kč odeslána. Čeká na potvrzení.", time: "Pá 10:30" },
+    ],
+  },
+  {
+    id: "conv-2",
+    contactName: "Pavel",
+    listingId: "makita-drill",
+    listingTitle: "Aku vrtačka Makita 18V",
+    unread: 0,
+    lastMessage: "Díky, bylo to super!",
+    lastTime: "Včera",
+    messages: [
+      { id: "m1", type: "message", text: "Čau, mám zájem o vrtačku. Je ještě volná na tento víkend?", sender: "me", time: "St 10:00" },
+      { id: "m2", type: "message", text: "Ahoj, ano, je. Kdy bys ji potřeboval?", sender: "them", time: "St 10:20" },
+      { id: "m3", type: "message", text: "V sobotu ráno, vrátil bych v neděli večer.", sender: "me", time: "St 10:35" },
+      { id: "m4", type: "message", text: "To jde. Rezervuj přes platformu a dej vědět.", sender: "them", time: "St 11:00" },
+      { id: "s1", type: "status", statusType: "reservation-sent",     statusText: "Odeslali jste žádost o rezervaci na So–Ne.", time: "St 11:10" },
+      { id: "s2", type: "status", statusType: "reservation-accepted", statusText: "Pavel přijal vaši rezervaci.", time: "St 14:00" },
+      { id: "s3", type: "status", statusType: "payment-sent",         statusText: "Platba 540 Kč odeslána.", time: "St 14:20" },
+      { id: "s4", type: "status", statusType: "payment-confirmed",    statusText: "Pavel potvrdil přijetí platby.", time: "St 15:00" },
+      { id: "s5", type: "status", statusType: "handover",             statusText: "Předání potvrzeno — So 9:05.", time: "So 9:06" },
+      { id: "m5", type: "message", text: "Díky, bylo to super!", sender: "me", time: "Ne 19:30" },
+      { id: "s6", type: "status", statusType: "return",               statusText: "Vrácení potvrzeno — Ne 19:35.", time: "Ne 19:35" },
+      { id: "s7", type: "status", statusType: "rating",               statusText: "Hodnocení odesláno. Děkujeme!", time: "Ne 20:00" },
+    ],
+  },
+  {
+    id: "conv-3",
+    contactName: "Lucie",
+    listingId: "karcher-wash",
+    listingTitle: "Tlaková myčka Kärcher K5",
+    unread: 0,
+    lastMessage: "Dobrý den, myčka je teď obsazená do příštího pátku.",
+    lastTime: "Pondělí",
+    messages: [
+      { id: "m1", type: "message", text: "Dobrý den, byl bych zájem o myčku tento víkend, je volná?", sender: "me", time: "Po 14:00" },
+      { id: "m2", type: "message", text: "Dobrý den, myčka je teď obsazená do příštího pátku.", sender: "them", time: "Po 14:45" },
+      { id: "s1", type: "status", statusType: "reservation-sent",     statusText: "Odeslali jste žádost o rezervaci.", time: "Po 15:00" },
+      { id: "s2", type: "status", statusType: "reservation-rejected",  statusText: "Lucie zamítla žádost o rezervaci.", time: "Po 16:30" },
+    ],
+  },
+];

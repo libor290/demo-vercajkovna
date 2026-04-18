@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { categories, listings, type Listing } from "@/data/mockData";
+import { categories, listings, conversations as initialConversations, chatStatusMeta, type Listing, type Conversation, type ChatMessage, type ChatStatusType } from "@/data/mockData";
 
 type Screen =
   | "auth"
@@ -14,6 +14,7 @@ type Screen =
   | "profile-payments"
   | "profile-security"
   | "profile-language"
+  | "profile-notifications"
   | "help"
   | "help-detail"
   | "help-contact"
@@ -30,7 +31,8 @@ type Screen =
   | "rating-confirmation"
   | "pending-request"
   | "request"
-  | "status"
+  | "chat"
+  | "chat-detail"
   | "profile";
 type AuthMode = "login" | "register";
 
@@ -402,6 +404,18 @@ const profileListTab = ref<"offers" | "requests">("offers");
 const publicProfileListTab = ref<"offers" | "requests">("offers");
 const screenHistory = ref<Screen[]>([]);
 const lastListScreen = ref<Screen | null>(null);
+
+// Chat state
+const chatConversations = ref<Conversation[]>(initialConversations.map(c => ({ ...c, messages: [...c.messages] })));
+const activeChatId = ref<string | null>(null);
+const chatInput = ref("");
+const activeConversation = computed(() => chatConversations.value.find(c => c.id === activeChatId.value) ?? null);
+const unreadChatCount = computed(() => chatConversations.value.reduce((sum, c) => sum + c.unread, 0));
+const isChatClosed = computed(() =>
+  activeConversation.value?.messages.some(
+    m => m.type === "status" && (m.statusType === "reservation-rejected" || m.statusType === "reservation-cancelled")
+  ) ?? false
+);
 const pendingRequest = reactive({
   listingId: "festool-ts55",
   statusLabel: "Čeká na schválení",
@@ -443,6 +457,7 @@ const screenLabels: Record<Screen, string> = {
   "profile-payments": "Platební metody",
   "profile-security": "Zabezpečení",
   "profile-language": "Jazyk a měna",
+  "profile-notifications": "Oznámení",
   help: "Nápověda",
   "help-detail": "Nápověda",
   "help-contact": "Napište nám",
@@ -459,7 +474,8 @@ const screenLabels: Record<Screen, string> = {
   "rating-confirmation": "Hodnocení odesláno",
   "pending-request": "Rezervace",
   request: "Žádost",
-  status: "Stav",
+  chat: "Zprávy",
+  "chat-detail": "Konverzace",
   profile: "Profil",
 };
 
@@ -1712,9 +1728,31 @@ function openProfileLanguage() {
   setScreen("profile-language");
 }
 
+function openProfileNotifications() {
+  if (!requireAuth("profile-notifications")) return;
+  setScreen("profile-notifications");
+}
+
 const settings = reactive({
   language: "cz",
   currency: "CZK"
+});
+
+const notifications = reactive({
+  pushEnabled: true,
+  emailEnabled: true,
+  items: {
+    chat:                { push: true,  email: false },
+    reservationNew:      { push: true,  email: true  },
+    reservationStatus:   { push: true,  email: true  },
+    reservationReminder: { push: true,  email: false },
+    payment:             { push: true,  email: true  },
+    deviceStatus:        { push: true,  email: false },
+    ratingReceived:      { push: true,  email: false },
+    ratingReminder:      { push: true,  email: false },
+    nearbyListings:      { push: false, email: false },
+    platformNews:        { push: false, email: false },
+  },
 });
 
 function openFavorites() {
@@ -1734,7 +1772,32 @@ function openPaymentBank() {
 }
 
 function openStatus() {
-  requireAuth("status");
+  requireAuth("chat");
+}
+
+function openChatDetail(id: string) {
+  activeChatId.value = id;
+  const conv = chatConversations.value.find(c => c.id === id);
+  if (conv) conv.unread = 0;
+  setScreen("chat-detail");
+}
+
+function sendChatMessage() {
+  const text = chatInput.value.trim();
+  if (!text || !activeConversation.value) return;
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
+  const newMsg: ChatMessage = {
+    id: "m" + Date.now(),
+    type: "message",
+    text,
+    sender: "me",
+    time: timeStr,
+  };
+  activeConversation.value.messages.push(newMsg);
+  activeConversation.value.lastMessage = text;
+  activeConversation.value.lastTime = timeStr;
+  chatInput.value = "";
 }
 
 function openHelp() {
@@ -1898,7 +1961,7 @@ function goBack() {
 
 function completeRequest() {
   requestStatus.value = "Čeká na schválení";
-  setScreen("status");
+  setScreen("chat");
 }
 
 function nextRequestStep() {
@@ -2022,8 +2085,14 @@ if (typeof window !== "undefined") {
           <i class="pi pi-arrow-left"></i>
         </button>
         <div class="topbar-title">
-          <strong>Vercajkovna</strong>
-          <span>{{ screenLabels[screen] }}</span>
+          <template v-if="screen === 'chat-detail' && activeConversation">
+            <strong>{{ activeConversation.contactName }}</strong>
+            <span>{{ activeConversation.listingTitle }}</span>
+          </template>
+          <template v-else>
+            <strong>Vercajkovna</strong>
+            <span>{{ screenLabels[screen] }}</span>
+          </template>
         </div>
         <div class="topbar-actions">
           <button
@@ -4399,22 +4468,88 @@ if (typeof window !== "undefined") {
           </PvCard>
         </div>
 
-        <div v-else-if="screen === 'status'" class="screen-inner">
-          <PvCard class="status-card">
-            <template #content>
-              <span class="eyebrow">Stav žádosti</span>
-              <h1>{{ requestStatus }}</h1>
-              <p>Předání, schválení i timeline se budou dál rozšiřovat v dalších obrazovkách.</p>
-              <div class="status-actions">
-                <PvButton class="button-primary" @click="approveRequest">
-                  Přepnout stav
-                </PvButton>
-                <PvButton class="button-secondary" @click="openProfile">
-                  Otevřít profil
-                </PvButton>
+        <!-- CHAT LIST -->
+        <div v-else-if="screen === 'chat'" class="screen-inner chat-page">
+          <div v-if="chatConversations.length" class="chat-list">
+            <button
+              v-for="conv in chatConversations"
+              :key="conv.id"
+              class="chat-list-item"
+              type="button"
+              @click="openChatDetail(conv.id)"
+            >
+              <div class="chat-list-avatar">{{ conv.contactName.charAt(0) }}</div>
+              <div class="chat-list-copy">
+                <div class="chat-list-row">
+                  <strong class="chat-list-name">{{ conv.contactName }}</strong>
+                  <span class="chat-list-time">{{ conv.lastTime }}</span>
+                </div>
+                <div class="chat-list-row">
+                  <span class="chat-list-preview" :class="{ 'is-unread': conv.unread > 0 }">{{ conv.lastMessage }}</span>
+                  <span v-if="conv.unread > 0" class="chat-list-badge">{{ conv.unread }}</span>
+                </div>
+                <span class="chat-list-listing">{{ conv.listingTitle }}</span>
+              </div>
+            </button>
+          </div>
+
+          <div v-else class="chat-empty">
+            <i class="pi pi-comments"></i>
+            <p>Zatím žádné zprávy.<br>Začni konverzaci u konkrétní nabídky.</p>
+            <button class="button-primary" type="button" @click="setScreen('market')">Prohlížet nabídky</button>
+          </div>
+        </div>
+
+        <!-- CHAT DETAIL -->
+        <div v-else-if="screen === 'chat-detail' && activeConversation" class="screen-inner chat-detail-page">
+          <div class="chat-messages" ref="chatMessagesEl">
+            <template v-for="msg in activeConversation.messages" :key="msg.id">
+              <!-- Status event -->
+              <div
+                v-if="msg.type === 'status'"
+                class="chat-status-event"
+                :class="`is-${chatStatusMeta[msg.statusType].tone}`"
+              >
+                <span class="chat-status-icon"><i :class="`pi ${chatStatusMeta[msg.statusType].icon}`"></i></span>
+                <span class="chat-status-body">
+                  <strong>{{ chatStatusMeta[msg.statusType].label }}</strong>
+                  <span>{{ msg.statusText }}</span>
+                </span>
+              </div>
+              <!-- Regular message -->
+              <div
+                v-else
+                class="chat-bubble-wrap"
+                :class="msg.sender === 'me' ? 'is-me' : 'is-them'"
+              >
+                <div class="chat-bubble">{{ msg.text }}</div>
+                <span class="chat-bubble-time">{{ msg.time }}</span>
               </div>
             </template>
-          </PvCard>
+          </div>
+
+          <div v-if="isChatClosed" class="chat-input-bar chat-input-bar--closed">
+            <i class="pi pi-lock"></i>
+            <span>Konverzace je uzavřena — rezervace nebyla přijata.</span>
+          </div>
+          <div v-else class="chat-input-bar">
+            <input
+              v-model="chatInput"
+              class="chat-input"
+              type="text"
+              placeholder="Napište zprávu…"
+              @keydown.enter.prevent="sendChatMessage"
+            />
+            <button
+              class="chat-send-btn"
+              type="button"
+              :disabled="!chatInput.trim()"
+              @click="sendChatMessage"
+              aria-label="Odeslat"
+            >
+              <i class="pi pi-send"></i>
+            </button>
+          </div>
         </div>
 
         <div v-else-if="screen === 'profile'" class="screen-inner profile-page">
@@ -4546,7 +4681,7 @@ if (typeof window !== "undefined") {
           <div class="profile-section">
             <span class="profile-section-label">Nastavení</span>
             <div class="profile-list">
-              <button class="profile-list-item" type="button">
+              <button class="profile-list-item" type="button" @click="openProfileNotifications">
                 <i class="pi pi-bell"></i>
                 <span>Oznámení</span>
                 <i class="pi pi-chevron-right"></i>
@@ -4567,6 +4702,210 @@ if (typeof window !== "undefined") {
           <div class="profile-actions">
             <PvButton class="button-secondary" @click="logout">Odhlásit se</PvButton>
           </div>
+        </div>
+
+        <div v-else-if="screen === 'profile-notifications'" class="screen-inner profile-page">
+
+          <!-- Hlavní přepínače kanálů -->
+          <div class="profile-section">
+            <span class="profile-section-label">Obecná nastavení</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-bell"></i>
+                  <div class="card-item-text">
+                    <strong>Push notifikace</strong>
+                    <span>{{ notifications.pushEnabled ? 'Zapnuto' : 'Vypnuto' }}</span>
+                  </div>
+                </div>
+                <PvInputSwitch v-model="notifications.pushEnabled" />
+              </div>
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-envelope"></i>
+                  <div class="card-item-text">
+                    <strong>E-mailová oznámení</strong>
+                    <span>{{ notifications.emailEnabled ? 'Zapnuto' : 'Vypnuto' }}</span>
+                  </div>
+                </div>
+                <PvInputSwitch v-model="notifications.emailEnabled" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Legenda kanálů -->
+          <div class="notif-legend" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span></span>
+            <span class="notif-legend-chip"><i class="pi pi-bell"></i> Push</span>
+            <span class="notif-legend-chip"><i class="pi pi-envelope"></i> E-mail</span>
+          </div>
+
+          <!-- Komunikace -->
+          <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span class="profile-section-label">Komunikace</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-comment"></i>
+                  <div class="card-item-text"><strong>Nová zpráva v chatu</strong></div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.chat.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.chat.push = !notifications.items.chat.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.chat.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.chat.email = !notifications.items.chat.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rezervace -->
+          <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span class="profile-section-label">Rezervace</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-inbox"></i>
+                  <div class="card-item-text">
+                    <strong>Nová žádost</strong>
+                    <span>Někdo chce půjčit tvoje nářadí</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.reservationNew.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.reservationNew.push = !notifications.items.reservationNew.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.reservationNew.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.reservationNew.email = !notifications.items.reservationNew.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-check-circle"></i>
+                  <div class="card-item-text">
+                    <strong>Přijata nebo zamítnuta</strong>
+                    <span>Stav tvé žádosti se změnil</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.reservationStatus.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.reservationStatus.push = !notifications.items.reservationStatus.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.reservationStatus.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.reservationStatus.email = !notifications.items.reservationStatus.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-clock"></i>
+                  <div class="card-item-text">
+                    <strong>Připomínka předání</strong>
+                    <span>Den před začátkem výpůjčky</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.reservationReminder.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.reservationReminder.push = !notifications.items.reservationReminder.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.reservationReminder.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.reservationReminder.email = !notifications.items.reservationReminder.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platby -->
+          <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span class="profile-section-label">Platby</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-credit-card"></i>
+                  <div class="card-item-text">
+                    <strong>Stav platby</strong>
+                    <span>Přijata nebo potvrzena</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.payment.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.payment.push = !notifications.items.payment.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.payment.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.payment.email = !notifications.items.payment.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Průběh výpůjčky -->
+          <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span class="profile-section-label">Průběh výpůjčky</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-box"></i>
+                  <div class="card-item-text">
+                    <strong>Stav zařízení</strong>
+                    <span>Předání a vrácení potvrzeno</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.deviceStatus.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.deviceStatus.push = !notifications.items.deviceStatus.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.deviceStatus.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.deviceStatus.email = !notifications.items.deviceStatus.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hodnocení -->
+          <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span class="profile-section-label">Hodnocení</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-star"></i>
+                  <div class="card-item-text"><strong>Nové hodnocení</strong></div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.ratingReceived.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.ratingReceived.push = !notifications.items.ratingReceived.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.ratingReceived.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.ratingReceived.email = !notifications.items.ratingReceived.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-star-fill"></i>
+                  <div class="card-item-text">
+                    <strong>Výzva k hodnocení</strong>
+                    <span>Po skončení výpůjčky</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.ratingReminder.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.ratingReminder.push = !notifications.items.ratingReminder.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.ratingReminder.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.ratingReminder.email = !notifications.items.ratingReminder.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Novinky -->
+          <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+            <span class="profile-section-label">Novinky</span>
+            <div class="profile-list">
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-map-marker"></i>
+                  <div class="card-item-text">
+                    <strong>Nové nabídky v okolí</strong>
+                    <span>Nářadí blízko tebe</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.nearbyListings.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.nearbyListings.push = !notifications.items.nearbyListings.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.nearbyListings.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.nearbyListings.email = !notifications.items.nearbyListings.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+              <div class="profile-list-item notif-row">
+                <div class="card-item-info">
+                  <i class="pi pi-megaphone"></i>
+                  <div class="card-item-text">
+                    <strong>Novinky platformy</strong>
+                    <span>Akce a tipy od Vercajkovny</span>
+                  </div>
+                </div>
+                <div class="notif-channels">
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.platformNews.push }" type="button" :disabled="!notifications.pushEnabled" @click="notifications.items.platformNews.push = !notifications.items.platformNews.push"><i class="pi pi-bell"></i></button>
+                  <button class="notif-chip" :class="{ 'is-on': notifications.items.platformNews.email }" type="button" :disabled="!notifications.emailEnabled" @click="notifications.items.platformNews.email = !notifications.items.platformNews.email"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div v-else-if="screen === 'profile-language'" class="screen-inner profile-page">
@@ -5096,7 +5435,8 @@ if (typeof window !== "undefined") {
       <button class="bottom-nav-center" type="button" @click="openAddListing" aria-label="Přidat nabídku">
         <i class="pi pi-plus"></i>
       </button>
-      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'status' }" type="button" @click="openStatus">
+      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'chat' || screen === 'chat-detail' }" type="button" @click="openStatus">
+        <span v-if="unreadChatCount > 0" class="bottom-nav-badge">{{ unreadChatCount }}</span>
         <i class="pi pi-comment"></i>
         <span>Chat</span>
       </button>

@@ -1,0 +1,830 @@
+/* ============================================================
+   VERCAJKOVNA — DESIGN SYSTEM (dsn.css)
+   Importovat v main.ts PO styles.css.
+   Fonts zůstávají: Iowan Old Style / Helvetica Neue.
+   ============================================================ */
+
+/* ── TOKENY ─────────────────────────────────────────────────── */
+:root {
+  /* Paleta */
+  --dsn-brand:       #3a2519;
+  --dsn-brand-dark:  #24140d;
+  --dsn-brand-ink:   #fff8f1;
+  --dsn-green:       #1b5431;
+  --dsn-green-ink:   #fff8f1;
+
+  /* Povrchy */
+  --dsn-bg:          #f5ede3;   /* stránkové pozadí — teplá krémová */
+  --dsn-surface:     #ffffff;
+  --dsn-surface-soft:#fdf9f4;
+  --dsn-surface-dim: #ede4d9;   /* tab container, recessed */
+
+  /* Text */
+  --dsn-text:        #352116;
+  --dsn-muted:       #6d584a;
+  --dsn-subtle:      #9a8a7c;
+
+  /* Okraje */
+  --dsn-border:      rgba(58,37,25,0.14);
+  --dsn-border-mid:  rgba(58,37,25,0.22);
+
+  /* Mezery */
+  --sp-1:  4px;  --sp-2:  8px;  --sp-3:  12px; --sp-4:  16px;
+  --sp-5:  20px; --sp-6:  24px; --sp-8:  32px; --sp-10: 40px;
+
+  /* Typografie */
+  --t-xs:   0.72rem;
+  --t-sm:   0.82rem;
+  --t-base: 0.92rem;
+  --t-md:   1rem;
+  --t-lg:   1.15rem;
+  --t-xl:   1.45rem;
+  --t-2xl:  1.85rem;
+  --t-3xl:  2.4rem;
+
+  /* Zaoblení */
+  --r-sm:   10px;
+  --r-md:   14px;
+  --r-lg:   18px;
+  --r-xl:   24px;
+  --r-pill: 999px;
+
+  /* Stíny */
+  --sh-1: 0 1px 3px rgba(58,37,25,.06), 0 1px 2px rgba(58,37,25,.04);
+  --sh-2: 0 4px 14px rgba(58,37,25,.09), 0 2px 4px rgba(58,37,25,.05);
+  --sh-3: 0 12px 32px rgba(58,37,25,.12), 0 4px 8px rgba(58,37,25,.06);
+
+  /* Přechody */
+  --ease-fast: 140ms ease;
+  --ease-base: 200ms ease;
+
+  /* Komponenty */
+  --h-input:  52px;
+  --h-btn:    52px;
+  --h-btn-sm: 44px;
+  --h-nav:    68px;
+}
+
+/* ── ZÁKLAD ─────────────────────────────────────────────────── */
+
+body {
+  background: var(--dsn-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+  background: var(--dsn-bg);
+}
+
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
+
+:focus-visible {
+  outline: 2px solid var(--dsn-green);
+  outline-offset: 2px;
+}
+
+button:active { transform: scale(0.97); }
+
+/* ── KONZISTENTNÍ TOPBAR (všechny obrazovky) ─────────────────── */
+
+.topbar.topbar-app {
+  background: var(--dsn-bg);
+  border-bottom: 1px solid var(--dsn-border);
+  backdrop-filter: none;
+}
+
+.topbar-inner {
+  padding: 10px 0;
+}
+
+.topbar-title strong {
+  font-family: var(--font-raw);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--dsn-brand);
+}
+
+.topbar-title span {
+  font-size: var(--t-xs);
+  color: var(--dsn-muted);
+  letter-spacing: 0.04em;
+}
+
+/* Ikona tlačítko v topbaru */
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--dsn-surface);
+  border: 1px solid var(--dsn-border);
+  color: var(--dsn-brand);
+  display: grid;
+  place-items: center;
+  transition: background var(--ease-fast), border-color var(--ease-fast);
+}
+
+.icon-button:hover {
+  background: var(--dsn-surface-dim);
+  border-color: var(--dsn-border-mid);
+}
+
+.icon-button-initials {
+  font-family: var(--font-raw);
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  border-color: transparent;
+}
+
+.icon-button-initials:hover {
+  background: var(--dsn-brand-dark);
+  border-color: transparent;
+}
+
+/* ── BOTTOM NAV ─────────────────────────────────────────────── */
+
+.bottom-nav {
+  background: var(--dsn-surface);
+  border-top: 1px solid var(--dsn-border);
+  box-shadow: 0 -2px 12px rgba(58,37,25,.06);
+  height: var(--h-nav);
+}
+
+.bottom-nav-item {
+  color: var(--dsn-subtle);
+  transition: color var(--ease-fast);
+}
+
+.bottom-nav-item.is-active {
+  color: var(--dsn-brand);
+}
+
+.bottom-nav-item i {
+  font-size: 1.25rem;
+}
+
+.bottom-nav-item span {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* ── AUTH — SHELL ────────────────────────────────────────────── */
+
+.auth-shell {
+  background: var(--dsn-bg);
+  min-height: 100vh;
+  padding: 8px 0 80px;
+}
+
+.auth-topbar {
+  background: transparent;
+  width: min(100vw - 32px, 460px);
+}
+
+.auth-back-button {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--dsn-surface);
+  border: 1px solid var(--dsn-border);
+  color: var(--dsn-brand);
+  display: grid;
+  place-items: center;
+}
+
+.auth-page {
+  width: min(100vw - 32px, 460px);
+  gap: 12px;
+}
+
+/* ── AUTH — BRAND ROW ────────────────────────────────────────── */
+
+.auth-brand-mark.auth-brand-mark-inline {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--sh-2);
+}
+
+.auth-brand-copy-inline strong {
+  font-family: var(--font-raw);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--dsn-brand);
+}
+
+.auth-brand-copy-inline span {
+  font-family: var(--font-raw);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dsn-muted);
+}
+
+/* ── AUTH — PANEL ────────────────────────────────────────────── */
+
+.auth-panel {
+  background: var(--dsn-surface);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--dsn-border);
+  padding: 24px 20px 20px;
+  box-shadow: var(--sh-2);
+}
+
+/* Odstraní barevné bordery z styles.css */
+.auth-panel.is-login,
+.auth-panel.is-register {
+  border-top: 1px solid var(--dsn-border);
+  padding-top: 24px;
+}
+
+/* ── AUTH — HERO NADPIS ──────────────────────────────────────── */
+
+.auth-panel-head {
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.auth-hero-title {
+  display: block;
+  margin: 0;
+  line-height: 1.05;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 5.5vw, 2.4rem);
+  letter-spacing: -0.04em;
+}
+
+.auth-hero-line1 {
+  display: block;
+  color: var(--dsn-brand);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.auth-hero-line2 {
+  display: block;
+  color: var(--dsn-green);
+  font-weight: 700;
+  font-style: italic;
+}
+
+.auth-panel-head p {
+  margin: 0;
+  color: var(--dsn-muted);
+  font-size: var(--t-base);
+  line-height: 1.55;
+  max-width: 36ch;
+}
+
+/* ── AUTH — TABS ─────────────────────────────────────────────── */
+
+.auth-tabs {
+  background: var(--dsn-surface-dim);
+  border: 1px solid var(--dsn-border);
+  border-radius: var(--r-lg);
+  padding: 5px;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+/* Zrušit barevné varianty z styles.css */
+.auth-panel.is-login .auth-tabs,
+.auth-panel.is-register .auth-tabs {
+  background: var(--dsn-surface-dim);
+  border-color: var(--dsn-border);
+}
+
+.auth-tab {
+  min-height: 48px;
+  border-radius: calc(var(--r-lg) - 5px);
+  background: transparent;
+  color: var(--dsn-muted);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  transition: background var(--ease-fast), color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.auth-panel.is-login .auth-tab,
+.auth-panel.is-register .auth-tab {
+  color: var(--dsn-muted);
+}
+
+.auth-tab.is-active,
+.auth-panel.is-login .auth-tab.is-active,
+.auth-panel.is-register .auth-tab.is-active {
+  background: var(--dsn-surface);
+  color: var(--dsn-brand);
+  box-shadow: var(--sh-1);
+}
+
+/* ── AUTH — INPUTY ───────────────────────────────────────────── */
+
+/* Skrýt viditelné labely (dostupnost zachována přes id/for) */
+.auth-panel .field > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* field-row label (s forgotten password) necháme viditelný */
+.auth-panel .field-row label {
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+  overflow: visible;
+  margin: 0;
+}
+
+.auth-panel .input-shell,
+.auth-panel.is-login .input-shell,
+.auth-panel.is-register .input-shell {
+  height: var(--h-input);
+  border-radius: var(--r-md);
+  background: var(--dsn-surface);
+  border: 1.5px solid var(--dsn-border);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.auth-panel .input-shell:focus-within,
+.auth-panel.is-login .input-shell:focus-within,
+.auth-panel.is-register .input-shell:focus-within {
+  border-color: var(--dsn-brand);
+  box-shadow: 0 0 0 3px rgba(58,37,25,.10);
+}
+
+.auth-input,
+.auth-input.native-input {
+  font-size: var(--t-base);
+  color: var(--dsn-text);
+  background: transparent;
+}
+
+.auth-input::placeholder {
+  color: var(--dsn-subtle);
+}
+
+.input-icon {
+  color: var(--dsn-subtle);
+  font-size: 1rem;
+}
+
+.input-action {
+  color: var(--dsn-subtle);
+  background: transparent;
+  border: none;
+  padding: 0 12px;
+  display: grid;
+  place-items: center;
+}
+
+.input-action:hover {
+  color: var(--dsn-muted);
+}
+
+/* field-link (Zapomenuté heslo) */
+.field-link {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--dsn-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* ── AUTH — CHECKBOX ROW ─────────────────────────────────────── */
+
+.auth-meta-row {
+  margin: 4px 0 8px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--t-sm);
+  color: var(--dsn-text);
+  cursor: pointer;
+}
+
+/* PrimeVue checkbox — zelená zaškrtnutá */
+.p-checkbox.p-checkbox-checked .p-checkbox-box {
+  background: var(--dsn-green) !important;
+  border-color: var(--dsn-green) !important;
+}
+
+.p-checkbox .p-checkbox-box {
+  border-radius: 6px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border: 1.5px solid var(--dsn-border-mid) !important;
+}
+
+/* ── AUTH — PRIMÁRNÍ TLAČÍTKO ────────────────────────────────── */
+
+.auth-submit.auth-submit-primary,
+.auth-panel.is-login .auth-submit-primary,
+.auth-panel.is-register .auth-submit-primary {
+  min-height: var(--h-btn);
+  border-radius: var(--r-md);
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  font-size: var(--t-sm);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  box-shadow: var(--sh-2);
+  transition: background var(--ease-fast), box-shadow var(--ease-fast), transform var(--ease-fast);
+}
+
+.auth-submit.auth-submit-primary:hover,
+.auth-panel.is-login .auth-submit-primary:hover,
+.auth-panel.is-register .auth-submit-primary:hover {
+  background: var(--dsn-brand-dark);
+  box-shadow: var(--sh-3);
+}
+
+/* ── AUTH — DEMO SEKCE ───────────────────────────────────────── */
+
+.auth-demo-group {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Nový divider s textem */
+.auth-demo-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  color: var(--dsn-subtle);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.auth-demo-divider::before,
+.auth-demo-divider::after {
+  content: "";
+  height: 1px;
+  background: var(--dsn-border);
+  display: block;
+}
+
+.auth-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+/* Demo karta s avatarem */
+.auth-demo-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  background: var(--dsn-surface);
+  border: 1px solid var(--dsn-border);
+  text-align: left;
+  box-shadow: var(--sh-1);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast), transform var(--ease-fast);
+}
+
+.auth-demo-card:hover {
+  border-color: var(--dsn-border-mid);
+  box-shadow: var(--sh-2);
+  transform: translateY(-1px);
+}
+
+.auth-demo-avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: var(--r-pill);
+  background: var(--dsn-surface-dim);
+  color: var(--dsn-brand);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--dsn-border);
+}
+
+.auth-demo-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.auth-demo-name {
+  font-family: var(--font-raw);
+  font-weight: 700;
+  font-size: var(--t-base);
+  color: var(--dsn-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-demo-desc {
+  font-size: var(--t-xs);
+  color: var(--dsn-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── AUTH — DIVIDER (social) ─────────────────────────────────── */
+
+.auth-divider,
+.auth-panel.is-login .auth-divider,
+.auth-panel.is-register .auth-divider {
+  color: var(--dsn-subtle);
+  font-size: var(--t-xs);
+  letter-spacing: 0.07em;
+}
+
+.auth-divider::before,
+.auth-divider::after,
+.auth-panel.is-login .auth-divider::before,
+.auth-panel.is-login .auth-divider::after,
+.auth-panel.is-register .auth-divider::before,
+.auth-panel.is-register .auth-divider::after {
+  background: var(--dsn-border);
+}
+
+/* ── AUTH — SOCIAL TLAČÍTKA ──────────────────────────────────── */
+
+.auth-social {
+  gap: 8px;
+}
+
+.social-button,
+.auth-panel.is-login .social-button,
+.auth-panel.is-register .social-button {
+  min-height: var(--h-btn-sm);
+  border-radius: var(--r-md);
+  background: var(--dsn-surface);
+  border: 1.5px solid var(--dsn-border);
+  box-shadow: var(--sh-1);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.social-button:hover {
+  border-color: var(--dsn-border-mid);
+  box-shadow: var(--sh-2);
+}
+
+/* ── AUTH — PODPORA A CHYBA ──────────────────────────────────── */
+
+.auth-support,
+.auth-panel.is-login .auth-support,
+.auth-panel.is-register .auth-support {
+  font-size: var(--t-xs);
+  color: var(--dsn-subtle);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.auth-support strong {
+  color: var(--dsn-brand);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-error {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: rgba(154,58,31,.10);
+  border: 1px solid rgba(154,58,31,.22);
+  color: #7a2e10;
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+/* ── AUTH — BOTTOM TICKER ────────────────────────────────────── */
+
+.auth-ticker {
+  text-align: center;
+  padding: 16px 0 4px;
+  font-family: var(--font-raw);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dsn-subtle);
+  opacity: 0.6;
+}
+
+/* ── PASSWORD RULES ──────────────────────────────────────────── */
+
+.password-rule {
+  font-size: var(--t-xs);
+  color: var(--dsn-subtle);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.password-rule.is-ok {
+  color: var(--dsn-green);
+}
+
+.password-rule-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+/* ── MARKET — BRAND TOPBAR ───────────────────────────────────── */
+
+.market-topbar {
+  background: transparent;
+}
+
+.market-brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.market-brand-word {
+  font-family: var(--font-raw);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--dsn-brand);
+  letter-spacing: -0.02em;
+}
+
+.market-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-pill);
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  font-family: var(--font-raw);
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+  border: none;
+}
+
+/* ── MARKET — HERO CARD ──────────────────────────────────────── */
+
+.market-hero-card {
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--sh-2);
+}
+
+.market-page-kicker {
+  font-family: var(--font-raw);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* ── KARTY (listing cards) ───────────────────────────────────── */
+
+.listing-card,
+.listing-card-large {
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+  background: var(--dsn-surface);
+  overflow: hidden;
+  transition: box-shadow var(--ease-fast), transform var(--ease-fast);
+}
+
+.listing-card:hover,
+.listing-card-large:hover {
+  box-shadow: var(--sh-2);
+  transform: translateY(-2px);
+}
+
+/* ── KATEGORIE CHIPY ─────────────────────────────────────────── */
+
+.category-chip {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--dsn-surface);
+  border: 1px solid var(--dsn-border);
+  color: var(--dsn-muted);
+  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
+}
+
+.category-chip.is-active {
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  border-color: transparent;
+}
+
+/* ── OBECNÁ TLAČÍTKA ─────────────────────────────────────────── */
+
+.button-primary {
+  min-height: var(--h-btn);
+  border-radius: var(--r-md);
+  background: var(--dsn-brand);
+  color: var(--dsn-brand-ink);
+  font-size: var(--t-sm);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  box-shadow: var(--sh-1);
+  transition: background var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.button-primary:hover {
+  background: var(--dsn-brand-dark);
+  box-shadow: var(--sh-2);
+}
+
+.button-secondary {
+  min-height: var(--h-btn);
+  border-radius: var(--r-md);
+  background: var(--dsn-surface);
+  color: var(--dsn-brand);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1.5px solid var(--dsn-border-mid);
+  box-shadow: var(--sh-1);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.button-secondary:hover {
+  border-color: var(--dsn-brand);
+  box-shadow: var(--sh-2);
+}
+
+/* ── RESPONZIVITA ────────────────────────────────────────────── */
+
+@media (min-width: 560px) {
+  .auth-page {
+    gap: 16px;
+  }
+
+  .auth-panel {
+    padding: 32px 28px 28px;
+  }
+
+  .auth-hero-title {
+    font-size: 2.6rem;
+  }
+}
+
+/* ── SNÍŽENÁ ANIMACE ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

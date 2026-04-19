@@ -7,6 +7,7 @@ import Divider from "primevue/divider";
 import InputText from "primevue/inputtext";
 import App from "./App.vue";
 import "./styles.css";
+import "./dsn.css";
 import "primeicons/primeicons.css";
 
 const app = createApp(App);

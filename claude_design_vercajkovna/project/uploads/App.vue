@@ -212,7 +212,7 @@ const auth = reactive({
 });
 const showPassword = ref(false);
 const demoProfiles = [
-  { id: "tomas", name: "Tomáš", email: "tomas@vercajkovna.cz", password: "demo1234", desc: "Kutil z Letné" },
+  { id: "tomas", name: "Tomáš", email: "tomas@vercajkovna.cz", password: "demo1234" },
 ];
 const demoProfileMatrix: Record<string, { offers: string[]; requests: string[] }> = {
   "tomas@vercajkovna.cz": {
@@ -1017,7 +1017,7 @@ const passwordsMatch = computed(() => {
 
 const registerTermsLabel = "Souhlasím s podmínkami a zpracováním osobních údajů.";
 const authHeading = computed(() =>
-  authMode.value === "login" ? { submitLabel: "Jdeme na to" } : { submitLabel: "Registrovat se" },
+  authMode.value === "login" ? { submitLabel: "Přihlas se do účtu" } : { submitLabel: "Registrovat se" },
 );
 
 function persistAuth(remember: boolean, name: string, email: string) {
@@ -2126,24 +2126,22 @@ if (typeof window !== "undefined") {
     <main class="frame">
       <section v-if="screen === 'auth'" class="auth-shell">
         <div class="auth-page" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
-          <div class="auth-brand-row">
+          <div class="auth-brand-row auth-brand-row-center">
             <div class="auth-brand-mark auth-brand-mark-inline">V</div>
             <div class="auth-brand-copy auth-brand-copy-inline">
-              <strong>vercajkovna</strong>
-              <span>Půjčujem si vercajk</span>
+              <strong>Vercajkovna</strong>
+              <span>Půjčujte chytře</span>
             </div>
           </div>
 
           <div class="auth-panel" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
             <div class="auth-panel-head">
-              <h1 class="auth-hero-title">
-                <span class="auth-hero-line1">{{ authMode === 'login' ? 'Vítej zpátky' : 'Vytvoř si účet' }}</span>
-                <span class="auth-hero-line2">{{ authMode === 'login' ? 'v dílně.' : 'v komunitě.' }}</span>
-              </h1>
+              <span class="auth-page-kicker">{{ authMode === 'login' ? "Přihlášení" : "Registrace" }}</span>
+              <h1>{{ authMode === 'login' ? "Přihlas se do účtu" : "Vytvoř si účet" }}</h1>
               <p>
                 {{
                   authMode === "login"
-                    ? "Co potřebuješ tentokrát — aku vrtačku, laser, nebo celé lešení?"
+                    ? "Pokračuj tam, kde jsi skončil."
                     : "Začni během minuty a přidej se k lidem, kteří sdílí věci."
                 }}
               </p>
@@ -2184,7 +2182,7 @@ if (typeof window !== "undefined") {
               </div>
 
               <div class="field">
-                <label for="authEmail" :class="{ 'sr-only': authMode === 'login' }">E-MAIL</label>
+                <label for="authEmail">E-MAIL</label>
                 <div class="input-shell">
                   <i class="pi pi-envelope input-icon"></i>
                   <PvInputText
@@ -2192,16 +2190,16 @@ if (typeof window !== "undefined") {
                     v-model="auth.email"
                     class="auth-input"
                     autocomplete="email"
-                    :placeholder="authMode === 'login' ? 'tvuj@email.cz' : 'name@example.com'"
+                    placeholder="name@example.com"
                   />
                 </div>
               </div>
 
               <div class="field">
-                <div v-if="authMode === 'register'" class="field-row">
+                <div class="field-row">
                   <label for="authPassword">Heslo</label>
+                  <button class="field-link" type="button" @click="handleHelp">Zapomenuté heslo?</button>
                 </div>
-                <label v-else for="authPassword" class="sr-only">Heslo</label>
                 <div class="input-shell">
                   <i class="pi pi-lock input-icon"></i>
                   <input
@@ -2210,7 +2208,7 @@ if (typeof window !== "undefined") {
                     class="auth-input native-input"
                     :type="showPassword ? 'text' : 'password'"
                     autocomplete="current-password"
-                    :placeholder="authMode === 'login' ? 'Heslo' : '••••••••'"
+                    placeholder="••••••••"
                   />
                   <button class="input-action" type="button" :aria-label="showPassword ? 'Skrýt heslo' : 'Zobrazit heslo'" @click="togglePasswordVisibility">
                     <i :class="['pi', showPassword ? 'pi-eye-slash' : 'pi-eye']"></i>
@@ -2250,19 +2248,11 @@ if (typeof window !== "undefined") {
                 </div>
               </div>
 
-              <div class="auth-meta-row" :class="{ 'auth-meta-row-split': authMode === 'login' }">
+              <div class="auth-meta-row">
                 <label v-if="authMode === 'login'" class="checkbox-row auth-remember-row">
                   <PvCheckbox v-model="auth.remember" binary />
-                  <span>Pamatovat si mě</span>
+                  <span>Zapamatovat si mě</span>
                 </label>
-                <button
-                  v-if="authMode === 'login'"
-                  class="field-link auth-forgot-link"
-                  type="button"
-                  @click="handleHelp"
-                >
-                  Zapomenuté?
-                </button>
 
                 <label v-if="authMode === 'register'" class="checkbox-row terms-row">
                   <PvCheckbox v-model="auth.terms" binary />
@@ -2275,9 +2265,7 @@ if (typeof window !== "undefined") {
               </PvButton>
 
               <div v-if="authMode === 'login'" class="auth-demo-group">
-                <div class="auth-demo-divider">
-                  <span>— nebo skoč rovnou jako demo —</span>
-                </div>
+                <span class="auth-demo-label">Demo profily</span>
                 <div class="auth-demo-grid">
                   <button
                     v-for="profile in demoProfiles"
@@ -2286,17 +2274,15 @@ if (typeof window !== "undefined") {
                     type="button"
                     @click="useDemoProfile(profile)"
                   >
-                    <span class="auth-demo-avatar">{{ profile.name.charAt(0) }}</span>
-                    <span class="auth-demo-info">
-                      <span class="auth-demo-name">{{ profile.name }}</span>
-                      <span class="auth-demo-desc">{{ profile.desc }}</span>
-                    </span>
+                    <span class="auth-demo-name">{{ profile.name }}</span>
+                    <span class="auth-demo-email">{{ profile.email }}</span>
                   </button>
                 </div>
+                <div class="auth-demo-hint">Klikni a rovnou přihlasíme vybraný profil.</div>
               </div>
 
               <div class="auth-divider">
-                <span>nebo přes</span>
+                <span>Nebo pokračujte přes</span>
               </div>
 
               <div class="auth-social">
@@ -2319,10 +2305,6 @@ if (typeof window !== "undefined") {
 
               <div v-if="auth.error" class="auth-error" role="alert">{{ auth.error }}</div>
             </form>
-          </div>
-
-          <div class="auth-ticker" aria-hidden="true">
-            <span>TAP · SWIPE · PŮJČ SI VERCAJK</span>
           </div>
         </div>
       </section>

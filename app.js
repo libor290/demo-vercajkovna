@@ -303,7 +303,7 @@ function renderAuth() {
         <form class="auth-form auth-form-panel" data-auth-form novalidate>
           ${isLogin ? `
             <label class="field">
-              <span>Email</span>
+              <span>E-mail</span>
               <div class="input-shell">
                 <span class="input-icon" aria-hidden="true">${icon("email")}</span>
                 <input id="loginEmail" class="input" type="email" autocomplete="email" placeholder="name@example.com" value="${escapeHtml(state.login.email)}" />

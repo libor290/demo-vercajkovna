@@ -84,7 +84,12 @@ body {
   outline-offset: 2px;
 }
 
-button:active { transform: scale(0.97); }
+/* Zakázání ripple efektu, pokud působí rušivě */
+.p-ink {
+  display: none !important;
+}
+
+button:active { transform: none !important; }
 
 /* ── KONZISTENTNÍ TOPBAR (všechny obrazovky) ─────────────────── */
 
@@ -177,40 +182,58 @@ button:active { transform: scale(0.97); }
 .auth-shell {
   background: var(--dsn-bg);
   min-height: 100vh;
-  padding: 8px 0 80px;
+  padding: 16px 0 100px;
 }
 
 .auth-topbar {
   background: transparent;
   width: min(100vw - 32px, 460px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0 24px;
+}
+
+.auth-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .auth-back-button {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-md);
   background: var(--dsn-surface);
   border: 1px solid var(--dsn-border);
   color: var(--dsn-brand);
   display: grid;
   place-items: center;
+  transition: background var(--ease-fast), border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.auth-back-button:hover {
+  background: var(--dsn-surface-dim);
+  border-color: var(--dsn-border-mid);
+  box-shadow: var(--sh-1);
 }
 
 .auth-page {
   width: min(100vw - 32px, 460px);
-  gap: 12px;
+  gap: 20px;
 }
 
 /* ── AUTH — BRAND ROW ────────────────────────────────────────── */
 
 .auth-brand-mark.auth-brand-mark-inline {
-  width: 46px;
-  height: 46px;
-  border-radius: 13px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   background: var(--dsn-brand);
   color: var(--dsn-brand-ink);
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -219,7 +242,7 @@ button:active { transform: scale(0.97); }
 
 .auth-brand-copy-inline strong {
   font-family: var(--font-raw);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--dsn-brand);
@@ -227,7 +250,7 @@ button:active { transform: scale(0.97); }
 
 .auth-brand-copy-inline span {
   font-family: var(--font-raw);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -237,25 +260,25 @@ button:active { transform: scale(0.97); }
 /* ── AUTH — PANEL ────────────────────────────────────────────── */
 
 .auth-panel {
-  background: var(--dsn-surface);
-  border-radius: var(--r-xl);
-  border: 1px solid var(--dsn-border);
-  padding: 24px 20px 20px;
-  box-shadow: var(--sh-2);
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  padding: 10px 0 20px;
+  box-shadow: none;
 }
 
 /* Odstraní barevné bordery z styles.css */
 .auth-panel.is-login,
 .auth-panel.is-register {
-  border-top: 1px solid var(--dsn-border);
-  padding-top: 24px;
+  border-top: none;
+  padding-top: 10px;
 }
 
 /* ── AUTH — HERO NADPIS ──────────────────────────────────────── */
 
 .auth-panel-head {
-  margin-bottom: 20px;
-  gap: 10px;
+  margin-bottom: 32px;
+  gap: 16px;
 }
 
 .auth-hero-title {
@@ -276,8 +299,13 @@ button:active { transform: scale(0.97); }
 
 .auth-hero-line2 {
   display: block;
-  color: var(--dsn-green);
+  color: var(--dsn-brand);
   font-weight: 700;
+  font-style: normal;
+}
+
+.auth-hero-accent {
+  color: var(--dsn-green);
   font-style: italic;
 }
 
@@ -325,6 +353,15 @@ button:active { transform: scale(0.97); }
   color: var(--dsn-muted);
 }
 
+.auth-tab:hover {
+  color: var(--dsn-brand);
+}
+
+.auth-panel.is-login .auth-tab:hover,
+.auth-panel.is-register .auth-tab:hover {
+  color: var(--dsn-brand);
+}
+
 .auth-tab.is-active,
 .auth-panel.is-login .auth-tab.is-active,
 .auth-panel.is-register .auth-tab.is-active {
@@ -364,13 +401,19 @@ button:active { transform: scale(0.97); }
   border-radius: var(--r-md);
   background: var(--dsn-surface);
   border: 1.5px solid var(--dsn-border);
-  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast), background var(--ease-fast);
+}
+
+.auth-panel .input-shell:hover {
+  border-color: var(--dsn-border-mid);
+  background: var(--dsn-surface-soft);
 }
 
 .auth-panel .input-shell:focus-within,
 .auth-panel.is-login .input-shell:focus-within,
 .auth-panel.is-register .input-shell:focus-within {
   border-color: var(--dsn-brand);
+  background: var(--dsn-surface);
   box-shadow: 0 0 0 3px rgba(58,37,25,.10);
 }
 
@@ -450,22 +493,21 @@ button:active { transform: scale(0.97); }
 .auth-panel.is-register .auth-submit-primary {
   min-height: var(--h-btn);
   border-radius: var(--r-md);
-  background: var(--dsn-brand);
-  color: var(--dsn-brand-ink);
-  font-size: var(--t-sm);
+  background: #9a8a7c; /* Tlumenější hnědá podle screenshotu */
+  color: #ffffff;
+  font-size: var(--t-md);
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   border: none;
-  box-shadow: var(--sh-2);
-  transition: background var(--ease-fast), box-shadow var(--ease-fast), transform var(--ease-fast);
+  box-shadow: none;
+  transition: background var(--ease-fast), box-shadow var(--ease-fast);
 }
 
 .auth-submit.auth-submit-primary:hover,
 .auth-panel.is-login .auth-submit-primary:hover,
 .auth-panel.is-register .auth-submit-primary:hover {
-  background: var(--dsn-brand-dark);
-  box-shadow: var(--sh-3);
+  background: #89796c;
 }
 
 /* ── AUTH — DEMO SEKCE ───────────────────────────────────────── */
@@ -568,9 +610,16 @@ button:active { transform: scale(0.97); }
 .auth-divider,
 .auth-panel.is-login .auth-divider,
 .auth-panel.is-register .auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
   color: var(--dsn-subtle);
   font-size: var(--t-xs);
-  letter-spacing: 0.07em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 22px 0 14px;
 }
 
 .auth-divider::before,
@@ -579,7 +628,10 @@ button:active { transform: scale(0.97); }
 .auth-panel.is-login .auth-divider::after,
 .auth-panel.is-register .auth-divider::before,
 .auth-panel.is-register .auth-divider::after {
+  content: "";
+  height: 1px;
   background: var(--dsn-border);
+  display: block;
 }
 
 /* ── AUTH — SOCIAL TLAČÍTKA ──────────────────────────────────── */
@@ -596,11 +648,12 @@ button:active { transform: scale(0.97); }
   background: var(--dsn-surface);
   border: 1.5px solid var(--dsn-border);
   box-shadow: var(--sh-1);
-  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast), background var(--ease-fast);
 }
 
 .social-button:hover {
   border-color: var(--dsn-border-mid);
+  background: var(--dsn-surface-soft);
   box-shadow: var(--sh-2);
 }
 
@@ -620,6 +673,12 @@ button:active { transform: scale(0.97); }
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color var(--ease-fast);
+}
+
+.auth-support strong:hover {
+  color: var(--dsn-green);
 }
 
 .auth-error {

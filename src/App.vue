@@ -1843,7 +1843,7 @@ function submitAuth() {
 
   if (authMode.value === "login") {
     if (!email || !password) {
-      auth.error = "Vyplň email i heslo.";
+      auth.error = "Vyplň e-mail i heslo.";
       return;
     }
     auth.error = "";
@@ -2121,29 +2121,29 @@ if (typeof window !== "undefined") {
       <button class="auth-back-button" type="button" aria-label="Zpět" @click="goBack">
         <i class="pi pi-arrow-left"></i>
       </button>
+      <div class="auth-brand-row">
+        <div class="auth-brand-mark auth-brand-mark-inline">V</div>
+        <div class="auth-brand-copy auth-brand-copy-inline">
+          <strong>vercajkovna</strong>
+          <span>Půjčujem si vercajk</span>
+        </div>
+      </div>
     </header>
 
     <main class="frame">
       <section v-if="screen === 'auth'" class="auth-shell">
         <div class="auth-page" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
-          <div class="auth-brand-row">
-            <div class="auth-brand-mark auth-brand-mark-inline">V</div>
-            <div class="auth-brand-copy auth-brand-copy-inline">
-              <strong>vercajkovna</strong>
-              <span>Půjčujem si vercajk</span>
-            </div>
-          </div>
 
           <div class="auth-panel" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
             <div class="auth-panel-head">
               <h1 class="auth-hero-title">
-                <span class="auth-hero-line1">{{ authMode === 'login' ? 'Vítej zpátky' : 'Vytvoř si účet' }}</span>
-                <span class="auth-hero-line2">{{ authMode === 'login' ? 'v dílně.' : 'v komunitě.' }}</span>
+                <span class="auth-hero-line1">{{ authMode === 'login' ? 'Vítej zpátky' : 'Založ si' }}</span>
+                <span class="auth-hero-line2">{{ authMode === 'login' ? 've ' : 'nový ' }}<span class="auth-hero-accent">{{ authMode === 'login' ? 'Vercajkovně.' : 'verštat.' }}</span></span>
               </h1>
               <p>
                 {{
                   authMode === "login"
-                    ? "Co potřebuješ tentokrát — aku vrtačku, laser, nebo celé lešení?"
+                    ? "Co potřebuješ tentokrát — aku vrtačku, vozík nebo reproduktor?"
                     : "Začni během minuty a přidej se k lidem, kteří sdílí věci."
                 }}
               </p>
@@ -2276,7 +2276,7 @@ if (typeof window !== "undefined") {
 
               <div v-if="authMode === 'login'" class="auth-demo-group">
                 <div class="auth-demo-divider">
-                  <span>— nebo skoč rovnou jako demo —</span>
+                  <span>nebo skoč rovnou jako demo</span>
                 </div>
                 <div class="auth-demo-grid">
                   <button

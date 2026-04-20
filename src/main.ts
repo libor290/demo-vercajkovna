@@ -13,8 +13,7 @@ import "primeicons/primeicons.css";
 const app = createApp(App);
 
 app.use(PrimeVue, {
-  ripple: true,
-  unstyled: true,
+  ripple: false,
 });
 
 app.component("PvButton", Button);

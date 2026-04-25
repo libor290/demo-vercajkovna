@@ -1,10 +1,10 @@
 :root {
   color-scheme: light;
-  --bg: #ffffff;
-  --bg-soft: #faf8f5;
-  --surface: rgba(255, 250, 244, 0.98);
-  --surface-strong: #fffaf4;
-  --surface-muted: #f4ebe1;
+  --bg: #f3ede1;
+  --bg-soft: #e9e0d1;
+  --surface: rgba(253, 249, 241, 0.98);
+  --surface-strong: #fdf9f1;
+  --surface-muted: #e9e0d1;
   --border: rgba(58, 37, 25, 0.16);
   --text: #352116;
   --muted: #6d584a;
@@ -40,7 +40,7 @@ body {
   min-height: 100vh;
   font-family: var(--font-body);
   color: var(--text);
-  background: #ffffff;
+  background: var(--bg);
 }
 
 button,
@@ -62,7 +62,7 @@ a {
 .app-shell {
   position: relative;
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--bg);
 }
 
 .backdrop {
@@ -283,20 +283,20 @@ a {
   justify-self: center;
   padding: 20px 18px 18px;
   border-radius: 18px;
-  border: 1px solid rgba(58, 37, 25, 0.15);
-  background: #fff;
+  border: none;
+  background: transparent;
   box-shadow: none;
 }
 
 .auth-panel.is-login {
-  border-top: 4px solid var(--brand);
-  background: #fff;
+  border-top: none;
+  background: transparent;
   padding-top: 18px;
 }
 
 .auth-panel.is-register {
-  border-top: 4px solid var(--brand-2);
-  background: #fff;
+  border-top: none;
+  background: transparent;
   padding-top: 18px;
 }
 
@@ -341,8 +341,8 @@ a {
 }
 
 .auth-panel.is-register .auth-tabs {
-  background: #deeadf;
-  border-color: rgba(27, 84, 49, 0.18);
+  background: #e9e0d1;
+  border-color: rgba(58, 37, 25, 0.14);
 }
 
 .auth-tab {

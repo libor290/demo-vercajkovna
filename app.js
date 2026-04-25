@@ -1542,6 +1542,15 @@ function icon(name) {
         <circle cx="12" cy="8" r="4" />
       </svg>
     `,
+    tool: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.7-3.7a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0Z" />
+        <path d="M5 13.7l5.3 5.3c.8.8 2 .8 2.8 0L19 12" />
+        <path d="M11 5l3-3" />
+        <path d="m2 13 4 4" />
+        <path d="m3 22 4-4" />
+      </svg>
+    `,
   };
   return icons[name] ?? "";
 }

@@ -6,7 +6,7 @@ const ProfileScreen = ({ user, listings, onNav, onLogout }) => {
   const { palette, accent, displayFont } = React.useContext(ThemeContext);
   const items = [
     { id: 'personal',      icon: 'user',        label: 'Osobní údaje',    meta: 'Jméno, kontakt, bio' },
-    { id: 'listings',      icon: 'hammer',      label: 'Můj vercajk',     meta: '3 aktivní nabídky' },
+    { id: 'listings',      icon: 'tool',        label: 'Můj vercajk',     meta: '3 aktivní nabídky' },
     { id: 'pending',       icon: 'calendar',    label: 'Rezervace',       meta: 'Žádosti a pronájmy' },
     { id: 'payments',      icon: 'credit-card', label: 'Platby',          meta: '•••• 4242' },
     { id: 'security',      icon: 'shield',      label: 'Zabezpečení',     meta: 'Heslo, 2FA' },
@@ -17,29 +17,8 @@ const ProfileScreen = ({ user, listings, onNav, onLogout }) => {
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
       <div style={{ padding: '12px 22px 20px' }}>
-        {/* Hero */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px', background: palette.card, border: `1px solid ${palette.line}`, borderRadius: 16, marginBottom: 12 }}>
-          <Avatar initial={user.initial} size={60} ring/>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: displayFont, fontSize: 19, fontWeight: 700, color: palette.brand, lineHeight: 1.15 }}>{user.name}</div>
-            <div style={{ fontSize: 12, color: palette.inkMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '3px 9px', background: accent.accentSoft, color: accent.accent, borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              <Icon name="check" size={10} stroke={3}/> Ověřený soused
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 18 }}>
-          {[{ n: '12', l: 'Půjčeno' }, { n: '8', l: 'Vypůjčeno' }, { n: '4.9', l: 'Hodnocení', star: true }].map(s => (
-            <div key={s.l} style={{ background: palette.card, border: `1px solid ${palette.line}`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-              <div style={{ fontFamily: displayFont, fontSize: 20, fontWeight: 800, color: palette.brand, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                {s.star && <Icon name="star" size={13} color={accent.accent}/>}{s.n}
-              </div>
-              <div style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: palette.inkMuted, fontWeight: 700, marginTop: 2 }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
+        {/* Profile header (Placeholder for similar to current, but simpler) */}
+        {/* This section will be simplified or removed as per screenshot */}
 
         {/* Menu */}
         <div style={{ background: palette.card, border: `1px solid ${palette.line}`, borderRadius: 16, overflow: 'hidden' }}>
@@ -61,10 +40,9 @@ const ProfileScreen = ({ user, listings, onNav, onLogout }) => {
           ))}
         </div>
 
-        <button onClick={onLogout} style={{ marginTop: 14, width: '100%', padding: '14px 16px', background: 'transparent', border: `1px solid ${palette.line}`, borderRadius: 14, cursor: 'pointer', color: '#9a3a1f', fontWeight: 700, fontSize: 13.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <Icon name="logout" size={16}/> Odhlásit se
+        <button onClick={onLogout} style={{ marginTop: 14, width: '100%', padding: '14px 16px', background: palette.card, border: `1px solid ${palette.line}`, borderRadius: 16, cursor: 'pointer', color: palette.brand, fontWeight: 700, fontSize: 13.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Icon name="arrow-right" size={16}/> Odhlásit se
         </button>
-        <div style={{ textAlign: 'center', marginTop: 18, fontFamily: '"JetBrains Mono", monospace', fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: palette.inkMuted }}>v 1.0 · vercajkovna · praha</div>
       </div>
     </div>
   );

@@ -19,8 +19,8 @@
       --muted:      #6d584a;
       --muted-2:    #9c8578;
       --border:     rgba(58,37,25,.14);
-      --bg:         #faf7f4;
-      --white:      #ffffff;
+      --bg:         #f3ede1;
+      --white:      #fdf9f1;
       --danger:     #c0392b;
       --radius-lg:  18px;
       --radius-md:  12px;
@@ -155,7 +155,7 @@
       justify-content: center;
       align-items: center;
       padding: 48px 40px;
-      background: var(--white);
+      background: var(--bg);
     }
 
     .form-inner {
@@ -166,7 +166,7 @@
     /* ── tabs ────────────────────────────────── */
     .tabs {
       display: flex;
-      background: var(--brand-soft);
+      background: rgba(58,37,25,.06);
       border-radius: var(--radius-md);
       padding: 4px;
       margin-bottom: 32px;
@@ -180,8 +180,8 @@
       border-radius: var(--radius-sm);
       font-family: var(--font-b);
       font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      font-weight: 800;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
       cursor: pointer;
@@ -266,7 +266,7 @@
       font-family: var(--font-b);
       font-size: 0.93rem;
       color: var(--text);
-      background: var(--bg);
+      background: #ffffff;
       transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
       outline: none;
       -webkit-appearance: none;
@@ -276,7 +276,7 @@
 
     .input-wrap input:focus {
       border-color: var(--brand);
-      background: var(--white);
+      background: #ffffff;
       box-shadow: 0 0 0 3px rgba(58,37,25,.08);
     }
 
@@ -563,12 +563,19 @@
     /* ── hidden sections ─────────────────────── */
     .register-only { display: none; }
     .login-only { display: block; }
+    .forgot-only { display: none; }
 
     body.is-register .register-only { display: block; }
     body.is-register .login-only { display: none; }
+    body.is-register .forgot-only { display: none; }
+
+    body.is-forgot .forgot-only { display: block; }
+    body.is-forgot .login-only { display: none; }
+    body.is-forgot .register-only { display: none; }
+    body.is-forgot .tabs { display: none; }
   </style>
 </head>
-<body>
+<body class="is-login">
 
 <div class="page">
 
@@ -601,26 +608,26 @@
 
       <!-- TABS -->
       <div class="tabs" role="tablist">
-        <button class="tab is-active" id="tab-login" role="tab" onclick="setMode('login')">Přihlášení</button>
-        <button class="tab" id="tab-register" role="tab" onclick="setMode('register')">Registrace</button>
+        <button class="tab is-active" id="tab-login" role="tab" onclick="setMode('login')">PŘIHLÁŠENÍ</button>
+        <button class="tab" id="tab-register" role="tab" onclick="setMode('register')">REGISTRACE</button>
       </div>
 
       <!-- HEADING -->
       <div class="form-head">
-        <div class="form-kicker" id="kicker">Přihlášení</div>
+        <div class="form-kicker" id="kicker">PŘIHLÁŠENÍ</div>
         <h1 id="heading">Přihlas se<br>do účtu</h1>
         <p id="subheading">Pokračuj tam, kde jsi skončil.</p>
       </div>
 
       <!-- FIELDS -->
-      <form class="fields" onsubmit="return false;">
+      <form class="fields" onsubmit="handleSubmit(); return false;">
 
         <!-- Name (register only) -->
         <div class="field register-only">
-          <label for="name">Jméno</label>
+          <label for="name">Jméno a příjmení</label>
           <div class="input-wrap">
             <span class="input-icon">👤</span>
-            <input id="name" type="text" placeholder="Jan Novák" autocomplete="name" />
+            <input id="name" type="text" placeholder="Jméno a příjmení" autocomplete="name" />
           </div>
         </div>
 
@@ -629,15 +636,15 @@
           <label for="email">E-mail</label>
           <div class="input-wrap">
             <span class="input-icon">✉</span>
-            <input id="email" type="email" placeholder="name@example.com" autocomplete="email" />
+            <input id="email" type="email" placeholder="tvuj@email.cz" autocomplete="email" />
           </div>
         </div>
 
         <!-- Password -->
         <div class="field">
           <div class="field-row">
-            <label for="password">Heslo</label>
-            <button class="field-link login-only" type="button">Zapomenuté heslo?</button>
+            <label for="password">HESLO</label>
+            <button class="field-link login-only" type="button" onclick="setMode('forgot')">Zapomenuté heslo?</button>
           </div>
           <div class="input-wrap">
             <span class="input-icon">🔒</span>
@@ -648,20 +655,23 @@
           </div>
           <!-- Password rules (register only) -->
           <div class="pw-rules register-only" id="pw-rules">
-            <div class="pw-rule" id="rule-len"><span class="pw-rule-dot"></span>Min. 8 znaků</div>
-            <div class="pw-rule" id="rule-upper"><span class="pw-rule-dot"></span>Velké písmeno</div>
-            <div class="pw-rule" id="rule-num"><span class="pw-rule-dot"></span>Číslo</div>
-            <div class="pw-rule" id="rule-spec"><span class="pw-rule-dot"></span>Spec. znak</div>
+            <div class="pw-rule" id="rule-len"><span class="pw-rule-dot"></span>MIN. 8 ZNAKŮ</div>
+            <div class="pw-rule" id="rule-upper"><span class="pw-rule-dot"></span>VELKÉ PÍSMENO</div>
+            <div class="pw-rule" id="rule-lower"><span class="pw-rule-dot"></span>MALÉ PÍSMENO</div>
+            <div class="pw-rule" id="rule-num"><span class="pw-rule-dot"></span>ČÍSLO NEBO SYMBOL</div>
           </div>
         </div>
 
         <!-- Confirm password (register only) -->
         <div class="field register-only">
-          <label for="confirm">Potvrzení hesla</label>
           <div class="input-wrap">
             <span class="input-icon">🔒</span>
-            <input id="confirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+            <input id="confirm" type="password" placeholder="••••••••" autocomplete="new-password" oninput="checkConfirmPw()" />
+            <button class="input-action" type="button" onclick="togglePw()" title="Zobrazit/skrýt heslo">
+              <span id="eye-icon">👁</span>
+            </button>
           </div>
+          <div class="password-mismatch-message" id="pw-mismatch" style="display: none; font-size: 0.72rem; color: var(--danger); margin-top: 6px;">HESLA SE MUSÍ SHODOVAT.</div>
         </div>
 
         <!-- Meta row -->
@@ -671,34 +681,10 @@
         </div>
 
         <!-- Submit -->
-        <button class="btn-submit" id="btn-submit" type="submit">Přihlas se do účtu</button>
-
-        <!-- Demo profiles (login only) -->
-        <div class="demo-group login-only">
-          <div class="demo-label">Demo profily</div>
-          <div class="demo-grid">
-            <button class="demo-card" type="button" onclick="fillDemo('Jana Nováková','jana@example.com')">
-              <span class="demo-name">Jana N.</span>
-              <span class="demo-email">jana@example.com</span>
-            </button>
-            <button class="demo-card" type="button" onclick="fillDemo('Pavel Kovář','pavel@example.com')">
-              <span class="demo-name">Pavel K.</span>
-              <span class="demo-email">pavel@example.com</span>
-            </button>
-            <button class="demo-card" type="button" onclick="fillDemo('Lucie Horáčková','lucie@example.com')">
-              <span class="demo-name">Lucie H.</span>
-              <span class="demo-email">lucie@example.com</span>
-            </button>
-            <button class="demo-card" type="button" onclick="fillDemo('Tomáš Blaha','tomas@example.com')">
-              <span class="demo-name">Tomáš B.</span>
-              <span class="demo-email">tomas@example.com</span>
-            </button>
-          </div>
-          <div class="demo-hint">Klikni a rovnou přihlasíme vybraný profil.</div>
-        </div>
+        <button class="btn-submit" id="btn-submit" type="submit">PŘIHLÁSIT SE</button>
 
         <!-- Divider -->
-        <div class="divider"><span>Nebo pokračujte přes</span></div>
+        <div class="divider"><span>NEBO PŘES</span></div>
 
         <!-- Social -->
         <div class="social">
@@ -718,41 +704,71 @@
 
       </form>
 
-      <div class="support">Potíže s přihlášením? <strong>Kontaktujte podporu</strong></div>
+      <div class="support" id="footer-text">Potíže s přihlášením? <strong>Kontaktujte podporu</strong></div>
 
     </div>
   </main>
 </div>
 
 <script>
-  let isRegister = false;
+  let mode = 'login';
   let showPw = false;
 
-  function setMode(mode) {
-    isRegister = mode === 'register';
-    document.body.classList.toggle('is-register', isRegister);
+  function setMode(nextMode) {
+    mode = nextMode;
+    document.body.classList.remove('is-register', 'is-login', 'is-forgot');
+    document.body.classList.add('is-' + mode);
 
-    document.getElementById('tab-login').classList.toggle('is-active', !isRegister);
-    document.getElementById('tab-register').classList.toggle('is-active', isRegister);
-    document.getElementById('tab-register').classList.toggle('is-register', isRegister);
+    const isRegister = mode === 'register';
+    const isForgot = mode === 'forgot';
 
-    document.getElementById('kicker').textContent      = isRegister ? 'Registrace' : 'Přihlášení';
-    document.getElementById('kicker').classList.toggle('is-register', isRegister);
-    document.getElementById('heading').innerHTML       = isRegister ? 'Vytvoř si<br>účet' : 'Přihlas se<br>do účtu';
-    document.getElementById('subheading').textContent  = isRegister
-      ? 'Začni během minuty a přidej se k lidem, kteří sdílejí věci.'
-      : 'Pokračuj tam, kde jsi skončil.';
+    if (!isForgot) {
+      document.getElementById('tab-login').classList.toggle('is-active', mode === 'login');
+      document.getElementById('tab-register').classList.toggle('is-active', mode === 'register');
+      document.getElementById('tab-register').classList.toggle('is-register', mode === 'register');
+    }
 
-    document.getElementById('meta-label').textContent = isRegister
-      ? 'Souhlasím s podmínkami služby'
-      : 'Zapamatovat si mě';
+    const kicker = document.getElementById('kicker');
+    const heading = document.getElementById('heading');
+    const subheading = document.getElementById('subheading');
+    const btnSubmit = document.getElementById('btn-submit');
+    const footerText = document.getElementById('footer-text');
 
-    document.getElementById('btn-submit').textContent = isRegister ? 'Registrovat se' : 'Přihlas se do účtu';
-    document.getElementById('btn-submit').classList.toggle('is-register', isRegister);
+    if (mode === 'login') {
+      kicker.textContent = 'PŘIHLÁŠENÍ';
+      kicker.classList.remove('is-register');
+      heading.innerHTML = 'Přihlas se<br>do účtu';
+      subheading.textContent = 'Pokračuj tam, kde jsi skončil.';
+      btnSubmit.textContent = 'PŘIHLÁSIT SE';
+      btnSubmit.classList.remove('is-register');
+      footerText.innerHTML = 'Potíže s přihlášením? <strong>Kontaktujte podporu</strong>';
+    } else if (mode === 'register') {
+      kicker.textContent = 'REGISTRACE';
+      kicker.classList.add('is-register');
+      heading.innerHTML = 'Založ si<br><span style="color: var(--brand)">nový </span><span style="color: var(--green); font-style: italic;">verštat.</span>';
+      subheading.textContent = 'Začni během minuty a přidej se k lidem, kteří sdílí věci.';
+      btnSubmit.textContent = 'POJĎ DO TOHO';
+      btnSubmit.classList.add('is-register');
+      footerText.innerHTML = 'Už jsi u nás byl? <strong onclick="setMode(\'login\')">Přihlaš se.</strong>';
+    } else if (mode === 'forgot') {
+      kicker.textContent = 'OBNOVA HESLA';
+      kicker.classList.remove('is-register');
+      heading.innerHTML = 'Zapomenuté<br><span style="color: var(--green); font-style: italic;">heslo</span>';
+      subheading.textContent = 'Nic se neděje. Pošleme ti odkaz na obnovení.';
+      btnSubmit.textContent = 'POSLAT ODKAZ';
+      btnSubmit.classList.remove('is-register');
+      footerText.innerHTML = 'Vzpomněl sis? <strong onclick="setMode(\'login\')">Zpět k přihlášení</strong>';
+    }
+
+    if (mode === 'register') {
+      document.getElementById('meta-label').textContent = 'Souhlasím s pravidly komunity a zpracováním osobních údajů.';
+    } else {
+      document.getElementById('meta-label').textContent = 'Zapamatovat si mě';
+    }
 
     // update input focus color
     document.querySelectorAll('.input-wrap input').forEach(el => {
-      el.classList.toggle('is-register', isRegister);
+      el.classList.toggle('is-register', mode === 'register');
     });
   }
 
@@ -769,8 +785,21 @@
     if (!isRegister) return;
     toggle('rule-len',   val.length >= 8);
     toggle('rule-upper', /[A-Z]/.test(val));
-    toggle('rule-num',   /[0-9]/.test(val));
-    toggle('rule-spec',  /[^A-Za-z0-9]/.test(val));
+    toggle('rule-lower', /[a-z]/.test(val));
+    toggle('rule-num',   /[0-9]/.test(val) || /[\W_]/.test(val)); // Check for number OR symbol
+  }
+
+  function checkConfirmPw() {
+    if (!isRegister) return;
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    const mismatchMessage = document.getElementById('pw-mismatch');
+
+    if (password && confirm && password !== confirm) {
+      mismatchMessage.style.display = 'block';
+    } else {
+      mismatchMessage.style.display = 'none';
+    }
   }
 
   function toggle(id, ok) {
@@ -780,6 +809,42 @@
   function fillDemo(name, email) {
     document.getElementById('email').value    = email;
     document.getElementById('password').value = 'demo1234';
+  }
+
+  function handleSubmit() {
+    const isRegister = mode === 'register';
+    if (isRegister) {
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      const mismatchMessage = document.getElementById('pw-mismatch');
+
+      if (password !== confirm) {
+        mismatchMessage.style.display = 'block';
+        return; // Prevent submission
+      } else {
+        mismatchMessage.style.display = 'none';
+      }
+
+      // Add other registration validation here (e.g., email format, name presence)
+      // For now, assume it's valid if passwords match and all fields are filled
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const termsChecked = document.getElementById('meta-check').checked; // Assuming meta-check is terms checkbox
+
+      if (!name || !email || !password || !confirm || !termsChecked) {
+        alert('Prosím vyplňte všechna pole a souhlašte s podmínkami.');
+        return;
+      }
+      alert('Registrace proběhla úspěšně!');
+      setMode('login'); // Redirect to login after successful registration
+    } else if (mode === 'login') {
+      alert('Simulace přihlášení...');
+      // In a real app, you would send credentials to a server
+      setMode('market'); // Or navigate to main app screen
+    } else if (mode === 'forgot') {
+      alert('Odkaz na obnovení hesla byl odeslán na ' + document.getElementById('email').value);
+      setMode('login');
+    }
   }
 </script>
 </body>

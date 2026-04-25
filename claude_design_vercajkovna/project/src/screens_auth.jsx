@@ -11,19 +11,30 @@ const AuthScreen = ({ onAuth, onClose }) => {
   const [remember, setRemember] = React.useState(true);
   const [terms, setTerms] = React.useState(false);
   const [showPw, setShowPw] = React.useState(false);
+  const [confirmPassword, setConfirmPassword] = React.useState('');
 
   const rules = [
-    { label: 'Aspoň 8 znaků', ok: password.length >= 8 },
-    { label: 'Velké písmeno', ok: /[A-Z]/.test(password) },
-    { label: 'Číslo nebo symbol', ok: /[\d\W]/.test(password) },
+    { label: 'MIN. 8 ZNAKŮ', ok: password.length >= 8 },
+    { label: 'VELKÉ PÍSMENO', ok: /[A-Z]/.test(password) },
+    { label: 'MALÉ PÍSMENO', ok: /[a-z]/.test(password) },
+    { label: 'ČÍSLO NEBO SYMBOL', ok: /[\d\W]/.test(password) },
   ];
+
+  const passwordsMatch = mode === 'register' && password && confirmPassword && password === confirmPassword;
 
   const canSubmit = mode === 'login'
     ? email && password
-    : name && email && rules.every(r => r.ok) && terms;
+    : mode === 'register'
+    ? name && email && rules.every(r => r.ok) && terms && passwordsMatch
+    : email; // forgot mode
 
   const submit = () => {
     if (!canSubmit) return;
+    if (mode === 'forgot') {
+      window.alert('Odkaz na obnovení hesla byl odeslán na ' + email);
+      setMode('login');
+      return;
+    }
     onAuth({ name: name || 'Tomáš Novák', email, initial: (name || 'Tomáš')[0].toUpperCase() }, mode === 'register');
   };
 
@@ -43,60 +54,81 @@ const AuthScreen = ({ onAuth, onClose }) => {
           fontFamily: displayFont, fontSize: 32, fontWeight: 800, lineHeight: 1.0,
           letterSpacing: '-0.03em', color: palette.brand,
         }}>
-          {mode === 'login' ? <>Vítej zpátky<br/><span style={{ fontStyle: 'italic', color: accent.accent }}>v dílně.</span></> : <>Založ si <br/><span style={{ fontStyle: 'italic', color: accent.accent }}>verštat.</span></>}
+          {mode === 'login' ? (
+            <>Vítej zpátky<br/><span style={{ fontStyle: 'italic', color: accent.accent }}>v dílně.</span></>
+          ) : mode === 'register' ? (
+            <>Založ si <br/><span style={{ fontStyle: 'italic', color: palette.brand }}>nový </span><span style={{ fontStyle: 'italic', color: accent.accent }}>verštat.</span></>
+          ) : (
+            <>Zapomenuté<br/><span style={{ fontStyle: 'italic', color: accent.accent }}>heslo</span></>
+          )}
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: palette.inkSoft, maxWidth: 320 }}>
           {mode === 'login'
             ? 'Co potřebuješ tentokrát — aku vrtačku, laser, nebo celé lešení?'
-            : 'Pár údajů a za chvíli si půjčíš první vercajk od souseda.'}
+            : mode === 'register'
+            ? 'Začni během minuty a přidej se k lidem, kteří sdílí věci.'
+            : 'Nic se neděje. Pošleme ti odkaz na obnovení, ať se můžeš vrátit k práci.'}
         </p>
       </div>
 
       {/* Tabs */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        padding: 4, borderRadius: 14,
-        background: palette.bgDim, marginBottom: 18,
-        border: `1px solid ${palette.line}`,
-      }}>
-        {['login', 'register'].map(m => (
-          <button key={m} onClick={() => setMode(m)} style={{
-            height: 40, border: 0, borderRadius: 10,
-            background: mode === m ? palette.card : 'transparent',
-            color: mode === m ? palette.brand : palette.inkSoft,
-            fontFamily: 'inherit', fontWeight: 700, fontSize: 12,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            cursor: 'pointer',
-            boxShadow: mode === m ? '0 2px 6px rgba(31,22,16,0.08)' : 'none',
-          }}>{m === 'login' ? 'Přihlášení' : 'Registrace'}</button>
-        ))}
-      </div>
+      {mode !== 'forgot' && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          padding: 4, borderRadius: 14,
+          background: palette.bgDim, marginBottom: 18,
+          border: `1px solid ${palette.line}`,
+        }}>
+          {['login', 'register'].map(m => (
+            <button key={m} onClick={() => setMode(m)} style={{
+              height: 40, border: 0, borderRadius: 10,
+              background: mode === m ? palette.card : 'transparent',
+              color: mode === m ? palette.brand : palette.inkSoft,
+              fontFamily: 'inherit', fontWeight: 900, fontSize: 12,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              cursor: 'pointer',
+              boxShadow: mode === m ? '0 2px 6px rgba(31,22,16,0.08)' : 'none',
+            }}>{m === 'login' ? 'PŘIHLÁŠENÍ' : 'REGISTRACE'}</button>
+          ))}
+        </div>
+      )}
 
       {/* Form */}
       <div style={{ display: 'grid', gap: 12 }}>
         {mode === 'register' && (
-          <Input icon="user" placeholder="Jméno a příjmení" value={name} onChange={setName}/>
+          <Input icon="user" placeholder="Jan Novák" value={name} onChange={setName}/>
         )}
-        <Input icon="mail" placeholder="tvuj@email.cz" value={email} onChange={setEmail}/>
-        <Input icon="lock" type={showPw ? 'text' : 'password'} placeholder="Heslo" value={password} onChange={setPassword}
-          right={<button onClick={() => setShowPw(!showPw)} style={{ background: 'transparent', border: 0, color: palette.inkMuted, cursor: 'pointer', padding: 4 }}><Icon name="eye" size={18}/></button>}
-        />
+        <Input icon="mail" placeholder="name@example.com" value={email} onChange={setEmail}/>
+        <div style={{ fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: palette.inkSoft, fontWeight: 700 }}>HESLO</div>
+        {mode !== 'forgot' && (
+          <Input icon="lock" type={showPw ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={setPassword}
+            right={<button onClick={() => setShowPw(!showPw)} style={{ background: 'transparent', border: 0, color: palette.inkMuted, cursor: 'pointer', padding: 4 }}><Icon name="eye" size={18}/></button>}
+          />
+        )}
 
         {mode === 'register' && (
-          <div style={{ display: 'grid', gap: 6, padding: '4px 6px' }}>
-            {rules.map(r => (
-              <div key={r.label} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                fontSize: 11, letterSpacing: '0.04em', fontWeight: 600,
-                color: r.ok ? accent.accent : palette.inkMuted,
-              }}>
-                <div style={{ width: 14, height: 14, borderRadius: '50%', display: 'grid', placeItems: 'center', background: r.ok ? accent.accentSoft : 'transparent', border: `1px solid ${r.ok ? accent.accentBorder : palette.line}` }}>
-                  {r.ok && <Icon name="check" size={9} stroke={3}/>}
+          <>
+            <div style={{ display: 'grid', gap: 6, padding: '4px 6px' }}>
+              {rules.map(r => (
+                <div key={r.label} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  fontSize: 11, letterSpacing: '0.04em', fontWeight: 600,
+                  color: r.ok ? accent.accent : palette.inkMuted,
+                }}>
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', display: 'grid', placeItems: 'center', background: r.ok ? accent.accentSoft : 'transparent', border: `1px solid ${r.ok ? accent.accentBorder : palette.line}` }}>
+                    {r.ok && <Icon name="check" size={9} stroke={3}/>}
+                  </div>
+                  {r.label}
                 </div>
-                {r.label}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            <Input icon="lock" type={showPw ? 'text' : 'password'} placeholder="••••••••" value={confirmPassword} onChange={setConfirmPassword}
+              right={<button onClick={() => setShowPw(!showPw)} style={{ background: 'transparent', border: 0, color: palette.inkMuted, cursor: 'pointer', padding: 4 }}><Icon name="eye" size={18}/></button>}
+            />
+            {!passwordsMatch && password && confirmPassword && (
+              <div style={{ fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: palette.brand, fontWeight: 700 }}>Hesla se musí shodovat.</div>
+            )}
+          </>
         )}
 
         {mode === 'login' ? (
@@ -112,9 +144,9 @@ const AuthScreen = ({ onAuth, onClose }) => {
               </div>
               Pamatovat si mě
             </label>
-            <button style={{ background: 'transparent', border: 0, color: palette.brand, fontSize: 13, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', padding: 0 }}>Zapomenuté?</button>
+            <button onClick={() => setMode('forgot')} style={{ background: 'transparent', border: 0, color: palette.brand, fontSize: 13, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', padding: 0 }}>Zapomenuté heslo?</button>
           </div>
-        ) : (
+        ) : mode === 'register' ? (
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 12.5, lineHeight: 1.5, color: palette.inkSoft, cursor: 'pointer', padding: '4px 2px' }}>
             <div onClick={() => setTerms(!terms)} style={{
               width: 18, height: 18, borderRadius: 5, marginTop: 1, flexShrink: 0,
@@ -126,10 +158,14 @@ const AuthScreen = ({ onAuth, onClose }) => {
             </div>
             Souhlasím s pravidly komunity a zpracováním osobních údajů.
           </label>
+        ) : (
+          <div style={{ padding: '4px 2px' }}>
+            <button onClick={() => setMode('login')} style={{ background: 'transparent', border: 0, color: palette.brand, fontSize: 13, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', padding: 0 }}>Zpět na přihlášení</button>
+          </div>
         )}
 
         <Btn variant="primary" size="lg" onClick={submit} disabled={!canSubmit} style={{ marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {mode === 'login' ? 'Jdeme na to' : 'Pojď do toho'}
+          {mode === 'login' ? 'Jdeme na to' : mode === 'register' ? 'POJĎ DO TOHO' : 'POSLAT ODKAZ'}
         </Btn>
       </div>
 

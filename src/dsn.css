@@ -16,7 +16,7 @@
   /* Povrchy */
   --dsn-bg:          #f5ede3;   /* stránkové pozadí — teplá krémová */
   --dsn-surface:     #ffffff;
-  --dsn-surface-soft:#fdf9f4;
+  --dsn-surface-soft:#ffffff;
   --dsn-surface-dim: #ede4d9;   /* tab container, recessed */
 
   /* Text */
@@ -191,6 +191,7 @@ button:active { transform: none !important; }
   margin: 0 auto;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   padding: 20px 0 24px;
 }
@@ -199,6 +200,7 @@ button:active { transform: none !important; }
   display: flex;
   align-items: center;
   gap: 14px;
+  flex: 1;
 }
 
 .auth-back-button {
@@ -211,6 +213,7 @@ button:active { transform: none !important; }
   display: grid;
   place-items: center;
   transition: background var(--ease-fast), border-color var(--ease-fast), box-shadow var(--ease-fast);
+  flex-shrink: 0;
 }
 
 .auth-back-button:hover {
@@ -221,7 +224,14 @@ button:active { transform: none !important; }
 
 .auth-page {
   width: min(100vw - 32px, 460px);
+  margin: 0 auto;
+  padding: 0;
   gap: 20px;
+}
+
+.screen-inner.profile-page {
+  width: min(100vw - 32px, 460px);
+  margin: 0 auto;
 }
 
 /* ── AUTH — BRAND ROW ────────────────────────────────────────── */
@@ -232,7 +242,7 @@ button:active { transform: none !important; }
   border-radius: 14px;
   background: var(--dsn-brand);
   color: var(--dsn-brand-ink);
-  font-family: var(--font-display);
+  font-family: var(--font-raw);
   font-size: 1.2rem;
   font-weight: 700;
   display: grid;
@@ -267,11 +277,73 @@ button:active { transform: none !important; }
   box-shadow: none;
 }
 
+.auth-panel.is-forgot {
+  text-align: center;
+}
+
+.auth-panel.is-forgot .auth-panel-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 /* Odstraní barevné bordery z styles.css */
 .auth-panel.is-login,
-.auth-panel.is-register {
+.auth-panel.is-register,
+.auth-panel.is-forgot {
   border-top: none;
   padding-top: 10px;
+}
+
+/* ── AUTH — SUCCESS PANEL ────────────────────────────────────── */
+
+.auth-success-panel {
+  padding: 40px 20px;
+  text-align: center;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  animation: vkPop 400ms var(--ease-out-back);
+}
+
+.auth-success-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(27, 84, 49, 0.1);
+  color: var(--dsn-green);
+  display: grid;
+  place-items: center;
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.auth-success-panel h2 {
+  font-family: var(--font-raw);
+  font-size: 1.6rem;
+  color: var(--dsn-brand);
+  margin: 0;
+}
+
+.auth-success-panel p {
+  color: var(--dsn-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.auth-resend-box {
+  min-height: 24px;
+}
+
+.resend-countdown {
+  font-size: var(--t-sm);
+  color: var(--dsn-subtle);
+}
+
+.resend-countdown strong {
+  color: var(--dsn-brand);
+  min-width: 2.5ch;
+  display: inline-block;
 }
 
 /* ── AUTH — HERO NADPIS ──────────────────────────────────────── */
@@ -284,10 +356,15 @@ button:active { transform: none !important; }
 .auth-hero-title {
   display: block;
   margin: 0;
-  line-height: 1.05;
-  font-family: var(--font-display);
-  font-size: clamp(1.9rem, 5.5vw, 2.4rem);
-  letter-spacing: -0.04em;
+  line-height: 1.15;
+  font-family: var(--font-raw);
+  font-size: 2.4rem;
+  letter-spacing: -0.05em;
+  width: 100%;
+}
+
+.auth-shell .auth-hero-title {
+  font-size: 3rem;
 }
 
 .auth-hero-line1 {
@@ -299,6 +376,7 @@ button:active { transform: none !important; }
 
 .auth-hero-line2 {
   display: block;
+  margin-top: 4px;
   color: var(--dsn-brand);
   font-weight: 700;
   font-style: normal;
@@ -306,7 +384,8 @@ button:active { transform: none !important; }
 
 .auth-hero-accent {
   color: var(--dsn-green);
-  font-style: italic;
+  font-weight: 700;
+  font-style: normal;
 }
 
 .auth-panel-head p {
@@ -341,8 +420,8 @@ button:active { transform: none !important; }
   background: transparent;
   color: var(--dsn-muted);
   font-size: var(--t-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 900 !important;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
   transition: background var(--ease-fast), color var(--ease-fast), box-shadow var(--ease-fast);
@@ -355,6 +434,7 @@ button:active { transform: none !important; }
 
 .auth-tab:hover {
   color: var(--dsn-brand);
+  background: rgba(58, 37, 25, 0.04);
 }
 
 .auth-panel.is-login .auth-tab:hover,
@@ -368,6 +448,10 @@ button:active { transform: none !important; }
   background: var(--dsn-surface);
   color: var(--dsn-brand);
   box-shadow: var(--sh-1);
+}
+
+.auth-tab.is-active:hover {
+  background: var(--dsn-surface);
 }
 
 /* ── AUTH — INPUTY ───────────────────────────────────────────── */
@@ -407,6 +491,7 @@ button:active { transform: none !important; }
 .auth-panel .input-shell:hover {
   border-color: var(--dsn-border-mid);
   background: var(--dsn-surface-soft);
+  box-shadow: var(--sh-1);
 }
 
 .auth-panel .input-shell:focus-within,
@@ -422,10 +507,24 @@ button:active { transform: none !important; }
   font-size: var(--t-base);
   color: var(--dsn-text);
   background: transparent;
+  font-weight: 500;
+}
+
+.auth-panel .field-link {
+  color: #352116;
+  font-weight: 700;
+  text-decoration: underline;
+  opacity: 1;
+}
+
+.auth-panel .field-link:hover {
+  color: var(--dsn-brand);
+  opacity: 0.8;
 }
 
 .auth-input::placeholder {
   color: var(--dsn-subtle);
+  opacity: 0.4;
 }
 
 .input-icon {
@@ -440,10 +539,11 @@ button:active { transform: none !important; }
   padding: 0 12px;
   display: grid;
   place-items: center;
+  transition: color var(--ease-fast);
 }
 
 .input-action:hover {
-  color: var(--dsn-muted);
+  color: var(--dsn-brand);
 }
 
 /* field-link (Zapomenuté heslo) */
@@ -456,6 +556,11 @@ button:active { transform: none !important; }
   background: transparent;
   border: none;
   padding: 0;
+  transition: color var(--ease-fast);
+}
+
+.field-link:hover {
+  color: var(--dsn-green);
 }
 
 /* ── AUTH — CHECKBOX ROW ─────────────────────────────────────── */
@@ -473,6 +578,14 @@ button:active { transform: none !important; }
   cursor: pointer;
 }
 
+.checkbox-row:hover span {
+  color: var(--dsn-brand);
+}
+
+.checkbox-row:hover .p-checkbox-box {
+  border-color: var(--dsn-brand) !important;
+}
+
 /* PrimeVue checkbox — zelená zaškrtnutá */
 .p-checkbox.p-checkbox-checked .p-checkbox-box {
   background: var(--dsn-green) !important;
@@ -484,6 +597,7 @@ button:active { transform: none !important; }
   width: 20px !important;
   height: 20px !important;
   border: 1.5px solid var(--dsn-border-mid) !important;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
 }
 
 /* ── AUTH — PRIMÁRNÍ TLAČÍTKO ────────────────────────────────── */
@@ -493,7 +607,7 @@ button:active { transform: none !important; }
 .auth-panel.is-register .auth-submit-primary {
   min-height: var(--h-btn);
   border-radius: var(--r-md);
-  background: #9a8a7c; /* Tlumenější hnědá podle screenshotu */
+  background: #9a8a7c; /* Tlumená hnědá pro nevyplněno */
   color: #ffffff;
   font-size: var(--t-md);
   font-weight: 800;
@@ -501,13 +615,28 @@ button:active { transform: none !important; }
   text-transform: uppercase;
   border: none;
   box-shadow: none;
-  transition: background var(--ease-fast), box-shadow var(--ease-fast);
+  transition: background var(--ease-fast), box-shadow var(--ease-fast), transform var(--ease-fast);
 }
 
-.auth-submit.auth-submit-primary:hover,
-.auth-panel.is-login .auth-submit-primary:hover,
-.auth-panel.is-register .auth-submit-primary:hover {
-  background: #89796c;
+.auth-submit.auth-submit-primary.is-ready,
+.auth-panel.is-login .auth-submit-primary.is-ready,
+.auth-panel.is-register .auth-submit-primary.is-ready {
+  background: #24140d; /* Výrazná tmavá hnědá (jako +) při vyplnění */
+  box-shadow: var(--sh-2);
+}
+
+.auth-submit.auth-submit-primary.is-ready:hover,
+.auth-panel.is-login .auth-submit-primary.is-ready:hover,
+.auth-panel.is-register .auth-submit-primary.is-ready:hover {
+  background: #1a0e09;
+  box-shadow: var(--sh-3);
+  transform: translateY(-1px);
+}
+
+.auth-submit.auth-submit-primary:active,
+.auth-panel.is-login .auth-submit-primary:active,
+.auth-panel.is-register .auth-submit-primary:active {
+  transform: translateY(0);
 }
 
 /* ── AUTH — DEMO SEKCE ───────────────────────────────────────── */
@@ -573,7 +702,7 @@ button:active { transform: none !important; }
   border-radius: var(--r-pill);
   background: var(--dsn-surface-dim);
   color: var(--dsn-brand);
-  font-family: var(--font-display);
+  font-family: var(--font-raw);
   font-size: 1rem;
   font-weight: 700;
   display: grid;
@@ -739,7 +868,7 @@ button:active { transform: none !important; }
   border-radius: 10px;
   background: var(--dsn-brand);
   color: var(--dsn-brand-ink);
-  font-family: var(--font-display);
+  font-family: var(--font-raw);
   font-size: 0.9rem;
   font-weight: 700;
   display: grid;

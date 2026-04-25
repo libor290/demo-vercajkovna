@@ -34,7 +34,7 @@ type Screen =
   | "chat"
   | "chat-detail"
   | "profile";
-type AuthMode = "login" | "register";
+type AuthMode = "login" | "register" | "forgot";
 
 const AUTH_KEY = "vercajkovna-authenticated";
 const USER_KEY = "vercajkovna-user";
@@ -42,6 +42,26 @@ const PERSONAL_KEY = "vercajkovna-personal";
 const SCREEN_KEY = "vercajkovna-screen";
 const REMEMBER_KEY = "vercajkovna-remember";
 const FAVORITES_KEY = "vercajkovna-favorites";
+
+const forgotSuccess = ref(false);
+const resendTimer = ref(0);
+let timerInterval: number | null = null;
+
+const startResendTimer = () => {
+  resendTimer.value = 30;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = window.setInterval(() => {
+    if (resendTimer.value > 0) {
+      resendTimer.value--;
+    } else {
+      if (timerInterval) clearInterval(timerInterval);
+    }
+  }, 1000);
+};
+
+onBeforeUnmount(() => {
+  if (timerInterval) clearInterval(timerInterval);
+});
 
 function readStoredUser() {
   try {
@@ -103,6 +123,35 @@ const isAuthenticated = ref(hasStoredAuth());
 const pendingAuthScreen = ref<Screen | null>(null);
 const screen = ref<Screen>("market");
 const authMode = ref<AuthMode>("login");
+
+const authSubheadingVariations = [
+  "aku vrtačku, vozík nebo reproduktor?",
+  "laser, lešení nebo pořádné kladivo?",
+  "gril, stan nebo vysokotlaký čistič?",
+  "přímočarou pilu, žebřík nebo kompresor?",
+  "brusku, horkovzdušnou pistoli nebo měřák?",
+  "sekačku, křovinořez nebo zahradní nůžky?",
+  "střešní box, nosič kol nebo autostan?",
+];
+const randomAuthIndex = Math.floor(Math.random() * authSubheadingVariations.length);
+const selectedAuthSubheading = authSubheadingVariations[randomAuthIndex];
+
+const isAuthReady = computed(() => {
+  if (authMode.value === "login") {
+    return auth.email.trim() !== "" && auth.password.trim() !== "";
+  } else if (authMode.value === "forgot") {
+    return auth.email.trim() !== "";
+  } else {
+    return (
+      auth.name.trim() !== "" &&
+      auth.email.trim() !== "" &&
+      auth.password.trim() !== "" &&
+      auth.confirmPassword.trim() !== "" &&
+      auth.terms
+    );
+  }
+});
+
 const rememberedUser = readStoredUser();
 const rememberedPersonal = readStoredPersonal();
 const MOCK_PROFILE = {
@@ -1016,9 +1065,11 @@ const passwordsMatch = computed(() => {
 });
 
 const registerTermsLabel = "Souhlasím s podmínkami a zpracováním osobních údajů.";
-const authHeading = computed(() =>
-  authMode.value === "login" ? { submitLabel: "Jdeme na to" } : { submitLabel: "Registrovat se" },
-);
+const authHeading = computed(() => {
+  if (authMode.value === "login") return { submitLabel: "Jdeme na to" };
+  if (authMode.value === "forgot") return { submitLabel: "Poslat instrukce" };
+  return { submitLabel: "Registrovat se" };
+});
 
 function persistAuth(remember: boolean, name: string, email: string) {
   const storage = remember ? localStorage : sessionStorage;
@@ -1810,7 +1861,9 @@ function openHelp() {
 const contactForm = reactive({
   topic: "Průběh výpůjčky",
   message: "",
-  isSending: false
+  email: "",
+  isSending: false,
+  isSent: false,
 });
 
 function openHelpContact() {
@@ -1840,6 +1893,17 @@ function submitAuth() {
   const email = auth.email.trim();
   const password = auth.password.trim();
   const name = auth.name.trim();
+
+  if (authMode.value === "forgot") {
+    if (!email) {
+      auth.error = "Vyplň e-mail.";
+      return;
+    }
+    forgotSuccess.value = true;
+    auth.error = "";
+    startResendTimer();
+    return;
+  }
 
   if (authMode.value === "login") {
     if (!email || !password) {
@@ -1916,11 +1980,12 @@ function switchAuthMode(mode: AuthMode) {
   auth.error = "";
   auth.hint = "";
   showPassword.value = false;
+  forgotSuccess.value = false;
 }
 
 function handleHelp() {
-  auth.error = "";
-  auth.hint = "Použij demo vstup, nebo pokračuj přes formulář bez backendu.";
+  forgotSuccess.value = false;
+  switchAuthMode("forgot");
 }
 
 function logout() {
@@ -2065,6 +2130,7 @@ if (typeof window !== "undefined") {
     <header
       v-if="
         screen !== 'auth' &&
+        screen !== 'help-contact' &&
         screen !== 'market' &&
         screen !== 'detail' &&
         screen !== 'public-profile' &&
@@ -2117,16 +2183,25 @@ if (typeof window !== "undefined") {
       </div>
     </header>
 
-    <header v-if="screen === 'auth'" class="auth-topbar">
+    <header v-if="screen === 'auth' || screen === 'help-contact'" class="auth-topbar">
       <button class="auth-back-button" type="button" aria-label="Zpět" @click="goBack">
         <i class="pi pi-arrow-left"></i>
       </button>
-      <div class="auth-brand-row">
+      <div v-if="screen === 'auth'" class="auth-brand-row">
         <div class="auth-brand-mark auth-brand-mark-inline">V</div>
         <div class="auth-brand-copy auth-brand-copy-inline">
           <strong>vercajkovna</strong>
           <span>Půjčujem si vercajk</span>
         </div>
+      </div>
+      <div v-else-if="screen === 'help-contact'" class="auth-brand-row" style="flex: 1; justify-content: center; text-align: center; margin-right: 0;">
+        <div class="auth-brand-copy auth-brand-copy-inline" style="align-items: center;">
+          <strong style="font-size: 1.1rem;">Vercajkovna</strong>
+          <span style="font-size: 0.75rem; letter-spacing: 0.05em;">Napište nám</span>
+        </div>
+      </div>
+      <div v-if="screen === 'help-contact'" class="auth-brand-mark auth-brand-mark-inline" style="width: 40px; height: 40px; border-radius: 50%; font-size: 0.9rem;">
+        {{ user.name.charAt(0).toUpperCase() }}
       </div>
     </header>
 
@@ -2134,29 +2209,40 @@ if (typeof window !== "undefined") {
       <section v-if="screen === 'auth'" class="auth-shell">
         <div class="auth-page" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
 
-          <div class="auth-panel" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
+          <div class="auth-panel" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register', 'is-forgot': authMode === 'forgot' }">
             <div class="auth-panel-head">
               <h1 class="auth-hero-title">
-                <span class="auth-hero-line1">{{ authMode === 'login' ? 'Vítej zpátky' : 'Založ si' }}</span>
-                <span class="auth-hero-line2">{{ authMode === 'login' ? 've ' : 'nový ' }}<span class="auth-hero-accent">{{ authMode === 'login' ? 'Vercajkovně.' : 'verštat.' }}</span></span>
+                <template v-if="authMode === 'forgot'">
+                  <span class="auth-hero-line1">Zapomenuté</span>
+                  <span class="auth-hero-line2"><span class="auth-hero-accent">heslo</span></span>
+                </template>
+                <template v-else>
+                  <span class="auth-hero-line1">{{ authMode === 'login' ? 'Vítej zpátky' : 'Založ si' }}</span>
+                  <span class="auth-hero-line2">{{ authMode === 'login' ? 've ' : '' }}<span class="auth-hero-accent">{{ authMode === 'login' ? 'Vercajkovně.' : 'verštat.' }}</span></span>
+                </template>
               </h1>
               <p>
-                {{
-                  authMode === "login"
-                    ? "Co potřebuješ tentokrát — aku vrtačku, vozík nebo reproduktor?"
-                    : "Začni během minuty a přidej se k lidem, kteří sdílí věci."
-                }}
+                <template v-if="authMode === 'forgot'">
+                  Zadej svůj e-mail a my ti pošleme instrukce, jak si nastavit nové heslo.
+                </template>
+                <template v-else>
+                  {{
+                    authMode === "login"
+                      ? `Co potřebuješ tentokrát — ${selectedAuthSubheading}`
+                      : "Pár údajů a za chvíli si půjčíš první vercajk od souseda."
+                  }}
+                </template>
               </p>
             </div>
 
-            <div class="auth-tabs" aria-label="Volba přístupu">
+            <div v-if="authMode !== 'forgot'" class="auth-tabs" aria-label="Volba přístupu">
               <button
                 class="auth-tab"
                 :class="{ 'is-active': authMode === 'login' }"
                 type="button"
                 @click="switchAuthMode('login')"
               >
-                Přihlášení
+                PŘIHLÁŠENÍ
               </button>
               <button
                 class="auth-tab"
@@ -2164,11 +2250,36 @@ if (typeof window !== "undefined") {
                 type="button"
                 @click="switchAuthMode('register')"
               >
-                Registrace
+                REGISTRACE
               </button>
             </div>
+            <div v-if="authMode === 'forgot' && forgotSuccess" class="auth-success-panel">
+              <div class="auth-success-icon">
+                <i class="pi pi-check-circle"></i>
+              </div>
+              <h2>Instrukce odeslány!</h2>
+              <p>Koukni se do e-mailu. Pokud tam nic nenajdeš, zkus se podívat i do spamu.</p>
+              
+              <div class="auth-resend-box" style="margin-top: 24px;">
+                <button 
+                  v-if="resendTimer === 0" 
+                  class="field-link" 
+                  type="button" 
+                  @click="startResendTimer"
+                >
+                  Poslat znovu
+                </button>
+                <span v-else class="resend-countdown">
+                  Poslat znovu za <strong>{{ resendTimer }}s</strong>
+                </span>
+              </div>
 
-            <form class="auth-form" @submit.prevent="submitAuth">
+              <PvButton class="button-secondary w-full" style="margin-top: 16px;" @click="switchAuthMode('login')">
+                Zpět na přihlášení
+              </PvButton>
+            </div>
+
+            <form v-else class="auth-form" @submit.prevent="submitAuth">
               <div v-if="authMode === 'register'" class="field">
                 <label for="authName">Jméno</label>
                 <div class="input-shell">
@@ -2178,13 +2289,13 @@ if (typeof window !== "undefined") {
                     v-model="auth.name"
                     class="auth-input"
                     autocomplete="name"
-                    placeholder="Jan Novák"
+                    placeholder="Jméno a příjmení"
                   />
                 </div>
               </div>
 
               <div class="field">
-                <label for="authEmail" :class="{ 'sr-only': authMode === 'login' }">E-MAIL</label>
+                <label for="authEmail" :class="{ 'sr-only': authMode === 'login' || authMode === 'forgot' }">E-MAIL</label>
                 <div class="input-shell">
                   <i class="pi pi-envelope input-icon"></i>
                   <PvInputText
@@ -2192,12 +2303,12 @@ if (typeof window !== "undefined") {
                     v-model="auth.email"
                     class="auth-input"
                     autocomplete="email"
-                    :placeholder="authMode === 'login' ? 'tvuj@email.cz' : 'name@example.com'"
+                    placeholder="tvuj@email.cz"
                   />
                 </div>
               </div>
 
-              <div class="field">
+              <div v-if="authMode !== 'forgot'" class="field">
                 <div v-if="authMode === 'register'" class="field-row">
                   <label for="authPassword">Heslo</label>
                 </div>
@@ -2250,7 +2361,7 @@ if (typeof window !== "undefined") {
                 </div>
               </div>
 
-              <div class="auth-meta-row" :class="{ 'auth-meta-row-split': authMode === 'login' }">
+              <div v-if="authMode !== 'forgot'" class="auth-meta-row" :class="{ 'auth-meta-row-split': authMode === 'login' }">
                 <label v-if="authMode === 'login'" class="checkbox-row auth-remember-row">
                   <PvCheckbox v-model="auth.remember" binary />
                   <span>Pamatovat si mě</span>
@@ -2261,7 +2372,7 @@ if (typeof window !== "undefined") {
                   type="button"
                   @click="handleHelp"
                 >
-                  Zapomenuté?
+                  Hlava děravá?
                 </button>
 
                 <label v-if="authMode === 'register'" class="checkbox-row terms-row">
@@ -2270,9 +2381,17 @@ if (typeof window !== "undefined") {
                 </label>
               </div>
 
-              <PvButton class="auth-submit auth-submit-primary" type="submit">
+              <PvButton
+                class="auth-submit auth-submit-primary"
+                :class="{ 'is-ready': isAuthReady }"
+                type="submit"
+              >
                 {{ authHeading.submitLabel }}
               </PvButton>
+
+              <button v-if="authMode === 'forgot'" class="field-link w-full" style="margin-top: 16px; text-align: center;" type="button" @click="switchAuthMode('login')">
+                Vzpomněl jsem si! Zpět na přihlášení
+              </button>
 
               <div v-if="authMode === 'login'" class="auth-demo-group">
                 <div class="auth-demo-divider">
@@ -2296,7 +2415,7 @@ if (typeof window !== "undefined") {
               </div>
 
               <div class="auth-divider">
-                <span>nebo přes</span>
+                <span>NEBO PŘES</span>
               </div>
 
               <div class="auth-social">
@@ -2314,7 +2433,12 @@ if (typeof window !== "undefined") {
               <div v-if="auth.hint" class="auth-support">{{ auth.hint }}</div>
 
               <div class="auth-support">
-                Máte potíže s přihlášením? <strong>Kontaktujte podporu</strong>
+                <template v-if="authMode === 'register'">
+                  Už jsi u nás byl? <strong class="auth-switch-link" @click="switchAuthMode('login')">Přihlaš se.</strong>
+                </template>
+                <template v-else>
+                  Ještě nemáš účet? <strong class="auth-switch-link" @click="switchAuthMode('register')">Zaregistruj se.</strong>
+                </template>
               </div>
 
               <div v-if="auth.error" class="auth-error" role="alert">{{ auth.error }}</div>
@@ -2574,6 +2698,7 @@ if (typeof window !== "undefined") {
                 @click="openListing(listing.id)"
               >
                 <div class="market-item-thumb" aria-hidden="true">
+                  <img v-if="listing.photo" :src="listing.photo" :alt="listing.title" class="market-item-thumb-img" />
                   <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
                 </div>
                 <button
@@ -2610,6 +2735,7 @@ if (typeof window !== "undefined") {
                 @click="openListing(listing.id)"
               >
                 <div class="market-item-thumb" aria-hidden="true">
+                  <img v-if="listing.photo" :src="listing.photo" :alt="listing.title" class="market-item-thumb-img" />
                   <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
                 </div>
                 <button
@@ -4016,7 +4142,7 @@ if (typeof window !== "undefined") {
                     @change="handleAddListingFiles"
                   />
 
-                  <div class="add-flow-dropzone" :class="{ 'is-error': addListingPhotosError }">
+                  <div class="add-flow-dropzone" :class="{ 'is-error': addListingProceedAttempt && addListingPhotosError }">
                     <button
                       type="button"
                       class="add-flow-dropzone-inner"
@@ -4098,7 +4224,7 @@ if (typeof window !== "undefined") {
 
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Název vercajku</div>
-                  <div class="add-flow-input" :class="{ 'is-error': addListingTitleError }">
+                  <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingTitleError }">
                     <input
                       v-model="addListingDraft.title"
                       class="add-flow-native"
@@ -4113,7 +4239,7 @@ if (typeof window !== "undefined") {
 
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Kategorie</div>
-                  <div class="add-flow-chips" :class="{ 'is-error': addListingCategoryError }">
+                  <div class="add-flow-chips" :class="{ 'is-error': addListingProceedAttempt && addListingCategoryError }">
                     <button
                       v-for="item in categories.filter((cat) => cat.id !== 'all')"
                       :key="`add-flow-cat-${item.id}`"
@@ -4134,7 +4260,7 @@ if (typeof window !== "undefined") {
               <div v-else-if="addListingStep === 2" class="add-listing-body add-flow-step2">
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Cena za den</div>
-                  <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingPriceError }">
+                  <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingPriceError }">
                     <input v-model.number="addListingDraft.pricePerDay" class="add-flow-native" type="number" min="0" placeholder="0" />
                     <span class="add-flow-suffix">Kč</span>
                   </div>
@@ -4144,21 +4270,23 @@ if (typeof window !== "undefined") {
                 </div>
 
                 <div class="add-flow-section">
-                  <div class="add-flow-toggle-head">
-                    <div class="add-flow-section-title">Vratná kauce</div>
-                    <label class="add-flow-toggle">
+                  <label class="add-flow-toggle-card">
+                    <div class="add-flow-toggle-card-copy">
+                      <strong>Vratná kauce</strong>
+                      <span>Vrátí se po hladkém předání.</span>
+                    </div>
+                    <div class="add-flow-toggle" role="presentation">
                       <input v-model="addListingDraft.depositEnabled" type="checkbox" />
                       <span aria-hidden="true"></span>
-                    </label>
-                  </div>
-                  <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingDepositError }">
+                    </div>
+                  </label>
+                  <div v-if="addListingDraft.depositEnabled" class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingDepositError }">
                     <input
                       v-model.number="addListingDraft.depositAmount"
                       class="add-flow-native"
                       type="number"
                       min="0"
                       placeholder="0"
-                      :disabled="!addListingDraft.depositEnabled"
                     />
                     <span class="add-flow-suffix">Kč</span>
                   </div>
@@ -4169,7 +4297,7 @@ if (typeof window !== "undefined") {
 
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Dostupnost pro vypůjčení</div>
-                  <div class="add-flow-calendar" :class="{ 'is-error': addListingAvailabilityError }">
+                  <div class="add-flow-calendar" :class="{ 'is-error': addListingProceedAttempt && addListingAvailabilityError }">
                     <div class="add-flow-calendar-head">
                       <strong>{{ availabilityCalendar.label }}</strong>
                       <div class="add-flow-calendar-nav">
@@ -4198,12 +4326,12 @@ if (typeof window !== "undefined") {
                       </button>
                     </div>
                   </div>
+                  <div v-if="addListingProceedAttempt && addListingAvailabilityError" class="add-flow-error">
+                    Vyber aspoň jeden den (nebo rozmezí) v kalendáři.
+                  </div>
                   <div class="add-flow-help">
                     <span v-if="availabilityRangeStart">Vyberte poslední den rozmezí.</span>
                     <span v-else>Označte dny, nebo rozmezí: klepněte na první a poslední den.</span>
-                  </div>
-                  <div v-if="addListingProceedAttempt && addListingAvailabilityError" class="add-flow-error">
-                    Vyber aspoň jeden den (nebo rozmezí) v kalendáři.
                   </div>
                 </div>
 
@@ -4585,141 +4713,71 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <div class="profile-summary">
-            <details class="profile-panel">
-              <summary class="profile-panel-head">
-                <span class="profile-panel-title">
-                  <i class="pi pi-tag"></i>
-                  <strong>Moje nabídky</strong>
-                </span>
-                <span class="profile-count">{{ profileOffers.length }}</span>
-              </summary>
-              <div class="profile-panel-list">
-              <button
-                v-for="offer in activeProfileOffers.slice(0, 3)"
-                :key="offer.id"
-                class="profile-item"
-                type="button"
-                @click="
-                  offer.statusLabel === 'Čeká na hodnocení'
-                    ? openRatingFlow('owner')
-                    : openPendingOffer(offer)
-                "
-              >
-                <div class="profile-item-copy">
-                  <span class="profile-item-title">{{ offer.title }}</span>
-                  <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
-                </div>
-                  <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
-                </button>
-                <button
-                  class="profile-panel-link profile-panel-link-inline"
-                  type="button"
-                  @click="openProfileListPage('offers')"
-                >
-                  Zobrazit vše
-                </button>
-                <div v-if="!activeProfileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
+          <div class="profile-card-menu">
+            <button class="profile-list-item" type="button" @click="openProfileListPage('offers')">
+              <div class="profile-list-item-icon"><i class="pi pi-wrench"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Vercajk</span>
+                <span class="profile-list-item-subtitle">{{ profileOffers.length }} nabídek · {{ profileRequests.length }} poptávek</span>
               </div>
-            </details>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+          </div>
 
-            <details class="profile-panel">
-              <summary class="profile-panel-head">
-                <span class="profile-panel-title">
-                  <i class="pi pi-inbox"></i>
-                  <strong>Moje poptávky</strong>
-                </span>
-                <span class="profile-count">{{ profileRequests.length }}</span>
-              </summary>
-              <div class="profile-panel-list">
-                <button
-                  v-for="request in activeProfileRequests.slice(0, 3)"
-                  :key="request.id"
-                  class="profile-item"
-                  :class="{
-                    'is-dimmed':
-                      request.statusLabel === 'Pronájem ukončen' ||
-                      request.statusLabel === 'Zamítnutí' ||
-                      request.statusLabel === 'Zrušeno',
-                  }"
-                  type="button"
-                  @click="
-                    request.statusLabel === 'Čeká na hodnocení'
-                      ? openRatingFlow('tenant')
-                      : isRequestReservationStatus(request.statusLabel)
-                        ? openPendingRequest(request)
-                        : openListing(request.id)
-                  "
-                >
-                <div class="profile-item-copy">
-                  <span class="profile-item-title">{{ request.title }}</span>
-                  <span class="profile-item-meta">
-                    {{ request.location }} · {{ request.dateRange }}
-                  </span>
-                </div>
-                <div class="profile-item-side">
-                  <span class="profile-item-status" :class="request.statusTone">
-                    {{ request.statusLabel }}
-                  </span>
-                </div>
-                </button>
-                <button
-                  class="profile-panel-link profile-panel-link-inline"
-                  type="button"
-                  @click="openProfileListPage('requests')"
-                >
-                  Zobrazit vše
-                </button>
-                <div v-if="!activeProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
+          <div class="profile-card-menu">
+            <button class="profile-list-item" type="button" @click="openProfilePersonal">
+              <div class="profile-list-item-icon"><i class="pi pi-user"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Osobní údaje</span>
+                <span class="profile-list-item-subtitle">Jméno, kontakt, bio</span>
               </div>
-            </details>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+            <button class="profile-list-item" type="button" @click="openProfilePayments">
+              <div class="profile-list-item-icon"><i class="pi pi-credit-card"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Platby</span>
+                <span class="profile-list-item-subtitle">•••• 4242</span>
+              </div>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+            <button class="profile-list-item" type="button" @click="openProfileSecurity">
+              <div class="profile-list-item-icon"><i class="pi pi-shield"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Zabezpečení</span>
+                <span class="profile-list-item-subtitle">Heslo, 2FA</span>
+              </div>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+            <button class="profile-list-item" type="button" @click="openProfileLanguage">
+              <div class="profile-list-item-icon"><i class="pi pi-globe"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Jazyk a měna</span>
+                <span class="profile-list-item-subtitle">Čeština · CZK</span>
+              </div>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+            <button class="profile-list-item" type="button" @click="openProfileNotifications">
+              <div class="profile-list-item-icon"><i class="pi pi-bell"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Oznámení</span>
+                <span class="profile-list-item-subtitle">Zapnuto</span>
+              </div>
+              <i class="pi pi-chevron-right"></i>
+            </button>
+            <button class="profile-list-item" type="button" @click="openHelp">
+              <div class="profile-list-item-icon"><i class="pi pi-question-circle"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Nápověda</span>
+                <span class="profile-list-item-subtitle">FAQ, napiš nám</span>
+              </div>
+              <i class="pi pi-chevron-right"></i>
+            </button>
           </div>
-
-          <div class="profile-section">
-            <span class="profile-section-label">Správa profilu</span>
-            <div class="profile-list">
-              <button class="profile-list-item" type="button" @click="openProfilePersonal">
-                <i class="pi pi-user"></i>
-                <span>Osobní údaje</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button" @click="openProfilePayments">
-                <i class="pi pi-credit-card"></i>
-                <span>Platební metody</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button" @click="openProfileSecurity">
-                <i class="pi pi-lock"></i>
-                <span>Zabezpečení</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="profile-section">
-            <span class="profile-section-label">Nastavení</span>
-            <div class="profile-list">
-              <button class="profile-list-item" type="button" @click="openProfileNotifications">
-                <i class="pi pi-bell"></i>
-                <span>Oznámení</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button" @click="openProfileLanguage">
-                <i class="pi pi-globe"></i>
-                <span>Jazyk a měna</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-              <button class="profile-list-item" type="button" @click="openHelp">
-                <i class="pi pi-question-circle"></i>
-                <span>Nápověda</span>
-                <i class="pi pi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="profile-actions">
-            <PvButton class="button-secondary" @click="logout">Odhlásit se</PvButton>
-          </div>
+          <button class="logout-button-new" type="button" @click="logout">
+            <i class="pi pi-sign-out"></i>
+            Odhlásit se
+          </button>
         </div>
 
         <div v-else-if="screen === 'profile-notifications'" class="screen-inner profile-page">
@@ -5351,51 +5409,86 @@ if (typeof window !== "undefined") {
           </div>        </div>
 
         <div v-else-if="screen === 'help-contact'" class="screen-inner profile-page">
-          <div class="profile-section">
-            <span class="profile-section-label">Napište nám</span>
-            <div class="profile-panel">
-              <div class="auth-form">
-                <div class="field">
-                  <label>Téma zprávy</label>
-                  <div class="input-shell">
-                    <select v-model="contactForm.topic" class="auth-input" style="appearance: none; background: transparent; border: 0;">
-                      <option>Průběh výpůjčky</option>
-                      <option>Problém s platbou</option>
-                      <option>Technická chyba</option>
-                      <option>Jiný dotaz</option>
-                    </select>
-                    <i class="pi pi-chevron-down" style="font-size: 0.8rem; opacity: 0.5;"></i>
-                  </div>
+          <div class="auth-panel" style="padding-top: 0;">
+            <div class="auth-panel-head">
+              <h1 class="auth-hero-title">
+                <span class="auth-hero-line1">Napiš nám</span>
+                <span class="auth-hero-line2">do <span class="auth-hero-accent">Vercajkovny.</span></span>
+              </h1>
+              <p style="margin-top: 8px;">
+                Máš potíže s výpůjčkou nebo tě trápí technický šotek? Dej nám vědět, koukneme na to.
+              </p>
+            </div>
+
+            <div v-if="contactForm.isSent" class="auth-success-panel" style="margin-top: 0;">
+              <div class="auth-success-icon">
+                <i class="pi pi-envelope"></i>
+              </div>
+              <h2>Zpráva odeslána!</h2>
+              <p>Díky za zprávu. Ozveme se ti co nejdříve na tvůj e-mail.</p>
+              <PvButton class="button-secondary w-full" style="margin-top: 16px;" @click="goBack">
+                Zpět do nápovědy
+              </PvButton>
+            </div>
+
+            <div v-else class="auth-form">
+              <div v-if="!isAuthenticated" class="field">
+                <div class="input-shell">
+                  <i class="pi pi-envelope input-icon"></i>
+                  <PvInputText
+                    v-model="contactForm.email"
+                    class="auth-input"
+                    type="email"
+                    placeholder="Tvůj e-mail, ať ti můžeme odpovědět..."
+                  />
                 </div>
-                <div class="field">
-                  <label>Vaše zpráva</label>
-                  <div class="add-flow-input add-flow-input-textarea">
-                    <textarea 
-                      v-model="contactForm.message" 
-                      class="add-flow-native" 
-                      rows="6" 
-                      placeholder="Popište nám, s čím vám můžeme pomoci..."
-                    ></textarea>
-                  </div>
+              </div>
+
+              <div class="field">
+                <div class="input-shell">
+                  <i class="pi pi-tag input-icon"></i>
+                  <select v-model="contactForm.topic" class="auth-input" style="appearance: none; background: transparent; border: 0; flex: 1; outline: none; cursor: pointer; font-weight: 500;">
+                    <option>Průběh výpůjčky</option>
+                    <option>Problém s platbou</option>
+                    <option>Technická chyba</option>
+                    <option>Jiný dotaz</option>
+                  </select>
+                  <i class="pi pi-chevron-down" style="font-size: 0.8rem; opacity: 0.5; margin-right: 12px;"></i>
                 </div>
-                <div class="profile-actions" style="margin-top: 12px;">
-                  <button 
-                    class="button-primary" 
-                    style="height: 52px; width: 100%;" 
-                    :disabled="contactForm.isSending || !contactForm.message.trim()"
-                    @click="submitContact"
-                  >
-                    <i v-if="contactForm.isSending" class="pi pi-spin pi-spinner"></i>
-                    {{ contactForm.isSending ? 'Odesílám...' : 'Odeslat zprávu' }}
-                  </button>
-                  <button class="button-ghost" @click="goBack">Zrušit</button>
+              </div>
+
+              <div class="field">
+                <div class="input-shell" style="height: auto; min-height: 180px; padding: 16px 0; align-items: flex-start;">
+                  <i class="pi pi-comment input-icon" style="margin-top: 4px;"></i>
+                  <textarea 
+                    v-model="contactForm.message" 
+                    class="auth-input" 
+                    style="flex: 1; border: 0; outline: none; resize: none; min-height: 150px; line-height: 1.5; font-weight: 500;"
+                    placeholder="Popište nám, s čím vám můžeme pomoci..."
+                  ></textarea>
                 </div>
+              </div>
+
+              <div class="profile-actions" style="margin-top: 32px;">
+                <PvButton 
+                  class="auth-submit auth-submit-primary" 
+                  :class="{ 'is-ready': contactForm.message.trim().length > 5 && (isAuthenticated || contactForm.email.trim().length > 3) }"
+                  :disabled="contactForm.isSending || !contactForm.message.trim() || (!isAuthenticated && !contactForm.email.trim())"
+                  style="font-size: 1rem; letter-spacing: 0.12em;"
+                  @click="submitContact"
+                >
+                  <i v-if="contactForm.isSending" class="pi pi-spin pi-spinner" style="margin-right: 8px;"></i>
+                  {{ contactForm.isSending ? 'ODESÍLÁM...' : 'ODESLAT ZPRÁVU' }}
+                </PvButton>
+                <button class="field-link w-full" style="text-align: center; margin-top: 20px; font-weight: 700; color: #352116;" @click="goBack">
+                  Zrušit a zpět
+                </button>
               </div>
             </div>
           </div>
           
-          <div class="profile-section">
-            <p style="text-align: center; color: var(--muted); font-size: 0.9rem; line-height: 1.5;">
+          <div v-if="!contactForm.isSent" class="profile-section" style="margin-top: 40px; opacity: 0.6;">
+            <p style="text-align: center; color: var(--dsn-muted); font-size: 0.85rem; line-height: 1.6; max-width: 32ch; margin: 0 auto;">
               Odpovíme vám na e-mailovou adresu, kterou máte registrovanou u svého profilu.
             </p>
           </div>

@@ -14,6 +14,7 @@ export type Listing = {
   owner: string;
   ownerSince: string;
   badges: string[];
+  photo?: string;
 };
 
 export const categories = [
@@ -43,6 +44,7 @@ export const listings: Listing[] = [
     owner: "Tomáš",
     ownerSince: "na platformě 3 roky",
     badges: ["Ov. profil", "Bezpečné předání", "Okamžitý kontakt"],
+    photo: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600&q=80",
   },
   {
     id: "makita-drill",
@@ -61,6 +63,7 @@ export const listings: Listing[] = [
     owner: "Pavel",
     ownerSince: "ověřený hostitel",
     badges: ["Top rating", "Rychlá odpověď", "Osobní předání"],
+    photo: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=600&q=80",
   },
   {
     id: "karcher-wash",
@@ -79,6 +82,7 @@ export const listings: Listing[] = [
     owner: "Lucie",
     ownerSince: "na platformě 11 měsíců",
     badges: ["Rychlé schválení", "Připraveno k půjčení", "Fotky stavu"],
+    photo: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
   },
   {
     id: "laser-level",
@@ -97,6 +101,7 @@ export const listings: Listing[] = [
     owner: "Jana",
     ownerSince: "ověřená",
     badges: ["Záruka stavu", "Doprava domluvou", "Oblíbené"],
+    photo: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=600&q=80",
   },
   {
     id: "bosch-drill",
@@ -115,6 +120,7 @@ export const listings: Listing[] = [
     owner: "Tomáš",
     ownerSince: "na platformě 2 roky",
     badges: ["Ověřený profil", "Kauce online", "Rychlé schválení"],
+    photo: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80",
   },
   {
     id: "hilti-breaker",
@@ -133,6 +139,7 @@ export const listings: Listing[] = [
     owner: "Lucie",
     ownerSince: "na platformě 8 měsíců",
     badges: ["Dostupné ihned", "Top rating", "Fotky stavu"],
+    photo: "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=600&q=80",
   },
 ];
 

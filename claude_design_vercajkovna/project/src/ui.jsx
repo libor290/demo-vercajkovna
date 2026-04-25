@@ -221,7 +221,7 @@ const Input = ({ icon, type = 'text', value, onChange, placeholder, right, autoF
       padding: '0 14px',
       borderRadius: 12,
       border: `1.5px solid ${focused ? accent.accent : palette.line}`,
-      background: palette.card,
+      background: '#ffffff',
       transition: 'border-color 150ms ease',
     }}>
       {icon && <Icon name={icon} size={18} color={palette.inkMuted}/>}

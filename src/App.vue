@@ -339,6 +339,29 @@ type AddListingDraft = {
 
 const addListingStep = ref<1 | 2 | 3>(1);
 const addListingProceedAttempt = ref(false);
+const addListingShowMore = ref(false);
+const brandSuggestions = ref<string[]>([]);
+const KNOWN_BRANDS = [
+  'Bosch', 'DeWalt', 'Makita', 'Festool', 'Hilti', 'Milwaukee', 'Metabo',
+  'Ryobi', 'Black+Decker', 'Stanley', 'Kärcher', 'Husqvarna', 'Stihl',
+  'AEG', 'Hitachi', 'Parkside', 'Einhell', 'Worx', 'Fiskars', 'Bahco',
+  'Gedore', 'Knipex', 'Wera', 'Leica', 'Fluke', 'Dewalt', 'Paslode',
+  'Skil', 'Dremel', 'Flex', 'Mafell', 'Trumpf', 'Atlas Copco', 'Snap-on',
+  'Irwin', 'Facom', 'Beta', 'Hazet', 'Würth', 'Rothenberger',
+];
+function onBrandInput(val: string) {
+  addListingDraft.brand = val;
+  if (val.length >= 3) {
+    const q = val.toLowerCase();
+    brandSuggestions.value = KNOWN_BRANDS.filter(b => b.toLowerCase().includes(q)).slice(0, 5);
+  } else {
+    brandSuggestions.value = [];
+  }
+}
+function selectBrand(brand: string) {
+  addListingDraft.brand = brand;
+  brandSuggestions.value = [];
+}
 const availabilityMonth = reactive({ year: new Date().getFullYear(), month: new Date().getMonth() }); // 0-indexed
 const availabilityRangeStart = ref<string | null>(null);
 const addListingPhotoInput = ref<HTMLInputElement | null>(null);
@@ -377,6 +400,7 @@ const addListingDraft = reactive<AddListingDraft>({
   pickupMethods: { mode: "personal", otherPickupDescription: "" },
   rules: { noModifications: false, purposeOnly: false, noThirdParty: false, depositForfeit: false, other: false, otherDescription: "" },
   });const publishedListingId = ref<string | null>(null);
+const publishedListingTitle = ref<string>("");
 const paymentMethod = ref<"bank" | "card" | null>(null);
 const cardForm = reactive({
   subMethod: "card" as "card" | "apple" | "google",
@@ -1260,6 +1284,14 @@ function openListing(id: string) {
   setScreen("detail");
 }
 
+function openPublishedListing() {
+  if (!publishedListingId.value) { setScreen('market'); return; }
+  selectedListingId.value = publishedListingId.value;
+  pendingRole.value = "owner";
+  lastListScreen.value = "market";
+  setScreen("detail");
+}
+
 function openPublicProfile(ownerName: string) {
   viewedPublicProfile.value = ownerName;
   setScreen("public-profile");
@@ -1582,6 +1614,7 @@ function submitAddListing() {
   const bucket = demoProfileMatrix[user.email] ?? demoProfileMatrix["demo@vercajkovna.cz"];
   bucket.offers.unshift(id);
   publishedListingId.value = id;
+  publishedListingTitle.value = addListingDraft.title.trim();
   setScreen("add-listing-confirmation");
 }
 
@@ -4369,8 +4402,32 @@ if (typeof window !== "undefined") {
                   <div class="add-flow-grid">
                     <div class="add-flow-field">
                       <span>Značka</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.brand" class="add-flow-native" type="text" placeholder="Např. Bosch, DeWalt..." />
+                      <div class="add-flow-brand-wrap">
+                        <div class="add-flow-input">
+                          <input
+                            :value="addListingDraft.brand"
+                            class="add-flow-native"
+                            type="text"
+                            placeholder="Po 3 znacích nabídneme značky…"
+                            autocomplete="off"
+                            @input="onBrandInput(($event.target as HTMLInputElement).value)"
+                            @blur="setTimeout(() => brandSuggestions = [], 150)"
+                          />
+                        </div>
+                        <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3" class="add-flow-brand-hint">
+                          zadej alespoň 3 znaky — např. <em>Bosch</em>
+                        </div>
+                        <div v-if="brandSuggestions.length" class="add-flow-brand-suggestions">
+                          <button
+                            v-for="brand in brandSuggestions"
+                            :key="brand"
+                            type="button"
+                            class="add-flow-brand-option"
+                            @mousedown.prevent="selectBrand(brand)"
+                          >
+                            {{ brand }}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div class="add-flow-field">
@@ -4379,25 +4436,7 @@ if (typeof window !== "undefined") {
                         <input v-model="addListingDraft.model" class="add-flow-native" type="text" placeholder="Přesné označení modelu" />
                       </div>
                     </div>
-                    <div class="add-flow-field">
-                      <span>Výkon</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.power" class="add-flow-native" type="text" placeholder="Např. 1500W, 18V..." />
-                      </div>
-                    </div>
-                    <div class="add-flow-field">
-                      <span>Hmotnost</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.weight" class="add-flow-native" type="text" placeholder="Např. 2.5 kg" />
-                      </div>
-                    </div>
                     <div class="add-flow-field add-flow-field-full">
-                      <span>Příslušenství</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." />
-                      </div>
-                    </div>
-                    <div class="add-flow-field">
                       <span>Stav</span>
                       <div ref="conditionDropdownEl" class="add-flow-dropdown" :class="{ 'is-open': conditionDropdownOpen }">
                         <button
@@ -4410,27 +4449,54 @@ if (typeof window !== "undefined") {
                           <span class="add-flow-dropdown-value">{{ selectedConditionDisplay }}</span>
                           <i class="pi pi-chevron-down" aria-hidden="true"></i>
                         </button>
-                        <div v-if="conditionDropdownOpen" class="add-flow-dropdown-menu" role="listbox" aria-label="Vyber stav">
+                        <div v-if="conditionDropdownOpen" class="add-flow-condition-list" role="listbox">
                           <button
                             v-for="option in conditionOptions"
                             :key="`condition-opt-${option.id}`"
                             type="button"
-                            class="add-flow-dropdown-option"
+                            class="add-flow-condition-option"
                             :class="{ 'is-active': addListingDraft.condition === option.id }"
                             role="option"
                             @click="selectCondition(option.id)"
                           >
-                            {{ option.label }} - {{ option.note }}
+                            <strong>{{ option.label }}</strong>
+                            <span> — {{ option.note }}</span>
                           </button>
                         </div>
                       </div>
                     </div>
                     <div class="add-flow-field add-flow-field-full">
-                      <span>Další parametry</span>
-                      <div class="add-flow-input add-flow-input-textarea">
-                        <textarea v-model="addListingDraft.additionalParams" class="add-flow-native" rows="4" placeholder="Výkon, rozměry, hmotnost nebo jiné důležité specifikace..."></textarea>
+                      <span>Příslušenství</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." />
                       </div>
                     </div>
+                    <div class="add-flow-field-full add-flow-show-more-toggle">
+                      <button type="button" class="add-flow-show-more-btn" @click="addListingShowMore = !addListingShowMore">
+                        <span>{{ addListingShowMore ? 'Skrýt' : 'Zobrazit více' }}</span>
+                        <i :class="['pi', addListingShowMore ? 'pi-chevron-up' : 'pi-chevron-down']"></i>
+                      </button>
+                    </div>
+                    <template v-if="addListingShowMore">
+                      <div class="add-flow-field">
+                        <span>Výkon</span>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.power" class="add-flow-native" type="text" placeholder="Např. 1500W, 18V..." />
+                        </div>
+                      </div>
+                      <div class="add-flow-field">
+                        <span>Hmotnost</span>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.weight" class="add-flow-native" type="text" placeholder="Např. 2.5 kg" />
+                        </div>
+                      </div>
+                      <div class="add-flow-field add-flow-field-full">
+                        <span>Další parametry</span>
+                        <div class="add-flow-input add-flow-input-textarea">
+                          <textarea v-model="addListingDraft.additionalParams" class="add-flow-native" rows="4" placeholder="Výkon, rozměry, hmotnost nebo jiné důležité specifikace..."></textarea>
+                        </div>
+                      </div>
+                    </template>
                   </div>
                 </div>
 
@@ -4505,41 +4571,32 @@ if (typeof window !== "undefined") {
         </div>
 
         <div v-else-if="screen === 'add-listing-confirmation'" class="screen-inner">
-          <PvCard class="status-card">
-            <template #content>
+          <div class="add-success">
+            <div class="add-success-icon">
+              <i class="pi pi-check"></i>
+            </div>
+            <span class="add-success-kicker">Vercajk je zveřejněn</span>
+            <h1 class="add-success-title">Hotovo!</h1>
+            <p class="add-success-desc">
+              Vercajk je teď vidět pro sousedy. Jakmile někdo pošle žádost, přijde ti oznámení.
+            </p>
+            <div class="add-success-actions">
               <button
-                class="status-card-eye"
                 type="button"
-                aria-label="Zobrazit nabídku"
-                @click="publishedListingId ? openListing(publishedListingId) : setScreen('market')"
+                class="add-flow-cta-primary"
+                @click="openPublishedListing"
               >
-                <i class="pi pi-eye"></i>
+                Zobrazit nabídku
               </button>
-              <span class="eyebrow">Nabídka zveřejněna</span>
-              <h1>Hotovo</h1>
-              <p>
-                Nabídka je připravená v marketplace a přidali jsme ji i do tvého profilu.
-              </p>
-              <div class="status-actions">
-                <PvButton
-                  class="button-primary"
-                  @click="publishedListingId ? openListing(publishedListingId) : setScreen('market')"
-                >
-                  Zobrazit nabídku
-                  <i class="pi pi-arrow-right"></i>
-                </PvButton>
-                <PvButton
-                  class="button-secondary"
-                  @click="
-                    profileListTab = 'offers';
-                    setScreen('profile-list');
-                  "
-                >
-                  Do profilu
-                </PvButton>
-              </div>
-            </template>
-          </PvCard>
+              <button
+                type="button"
+                class="add-flow-cta-ghost"
+                @click="profileListTab = 'offers'; setScreen('profile-list')"
+              >
+                Do profilu
+              </button>
+            </div>
+          </div>
         </div>
 
         <div v-else-if="screen === 'request'" class="screen-inner">

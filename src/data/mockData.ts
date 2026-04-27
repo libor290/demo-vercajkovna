@@ -15,6 +15,8 @@ export type Listing = {
   ownerSince: string;
   badges: string[];
   photo?: string;
+  pickupMode?: "personal" | "other";
+  pickupDescription?: string;
 };
 
 export const categories = [
@@ -40,10 +42,12 @@ export const listings: Listing[] = [
     availability: "K dispozici dnes",
     depositRequired: true,
     description:
-      "Pro přesné řezy, čistý finish a víkendové projekty. Ideální jako hlavní listing demo flow.",
+      "Přesná ponorná pila pro řezání laminovaných desek, podlah i masivu. Pila jede jako hodinky, řez je čistý bez otřepů. Přibalím i vodicí lištu 1400 mm, paralelní doraz a sadu pilových kotoučů pro různé materiály. Ideální na rekonstrukce podlah, výrobu nábytku i jemné tesařské práce. Vercajk je v perfektním stavu, pravidelně servisovaný.",
     owner: "Tomáš",
     ownerSince: "na platformě 3 roky",
     badges: ["Ov. profil", "Bezpečné předání", "Okamžitý kontakt"],
+    pickupMode: "other",
+    pickupDescription: "Garáž s kódem — kód dostaneš po potvrzení rezervace",
     photo: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600&q=80",
   },
   {
@@ -63,6 +67,7 @@ export const listings: Listing[] = [
     owner: "Pavel",
     ownerSince: "ověřený hostitel",
     badges: ["Top rating", "Rychlá odpověď", "Osobní předání"],
+    pickupMode: "personal",
     photo: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=600&q=80",
   },
   {
@@ -82,6 +87,8 @@ export const listings: Listing[] = [
     owner: "Lucie",
     ownerSince: "na platformě 11 měsíců",
     badges: ["Rychlé schválení", "Připraveno k půjčení", "Fotky stavu"],
+    pickupMode: "other",
+    pickupDescription: "Dovoz do 5 km nebo zásilkovna",
     photo: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
   },
   {
@@ -101,6 +108,7 @@ export const listings: Listing[] = [
     owner: "Jana",
     ownerSince: "ověřená",
     badges: ["Záruka stavu", "Doprava domluvou", "Oblíbené"],
+    pickupMode: "personal",
     photo: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=600&q=80",
   },
   {
@@ -120,6 +128,7 @@ export const listings: Listing[] = [
     owner: "Tomáš",
     ownerSince: "na platformě 2 roky",
     badges: ["Ověřený profil", "Kauce online", "Rychlé schválení"],
+    pickupMode: "personal",
     photo: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80",
   },
   {

@@ -1888,7 +1888,7 @@ const notifications = reactive({
     ratingReminder:      { push: true,  email: false },
     nearbyListings:      { push: false, email: false },
     platformNews:        { push: false, email: false },
-  },
+  } as Record<string, { push: boolean; email: boolean }>,
 });
 
 function openFavorites() {
@@ -4520,7 +4520,7 @@ if (typeof window !== "undefined") {
                             placeholder="Po 3 znacích nabídneme značky…"
                             autocomplete="off"
                             @input="onBrandInput(($event.target as HTMLInputElement).value)"
-                            @blur="setTimeout(() => brandSuggestions = [], 150)"
+                            @blur="window.setTimeout(() => brandSuggestions = [], 150)"
                           />
                         </div>
                         <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3" class="add-flow-brand-hint">
@@ -5396,7 +5396,7 @@ if (typeof window !== "undefined") {
                     @input="personalEditField === 'address'
                       ? onAddressInput(($event.target as HTMLInputElement).value)
                       : (personalEditValue = ($event.target as HTMLInputElement).value)"
-                    @blur="personalEditField === 'address' && setTimeout(() => addressSuggestions = [], 150)"
+                    @blur="personalEditField === 'address' && window.setTimeout(() => addressSuggestions = [], 150)"
                   />
                   <div v-if="personalEditField === 'address' && addressSuggestions.length" class="address-suggestions">
                     <button

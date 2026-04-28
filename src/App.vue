@@ -231,16 +231,32 @@ const helpSelectedId = ref<string | null>(null);
 
 const notifCenterOpen = ref(false);
 const appNotifications = ref([
-  { id: 'n1', icon: 'pi-inbox', text: 'Tomáš chce půjčit tvou Festool TS 55', time: 'Právě teď', unread: true, screen: 'pending-request' },
-  { id: 'n2', icon: 'pi-check-circle', text: 'Tvoje rezervace Makita 18V byla schválena', time: '2 hod', unread: true, screen: 'pending-request' },
-  { id: 'n3', icon: 'pi-comment', text: 'Lucie K.: Vrátím ještě dneska do 18', time: 'Včera', unread: false, screen: 'chat-detail' },
-  { id: 'n4', icon: 'pi-star', text: 'Pavel ti zanechal hodnocení ★ 4.9', time: 'Út', unread: false, screen: 'profile' },
-  { id: 'n5', icon: 'pi-credit-card', text: 'Platba 1 350 Kč byla potvrzena', time: 'Po', unread: false, screen: 'pending-request' },
+  { id: 'n1', icon: 'pi-inbox',        tone: 'orange', text: 'Tomáš chce půjčit tvou Festool TS 55',    group: 'Dnes',       unread: true  },
+  { id: 'n2', icon: 'pi-check-circle', tone: 'green',  text: 'Tvoje rezervace Makita 18V byla schválena', group: 'Dnes',     unread: true  },
+  { id: 'n3', icon: 'pi-comment',      tone: 'muted',  text: 'Lucie K.: Vrátím ještě dneska do 18',    group: 'Dnes',       unread: true  },
+  { id: 'n4', icon: 'pi-credit-card',  tone: 'green',  text: 'Platba 1 350 Kč byla potvrzena',          group: 'Včera',      unread: false },
+  { id: 'n5', icon: 'pi-star',         tone: 'yellow', text: 'Pavel ti zanechal hodnocení ★ 4.9',        group: 'Včera',      unread: false },
+  { id: 'n6', icon: 'pi-replay',       tone: 'green',  text: 'Vrácení Kärcher K5 potvrzeno',             group: 'Včera',      unread: false },
+  { id: 'n7', icon: 'pi-inbox',        tone: 'orange', text: 'Jana chce půjčit tvůj Bosch laser',        group: 'Tento týden', unread: false },
+  { id: 'n8', icon: 'pi-times-circle', tone: 'red',    text: 'Žádost o Hilti TE 500 byla zamítnuta',     group: 'Tento týden', unread: false },
+  { id: 'n9', icon: 'pi-comment',      tone: 'muted',  text: 'Michal D.: Jsou baterie nabité?',          group: 'Tento týden', unread: false },
 ]);
+const notifGroups = computed(() => {
+  const groups = ['Dnes', 'Včera', 'Tento týden'];
+  return groups.map(g => ({
+    label: g,
+    items: appNotifications.value.filter(n => n.group === g),
+  })).filter(g => g.items.length > 0);
+});
 const unreadNotifCount = computed(() => appNotifications.value.filter(n => n.unread).length);
-function openNotifCenter() { notifCenterOpen.value = true; }
+function openNotifCenter() {
+  notifCenterOpen.value = true;
+  // Badge zmizí hned po otevření
+  appNotifications.value.forEach(n => n.unread = false);
+}
 function closeNotifCenter() { notifCenterOpen.value = false; }
-function markAllRead() { appNotifications.value.forEach(n => n.unread = false); }
+function clearAllNotifs() { appNotifications.value = []; }
+function removeNotif(id: string) { appNotifications.value = appNotifications.value.filter(n => n.id !== id); }
 const helpExpandedId = ref<string | null>(null);
 const helpFeedback = ref<"yes" | "no" | null>(null);
 
@@ -4872,28 +4888,36 @@ if (typeof window !== "undefined") {
             <div class="notif-center-panel">
               <div class="notif-center-head">
                 <strong>Oznámení</strong>
-                <button type="button" class="notif-center-mark-read" @click="markAllRead" v-if="unreadNotifCount > 0">
-                  Označit vše jako přečtené
+                <button type="button" class="notif-center-clear" @click="clearAllNotifs" v-if="appNotifications.length > 0">
+                  Vymazat vše
                 </button>
               </div>
+
               <div class="notif-center-list">
-                <button
-                  v-for="notif in appNotifications"
-                  :key="notif.id"
-                  type="button"
-                  class="notif-center-item"
-                  :class="{ 'is-unread': notif.unread }"
-                  @click="notif.unread = false; closeNotifCenter()"
-                >
-                  <div class="notif-center-icon" :class="{ 'is-unread': notif.unread }">
-                    <i :class="['pi', notif.icon]"></i>
+                <div v-if="appNotifications.length === 0" class="notif-center-empty">
+                  <i class="pi pi-bell"></i>
+                  <span>Žádná oznámení</span>
+                </div>
+
+                <template v-for="group in notifGroups" :key="group.label">
+                  <div class="notif-center-group-label">{{ group.label }}</div>
+                  <div
+                    v-for="notif in group.items"
+                    :key="notif.id"
+                    class="notif-center-item"
+                    :class="{ 'is-unread': notif.unread }"
+                  >
+                    <div class="notif-center-icon" :class="`tone-${notif.tone}`">
+                      <i :class="['pi', notif.icon]"></i>
+                    </div>
+                    <div class="notif-center-copy">
+                      <span>{{ notif.text }}</span>
+                    </div>
+                    <button type="button" class="notif-center-remove" @click="removeNotif(notif.id)" aria-label="Smazat">
+                      <i class="pi pi-times"></i>
+                    </button>
                   </div>
-                  <div class="notif-center-copy">
-                    <span>{{ notif.text }}</span>
-                    <small>{{ notif.time }}</small>
-                  </div>
-                  <div v-if="notif.unread" class="notif-center-dot"></div>
-                </button>
+                </template>
               </div>
             </div>
           </div>

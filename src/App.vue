@@ -223,6 +223,9 @@ function selectAddress(addr: string) {
   personalEditValue.value = addr;
   addressSuggestions.value = [];
 }
+function clearAddressSuggestions() {
+  window.setTimeout(() => { addressSuggestions.value = []; }, 150);
+}
 const personalEditValue = ref("");
 const personalPhotoOpen = ref(false);
 
@@ -423,6 +426,9 @@ function onBrandInput(val: string) {
 function selectBrand(brand: string) {
   addListingDraft.brand = brand;
   brandSuggestions.value = [];
+}
+function clearBrandSuggestions() {
+  window.setTimeout(() => { brandSuggestions.value = []; }, 150);
 }
 const availabilityMonth = reactive({ year: new Date().getFullYear(), month: new Date().getMonth() }); // 0-indexed
 const availabilityRangeStart = ref<string | null>(null);
@@ -4536,7 +4542,7 @@ if (typeof window !== "undefined") {
                             placeholder="Po 3 znacích nabídneme značky…"
                             autocomplete="off"
                             @input="onBrandInput(($event.target as HTMLInputElement).value)"
-                            @blur="setTimeout(() => brandSuggestions = [], 150)"
+                            @blur="clearBrandSuggestions()"
                           />
                         </div>
                         <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3" class="add-flow-brand-hint">
@@ -5420,7 +5426,7 @@ if (typeof window !== "undefined") {
                     @input="personalEditField === 'address'
                       ? onAddressInput(($event.target as HTMLInputElement).value)
                       : (personalEditValue = ($event.target as HTMLInputElement).value)"
-                    @blur="personalEditField === 'address' && setTimeout(() => addressSuggestions = [], 150)"
+                    @blur="personalEditField === 'address' && clearAddressSuggestions()"
                   />
                   <div v-if="personalEditField === 'address' && addressSuggestions.length" class="address-suggestions">
                     <button

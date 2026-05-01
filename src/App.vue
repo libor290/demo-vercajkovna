@@ -20,6 +20,7 @@ type Screen =
   | "help-contact"
   | "profile-list"
   | "public-profile-list"
+  | "public-profile-reviews"
   | "rules"
   | "payment"
   | "payment-bank"
@@ -187,10 +188,19 @@ const personal = reactive({
   emailVerified: rememberedUser?.emailVerified ?? rememberedPersonal?.emailVerified ?? true,
   phoneVerified: rememberedUser?.phoneVerified ?? rememberedPersonal?.phoneVerified ?? false,
   photo: rememberedUser?.photo ?? rememberedPersonal?.photo ?? MOCK_PROFILE.firstName.charAt(0),
+  bio: (rememberedPersonal as any)?.bio ?? "",
   saved: false,
 });
 const personalEditOpen = ref(false);
-const personalEditField = ref<"firstName" | "lastName" | "email" | "phone" | "address" | null>(null);
+const personalEditField = ref<"firstName" | "lastName" | "email" | "phone" | "address" | "bio" | null>(null);
+const personalSnapshot = reactive({ firstName: personal.firstName, lastName: personal.lastName, bio: personal.bio });
+const personalDirty = computed(() =>
+  personal.firstName !== personalSnapshot.firstName ||
+  personal.lastName !== personalSnapshot.lastName ||
+  personal.bio !== personalSnapshot.bio
+);
+const personalUnsavedOpen = ref(false);
+let personalUnsavedTarget: Screen | null = null;
 const addressSuggestions = ref<string[]>([]);
 const MOCK_ADDRESSES = [
   "Dlouhá 12, Praha 1", "Náměstí Míru 5, Praha 2", "Vinohradská 48, Praha 2",
@@ -306,12 +316,13 @@ const selectedHelpFaq = computed(
 
 const personalEditMeta = computed(() => {
   const field = personalEditField.value;
-  if (field === "firstName") return { label: "Jméno", type: "text", placeholder: "Např. Tomáš" };
-  if (field === "lastName") return { label: "Příjmení", type: "text", placeholder: "Např. Novák" };
-  if (field === "email") return { label: "E-mail", type: "email", placeholder: "tomas@email.cz" };
-  if (field === "phone") return { label: "Telefon", type: "tel", placeholder: "+420 777 123 456" };
-  if (field === "address") return { label: "Adresa", type: "text", placeholder: "Dlouhá 123, Praha 1" };
-  return { label: "Údaj", type: "text", placeholder: "" };
+  if (field === "firstName") return { label: "Jméno", type: "text", placeholder: "Např. Tomáš", textarea: false };
+  if (field === "lastName") return { label: "Příjmení", type: "text", placeholder: "Např. Novák", textarea: false };
+  if (field === "email") return { label: "E-mail", type: "email", placeholder: "tomas@email.cz", textarea: false };
+  if (field === "phone") return { label: "Telefon", type: "tel", placeholder: "+420 777 123 456", textarea: false };
+  if (field === "address") return { label: "Adresa", type: "text", placeholder: "Dlouhá 123, Praha 1", textarea: false };
+  if (field === "bio") return { label: "Bio", type: "text", placeholder: "Pár slov o sobě — co rád/a půjčuješ, kde jsi...", textarea: true };
+  return { label: "Údaj", type: "text", placeholder: "", textarea: false };
 });
 
 const auth = reactive({
@@ -370,6 +381,7 @@ type AddListingPhoto = { file: File; url: string };
 type AddListingDraft = {
   photoSlots: Array<AddListingPhoto | null>;
   title: string;
+  description: string;
   categoryId: string;
   pricePerDay: number;
   depositEnabled: boolean;
@@ -451,6 +463,7 @@ const conditionOptions = [
 const addListingDraft = reactive<AddListingDraft>({
   photoSlots: Array.from({ length: 4 }, () => null),
   title: "",
+  description: "",
   categoryId: categories.find((item) => item.id !== "all")?.id ?? "stavba",
   pricePerDay: 0,
   depositEnabled: false,
@@ -543,6 +556,7 @@ const rentalTermsOpen = ref(true);
 const descriptionExpanded = ref(false);
 const profileListTab = ref<"offers" | "requests">("offers");
 const publicProfileListTab = ref<"offers" | "requests">("offers");
+const publicProfileReviewsTab = ref<"owners" | "renters">("owners");
 const screenHistory = ref<Screen[]>([]);
 const lastListScreen = ref<Screen | null>(null);
 
@@ -604,6 +618,7 @@ const screenLabels: Record<Screen, string> = {
   "help-contact": "Napište nám",
   "profile-list": "Moje nabídky a poptávky",
   "public-profile-list": "Veřejné položky",
+  "public-profile-reviews": "Hodnocení",
   rules: "Pravidla užívání",
   payment: "Platba",
   "payment-bank": "Platba převodem",
@@ -796,6 +811,9 @@ const publicProfiles: Record<
       stars: number;
       text: string;
       date: string;
+      listing?: string;
+      listingId?: string;
+      authorProfile?: string;
     }>;
   }
 > = {
@@ -815,6 +833,9 @@ const publicProfiles: Record<
         stars: 5,
         text: "Vše proběhlo rychle a bez komplikací. Vercajk byl připravený.",
         date: "Před 2 dny",
+        listing: "Kompaktní kotoučová pila Festool TS 55",
+        listingId: "festool-ts55",
+        authorProfile: "Jana",
       },
       {
         author: "Pavel",
@@ -823,6 +844,9 @@ const publicProfiles: Record<
         stars: 4,
         text: "Domluva super, předání přesné a zařízení ve skvělém stavu.",
         date: "Minulý týden",
+        listing: "Aku vrtačka Makita 18V",
+        listingId: "makita-drill",
+        authorProfile: "Pavel",
       },
       {
         author: "Lucie",
@@ -831,6 +855,9 @@ const publicProfiles: Record<
         stars: 5,
         text: "Půjčení bez stresu, ochotný přístup a jasné instrukce.",
         date: "Před měsícem",
+        listing: "Tlaková myčka Kärcher K5",
+        listingId: "karcher-wash",
+        authorProfile: "Lucie",
       },
     ],
   },
@@ -850,6 +877,9 @@ const publicProfiles: Record<
         stars: 5,
         text: "Perfektní stav, rychlá komunikace a bezproblémové předání.",
         date: "Před 3 dny",
+        listing: "Aku vrtačka Makita 18V",
+        listingId: "makita-drill",
+        authorProfile: "Tomáš",
       },
       {
         author: "Jana",
@@ -858,6 +888,9 @@ const publicProfiles: Record<
         stars: 5,
         text: "Vše sedělo podle popisu, určitě půjčím znovu.",
         date: "Před 2 týdny",
+        listing: "Aku vrtačka Makita 18V",
+        listingId: "makita-drill",
+        authorProfile: "Jana",
       },
     ],
   },
@@ -1225,6 +1258,7 @@ function persistPersonal() {
       emailVerified: personal.emailVerified,
       phoneVerified: personal.phoneVerified,
       photo: personal.photo,
+      bio: personal.bio,
     }),
   );
   storage.setItem(
@@ -1254,6 +1288,7 @@ function openPersonalEdit(field: "firstName" | "lastName" | "email" | "phone" | 
   else if (field === "lastName") personalEditValue.value = personal.lastName;
   else if (field === "email") personalEditValue.value = personal.email;
   else if (field === "phone") personalEditValue.value = personal.phone;
+  else if (field === "bio") personalEditValue.value = personal.bio;
   else personalEditValue.value = personal.address;
   personalEditOpen.value = true;
 }
@@ -1274,10 +1309,11 @@ function savePersonalEdit() {
     personal.email = value;
     personal.emailVerified = false;
   }
-  if (field === "phone") personal.phone = value;
+  if (field === "phone") { personal.phone = value; personal.phoneVerified = false; }
   if (field === "address") personal.address = value;
-  if (field === "phone") personal.phoneVerified = false;
+  if (field === "bio") personal.bio = value;
   closePersonalEdit();
+  savePersonalChanges();
 }
 
 function savePersonalChanges() {
@@ -1286,6 +1322,11 @@ function savePersonalChanges() {
   user.email = personal.email.trim() || user.email;
   personal.email = user.email;
   persistPersonal();
+  personalSnapshot.firstName = personal.firstName;
+  personalSnapshot.lastName = personal.lastName;
+  personalSnapshot.bio = personal.bio;
+  personal.saved = true;
+  window.setTimeout(() => { personal.saved = false; }, 1200);
 }
 
 function verifyEmail() {
@@ -1316,11 +1357,36 @@ function clearPhoto() {
 }
 
 function setScreen(next: Screen) {
+  if (screen.value === 'profile-personal' && personalDirty.value && next !== 'profile-personal') {
+    personalUnsavedTarget = next;
+    personalUnsavedOpen.value = true;
+    return;
+  }
   if (screen.value !== next) {
     screenHistory.value.push(screen.value);
   }
   screen.value = next;
   localStorage.setItem(SCREEN_KEY, next);
+}
+
+function confirmPersonalDiscard() {
+  personalSnapshot.firstName = personal.firstName;
+  personalSnapshot.lastName = personal.lastName;
+  personalSnapshot.bio = personal.bio;
+  personalUnsavedOpen.value = false;
+  const target = personalUnsavedTarget;
+  personalUnsavedTarget = null;
+  if (target) setScreen(target);
+  else goBack();
+}
+
+function confirmPersonalSaveAndLeave() {
+  savePersonalChanges();
+  personalUnsavedOpen.value = false;
+  const target = personalUnsavedTarget;
+  personalUnsavedTarget = null;
+  if (target) setScreen(target);
+  else goBack();
 }
 
 function openAuth(returnTo: Screen | null = null) {
@@ -1384,6 +1450,11 @@ function openPublicProfileListPage(tab: "offers" | "requests") {
   setScreen("public-profile-list");
 }
 
+function openPublicProfileReviews(tab: "owners" | "renters" = "owners") {
+  publicProfileReviewsTab.value = tab;
+  setScreen("public-profile-reviews");
+}
+
 function openPendingRequest(request: {
   id: string;
   statusLabel: string;
@@ -1416,6 +1487,7 @@ function resetAddListingDraft() {
   });
   addListingDraft.photoSlots = Array.from({ length: 4 }, () => null);
   addListingDraft.title = "";
+  addListingDraft.description = "";
   addListingDraft.categoryId = categories.find((item) => item.id !== "all")?.id ?? "stavba";
   addListingDraft.pricePerDay = 0;
   addListingDraft.depositEnabled = false;
@@ -1676,7 +1748,7 @@ function submitAddListing() {
     category: addListingDraft.categoryId,
     availability: "Nově přidáno",
     depositRequired: Boolean(addListingDraft.depositEnabled),
-    description: addListingDraft.additionalParams.trim() || "Nová nabídka vytvořená v demo flow.",
+    description: addListingDraft.description.trim() || addListingDraft.additionalParams.trim() || "Nová nabídka vytvořená v demo flow.",
     owner: personal.firstName || user.name || "Já",
     ownerSince: "nově",
     badges: ["Novinka"],
@@ -1815,7 +1887,9 @@ const securityForm = reactive({
   isSetupOpen: false,
   isChangingPassword: false
 });
-const showSecurityPasswords = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const securityPasswordRules = computed(() => {
   const value = securityForm.newPassword;
@@ -2131,6 +2205,11 @@ function logout() {
 }
 
 function goBack() {
+  if (screen.value === 'profile-personal' && personalDirty.value) {
+    personalUnsavedTarget = null;
+    personalUnsavedOpen.value = true;
+    return;
+  }
   if (screenHistory.value.length > 0) {
     const previous = screenHistory.value.pop() ?? "market";
     screen.value = previous;
@@ -2261,7 +2340,6 @@ if (typeof window !== "undefined") {
       v-if="
         screen !== 'auth' &&
         screen !== 'help-contact' &&
-        screen !== 'market' &&
         screen !== 'detail' &&
         screen !== 'public-profile' &&
         screen !== 'pending-request' &&
@@ -2269,10 +2347,12 @@ if (typeof window !== "undefined") {
         screen !== 'payment' &&
         screen !== 'confirmation'
       "
-      class="topbar topbar-app"
+      :class="['topbar topbar-app', screen === 'market' ? 'topbar-market' : '']"
     >
       <div class="topbar-inner">
+        <!-- Zpět — skryté na marketu -->
         <button
+          v-if="screen !== 'market'"
           class="icon-button"
           type="button"
           aria-label="Zpět"
@@ -2280,28 +2360,26 @@ if (typeof window !== "undefined") {
         >
           <i class="pi pi-arrow-left"></i>
         </button>
+        <!-- Placeholder pro symetrii na marketu -->
+        <div v-else style="width: 44px; flex-shrink: 0;"></div>
+
         <div class="topbar-title">
-          <template v-if="screen === 'chat-detail' && activeConversation">
+          <template v-if="screen === 'market'">
+            <strong style="font-family: var(--font-raw); font-size: 1.1rem;">Vercajkovna</strong>
+          </template>
+          <template v-else-if="screen === 'chat-detail' && activeConversation">
             <strong>{{ activeConversation.contactName }}</strong>
             <span>{{ activeConversation.listingTitle }}</span>
           </template>
           <template v-else>
-            <strong>Vercajkovna</strong>
-            <span>{{ screenLabels[screen] }}</span>
+            <strong>{{ screenLabels[screen] }}</strong>
           </template>
         </div>
-        <div class="topbar-actions">
+
+        <!-- Pravá strana — prázdný placeholder pro symetrii -->
+        <div style="width: 44px; flex-shrink: 0;">
           <button
-            v-if="isAuthenticated"
-            class="icon-button icon-button-initials"
-            type="button"
-            aria-label="Profil"
-            @click="openProfile"
-          >
-            {{ user.name.charAt(0).toUpperCase() }}
-          </button>
-          <button
-            v-else
+            v-if="false"
             class="icon-button"
             type="button"
             aria-label="Přihlas se"
@@ -2312,6 +2390,7 @@ if (typeof window !== "undefined") {
         </div>
       </div>
     </header>
+
 
     <header v-if="screen === 'auth' || screen === 'help-contact'" class="auth-topbar">
       <button class="auth-back-button" type="button" aria-label="Zpět" @click="goBack">
@@ -2572,6 +2651,10 @@ if (typeof window !== "undefined") {
               </div>
 
               <div v-if="auth.error" class="auth-error" role="alert">{{ auth.error }}</div>
+
+              <div v-if="authMode !== 'forgot'" class="auth-support" style="margin-top: 8px;">
+                Potřebuješ pomoc? <strong class="auth-switch-link" @click="openHelpContact">Napiš nám.</strong>
+              </div>
             </form>
           </div>
 
@@ -3528,82 +3611,121 @@ if (typeof window !== "undefined") {
           </button>
         </div>
 
-        <div v-else-if="screen === 'public-profile'" class="screen-inner profile-page public-profile-page">
-          <div class="profile-hero public-profile-hero">
-            <div class="profile-avatar">{{ viewedPublicProfile.charAt(0).toUpperCase() }}</div>
-            <div class="profile-hero-copy">
-              <span class="profile-public-kicker">Veřejný profil</span>
-              <strong>{{ viewedPublicProfile }}</strong>
-              <div class="profile-rating">
-                <i class="pi pi-star-fill"></i>
-                {{ currentPublicProfile.rating }}
-                <button class="profile-review-link" type="button" @click="scrollToPublicReviews">
-                  · {{ currentPublicProfile.reviews }}
-                </button>
+        <div v-else-if="screen === 'public-profile'" class="screen-inner public-profile-page" style="overflow-x: hidden;">
+
+          <!-- Sticky header -->
+          <div style="position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 12px 16px;">
+            <button
+              type="button"
+              style="width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border); background: #fff; display: grid; place-items: center; color: var(--brand); cursor: pointer; flex-shrink: 0;"
+              aria-label="Zpět"
+              @click="goBack"
+            >
+              <i class="pi pi-arrow-left" style="font-size: 0.85rem;"></i>
+            </button>
+            <span style="font-family: var(--font-raw); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-2);">Profil</span>
+          </div>
+
+          <!-- Hero -->
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px 20px; background: linear-gradient(160deg, rgba(58,37,25,0.03) 0%, rgba(27,84,49,0.04) 100%); border-bottom: 1px solid var(--border);">
+            <div style="width: 80px; height: 80px; border-radius: 999px; border: 2px solid rgba(58,37,25,0.18); background: rgba(58,37,25,0.06); display: grid; place-items: center; font-family: var(--font-raw); font-size: 1.8rem; color: var(--brand); flex-shrink: 0;">
+              {{ viewedPublicProfile.charAt(0).toUpperCase() }}
+            </div>
+            <div style="text-align: center; display: grid; gap: 5px; width: 100%;">
+              <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h2>
+              <button
+                type="button"
+                style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 0; cursor: pointer; padding: 0; font-size: 0.88rem; color: var(--brand);"
+                @click="scrollToPublicReviews"
+              >
+                <i class="pi pi-star-fill" style="font-size: 0.8rem;"></i>
+                <span style="font-weight: 700;">{{ currentPublicProfile.rating }}</span>
+                <span style="color: var(--muted);">· {{ currentPublicProfile.reviews }}</span>
+              </button>
+            </div>
+
+            <!-- Stats — 2×2 grid -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; margin-top: 4px;">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
+                <i class="pi pi-map-marker" style="color: var(--brand-2); font-size: 0.8rem;"></i>
+                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.location }}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
+                <i class="pi pi-clock" style="color: var(--brand-2); font-size: 0.8rem;"></i>
+                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.response }}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
+                <i class="pi pi-wrench" style="color: var(--brand-2); font-size: 0.8rem;"></i>
+                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.listings.length }} nabídek</span>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
+                <i class="pi pi-shopping-bag" style="color: var(--brand-2); font-size: 0.8rem;"></i>
+                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.requests.length }} půjčení</span>
               </div>
             </div>
           </div>
 
-          <div class="profile-summary">
-            <div class="profile-panel">
-              <div class="profile-panel-head">
-                <strong>O majiteli</strong>
-              </div>
-              <p class="public-profile-bio">
-                {{ currentPublicProfile.bio }}
-              </p>
-              <div class="public-profile-metrics">
-                <div>
-                  <span>Lokace</span>
-                  <strong>{{ currentPublicProfile.location }}</strong>
-                </div>
-                <div>
-                  <span>Odpověď</span>
-                  <strong>{{ currentPublicProfile.response }}</strong>
-                </div>
-              </div>
-            </div>
+          <!-- Bio -->
+          <div v-if="currentPublicProfile.bio" style="padding: 16px; border-bottom: 1px solid var(--border);">
+            <span class="profile-section-label" style="display: block; margin-bottom: 8px;">O majiteli</span>
+            <p style="margin: 0; color: var(--muted); line-height: 1.6; font-size: 0.9rem;">{{ currentPublicProfile.bio }}</p>
+          </div>
 
-            <div class="profile-panel">
-              <div class="profile-panel-head">
-                <strong>Veřejné položky</strong>
-                <span class="profile-count">{{ currentPublicProfile.listings.length }}</span>
-              </div>
-              <div class="profile-panel-list">
-                <button
-                  v-for="listingId in currentPublicProfile.listings"
-                  :key="`public-${listingId}`"
-                  class="profile-item"
-                  type="button"
-                  @click="openListing(listingId)"
-                >
-                  <div class="profile-item-copy">
-                    <span class="profile-item-title">
-                      {{ listings.find((item) => item.id === listingId)?.title ?? "Nabídka" }}
-                    </span>
-                    <span class="profile-item-meta">
-                      {{ listings.find((item) => item.id === listingId)?.priceValue ?? 0 }} Kč / den ·
-                      {{ listings.find((item) => item.id === listingId)?.location ?? "Neuvedeno" }}
-                    </span>
+          <!-- Nabídky -->
+          <div style="padding: 16px; display: grid; gap: 10px; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="profile-section-label">Nabídky</span>
+              <button
+                v-if="currentPublicProfile.listings.length > 3"
+                class="profile-panel-link"
+                type="button"
+                style="font-size: 0.72rem;"
+                @click="openPublicProfileListPage('offers')"
+              >Zobrazit vše</button>
+            </div>
+            <div v-if="!currentPublicProfile.listings.length" class="profile-empty">
+              Tento profil zatím nemá veřejné nabídky.
+            </div>
+            <div v-else style="display: grid; gap: 8px;">
+              <button
+                v-for="listingId in currentPublicProfile.listings.slice(0, 3)"
+                :key="`pub-listing-${listingId}`"
+                type="button"
+                style="box-sizing: border-box; display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%;"
+                @click="openListing(listingId)"
+              >
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(58,37,25,0.06); overflow: hidden;">
+                  <img
+                    v-if="listings.find(i => i.id === listingId)?.photo"
+                    :src="listings.find(i => i.id === listingId)?.photo"
+                    :alt="listings.find(i => i.id === listingId)?.title"
+                    style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                  />
+                </div>
+                <div style="min-width: 0;">
+                  <div style="font-size: 0.88rem; font-weight: 600; color: var(--brand); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ listings.find(i => i.id === listingId)?.title ?? "Nabídka" }}
                   </div>
-                  <span class="profile-item-status is-brown">Veřejné</span>
-                </button>
-                <div v-if="!currentPublicProfile.listings.length" class="profile-empty">
-                  Tento profil zatím nemá veřejné nabídky.
+                  <div style="font-size: 0.76rem; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ listings.find(i => i.id === listingId)?.location ?? "" }}
+                  </div>
                 </div>
-                <button
-                  class="profile-panel-link profile-panel-link-inline"
-                  type="button"
-                  @click="openPublicProfileListPage('offers')"
-                >
-                  Zobrazit vše
-                </button>
-              </div>
+              </button>
             </div>
           </div>
 
-          <div ref="publicReviewsSection" class="profile-section">
-            <span class="profile-section-label">Recenze</span>
+          <!-- Recenze -->
+          <div ref="publicReviewsSection" style="padding: 20px; display: grid; gap: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="profile-section-label">Recenze</span>
+              <button
+                v-if="currentPublicProfile.feedback?.length"
+                class="profile-panel-link"
+                type="button"
+                style="font-size: 0.72rem;"
+                @click="openPublicProfileReviews('owners')"
+              >Ukázat všechna hodnocení</button>
+            </div>
             <div class="profile-review-scroll">
               <article
                 v-for="review in currentPublicProfile.feedback"
@@ -3625,6 +3747,9 @@ if (typeof window !== "undefined") {
                 </div>
                 <p>{{ review.text }}</p>
               </article>
+              <div v-if="!currentPublicProfile.feedback?.length" class="profile-empty" style="flex: 0 0 100%;">
+                Zatím žádné recenze.
+              </div>
             </div>
           </div>
         </div>
@@ -3694,6 +3819,75 @@ if (typeof window !== "undefined") {
               <div v-if="!currentPublicProfile.requests.length" class="profile-empty">
                 Tento profil zatím nemá veřejné poptávky.
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="screen === 'public-profile-reviews'" class="screen-inner profile-page">
+
+          <!-- Tabs sticky pod topbarem -->
+          <div style="position: sticky; top: 56px; z-index: 9; background: var(--bg); border-bottom: 1px solid var(--border);">
+            <div class="profile-list-tabs">
+              <button
+                class="profile-list-tab"
+                :class="{ 'is-active': publicProfileReviewsTab === 'owners' }"
+                type="button"
+                @click="publicProfileReviewsTab = 'owners'"
+              >Od majitelů</button>
+              <button
+                class="profile-list-tab"
+                :class="{ 'is-active': publicProfileReviewsTab === 'renters' }"
+                type="button"
+                @click="publicProfileReviewsTab = 'renters'"
+              >Od nájemců</button>
+            </div>
+          </div>
+
+          <!-- Obsah -->
+          <div class="profile-list-body" style="padding: 16px; display: grid; gap: 10px;">
+            <template v-for="review in currentPublicProfile.feedback.filter(r => publicProfileReviewsTab === 'owners' ? r.role === 'Majitel' : r.role === 'Nájemce')" :key="`rev-${review.author}-${review.date}`">
+              <div style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: grid; gap: 10px;">
+
+                <!-- Hlavička: avatar + jméno (proklikatelné) + datum -->
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <button
+                    type="button"
+                    style="display: flex; align-items: center; gap: 10px; min-width: 0; background: transparent; border: 0; padding: 0; cursor: pointer; text-align: left;"
+                    @click="review.authorProfile && openPublicProfile(review.authorProfile)"
+                  >
+                    <div class="profile-review-avatar" style="flex-shrink: 0;">{{ review.avatar }}</div>
+                    <div style="min-width: 0;">
+                      <div style="font-size: 0.9rem; font-weight: 600; color: var(--brand-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ review.author }}</div>
+                      <div style="font-size: 0.7rem; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-top: 1px;">{{ review.role }}</div>
+                    </div>
+                  </button>
+                  <span style="font-size: 0.72rem; color: var(--muted-2); flex-shrink: 0;">{{ review.date }}</span>
+                </div>
+
+                <!-- Hvězdičky -->
+                <div class="profile-review-stars" :aria-label="`Hodnocení ${review.stars} z 5`">
+                  <i v-for="star in 5" :key="star" :class="['pi', star <= review.stars ? 'pi-star-fill' : 'pi-star']"></i>
+                </div>
+
+                <!-- Text recenze -->
+                <p style="margin: 0; color: var(--muted); line-height: 1.55; font-size: 0.9rem;">{{ review.text }}</p>
+
+                <!-- Název vercajku — proklikatelný -->
+                <div v-if="review.listing" style="padding-top: 6px; border-top: 1px solid var(--border);">
+                  <button
+                    type="button"
+                    style="display: flex; align-items: center; gap: 5px; background: transparent; border: 0; padding: 0; cursor: pointer; text-align: left;"
+                    @click="review.listingId && openListing(review.listingId)"
+                  >
+                    <i class="pi pi-wrench" style="font-size: 0.7rem; color: var(--muted-2);"></i>
+                    <span style="font-size: 0.76rem; color: var(--muted); font-style: italic;">{{ review.listing }}</span>
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <div v-if="!currentPublicProfile.feedback.filter(r => publicProfileReviewsTab === 'owners' ? r.role === 'Majitel' : r.role === 'Nájemce').length" class="profile-empty">
+              {{ publicProfileReviewsTab === 'owners' ? 'Zatím žádná hodnocení od majitelů.' : 'Zatím žádná hodnocení od nájemců.' }}
             </div>
           </div>
         </div>
@@ -3868,25 +4062,6 @@ if (typeof window !== "undefined") {
             </div>
             <div class="pending-payment-hint">
               Po odeslání platby potvrdíte akci tlačítkem níže. Majitel bude o platbě informován.
-            </div>
-          </div>
-
-          <div
-            v-if="pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení'"
-            class="pending-payment-wait"
-          >
-            <div class="pending-payment-wait-icon">
-              <i class="pi pi-clock"></i>
-            </div>
-            <div class="pending-payment-wait-copy">
-              <strong v-if="pendingRole === 'tenant'">Čeká na potvrzení</strong>
-              <strong v-else>Platba přijata — potvrďte ji</strong>
-              <span v-if="pendingRole === 'tenant'">
-                Majitel má 24 hodin na potvrzení. O výsledku tě budeme informovat v notifikacích.
-              </span>
-              <span v-else>
-                Nájemce odeslal platbu. Potvrďte přijetí do 24 hodin.
-              </span>
             </div>
           </div>
 
@@ -4282,7 +4457,7 @@ if (typeof window !== "undefined") {
                         ? "Základní info"
                         : addListingStep === 2
                           ? "Nastavení pronájmu"
-                          : "Pravidla užívání"
+                          : "Detail vercajku"
                     }}
                   </span>
                 </div>
@@ -4417,6 +4592,18 @@ if (typeof window !== "undefined") {
                   </div>
                   <div v-if="addListingProceedAttempt && addListingCategoryError" class="add-flow-error">
                     Vyber kategorii.
+                  </div>
+                </div>
+
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Popis vercajku</div>
+                  <div class="add-flow-input add-flow-input-textarea">
+                    <textarea
+                      v-model="addListingDraft.description"
+                      class="add-flow-native"
+                      rows="4"
+                      placeholder="Popiš vercajk — stav, příslušenství, na co se hodí..."
+                    ></textarea>
                   </div>
                 </div>
               </div>
@@ -4928,19 +5115,19 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <div class="profile-hero">
-            <div class="profile-avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
-            <div class="profile-hero-copy">
-              <strong>{{ user.name }}</strong>
+          <div class="profile-hero" style="grid-template-columns: auto 1fr auto; align-items: start;">
+            <div class="profile-avatar" style="align-self: center;">{{ user.name.charAt(0).toUpperCase() }}</div>
+            <div class="profile-hero-copy" style="min-width: 0; align-self: center;">
+              <strong style="white-space: normal; word-break: break-word; display: block; line-height: 1.25;">{{ personal.firstName || user.name.split(' ')[0] }}</strong>
               <div class="profile-rating">
                 <i class="pi pi-star-fill"></i>
                 4.8
               </div>
-              <button class="profile-public-button" type="button" @click="openPublicProfile(user.name)">
+              <button class="profile-public-button" type="button" style="white-space: nowrap;" @click="openPublicProfile(user.name)">
                 Zobrazit veřejný profil
               </button>
             </div>
-            <button type="button" class="notif-bell-btn profile-bell-absolute" @click="openNotifCenter" aria-label="Oznámení">
+            <button type="button" class="notif-bell-btn" style="align-self: start; margin-left: 0; flex-shrink: 0;" @click="openNotifCenter" aria-label="Oznámení">
               <i class="pi pi-bell"></i>
               <span v-if="unreadNotifCount > 0" class="notif-bell-badge">{{ unreadNotifCount }}</span>
             </button>
@@ -5079,18 +5266,20 @@ if (typeof window !== "undefined") {
                   <div class="notif-toggles">
                     <button
                       class="notif-toggle-btn"
-                      :class="{ 'is-on': notifications.items[item.key].push }"
+                      :class="{ 'is-on': notifications.items[item.key].push && notifications.pushEnabled }"
                       type="button"
                       :disabled="!notifications.pushEnabled"
-                      @click="notifications.items[item.key].push = !notifications.items[item.key].push"
+                      :style="!notifications.pushEnabled ? { pointerEvents: 'none', opacity: '0.35', cursor: 'not-allowed' } : {}"
+                      @click="notifications.pushEnabled && (notifications.items[item.key].push = !notifications.items[item.key].push)"
                       title="Push"
                     ><i class="pi pi-bell"></i></button>
                     <button
                       class="notif-toggle-btn"
-                      :class="{ 'is-on': notifications.items[item.key].email }"
+                      :class="{ 'is-on': notifications.items[item.key].email && notifications.emailEnabled }"
                       type="button"
                       :disabled="!notifications.emailEnabled"
-                      @click="notifications.items[item.key].email = !notifications.items[item.key].email"
+                      :style="!notifications.emailEnabled ? { pointerEvents: 'none', opacity: '0.35', cursor: 'not-allowed' } : {}"
+                      @click="notifications.emailEnabled && (notifications.items[item.key].email = !notifications.items[item.key].email)"
                       title="E-mail"
                     ><i class="pi pi-envelope"></i></button>
                   </div>
@@ -5157,9 +5346,9 @@ if (typeof window !== "undefined") {
                 <span class="personal-field-label">Současné heslo</span>
                 <div class="personal-input-box">
                   <i class="pi pi-lock personal-input-icon"></i>
-                  <input v-model="securityForm.currentPassword" :type="showSecurityPasswords ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
-                  <button class="security-eye-btn" type="button" @click="showSecurityPasswords = !showSecurityPasswords">
-                    <i :class="['pi', showSecurityPasswords ? 'pi-eye-slash' : 'pi-eye']"></i>
+                  <input v-model="securityForm.currentPassword" :type="showCurrentPassword ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
+                  <button class="security-eye-btn" type="button" :aria-label="showCurrentPassword ? 'Skrýt heslo' : 'Zobrazit heslo'" @click="showCurrentPassword = !showCurrentPassword">
+                    <i :class="['pi', showCurrentPassword ? 'pi-eye-slash' : 'pi-eye']"></i>
                   </button>
                 </div>
               </div>
@@ -5167,9 +5356,9 @@ if (typeof window !== "undefined") {
                 <span class="personal-field-label">Nové heslo</span>
                 <div class="personal-input-box">
                   <i class="pi pi-lock personal-input-icon"></i>
-                  <input v-model="securityForm.newPassword" :type="showSecurityPasswords ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
-                  <button class="security-eye-btn" type="button" @click="showSecurityPasswords = !showSecurityPasswords">
-                    <i :class="['pi', showSecurityPasswords ? 'pi-eye-slash' : 'pi-eye']"></i>
+                  <input v-model="securityForm.newPassword" :type="showNewPassword ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
+                  <button class="security-eye-btn" type="button" :aria-label="showNewPassword ? 'Skrýt heslo' : 'Zobrazit heslo'" @click="showNewPassword = !showNewPassword">
+                    <i :class="['pi', showNewPassword ? 'pi-eye-slash' : 'pi-eye']"></i>
                   </button>
                 </div>
                 <div class="password-rules">
@@ -5183,9 +5372,9 @@ if (typeof window !== "undefined") {
                 <span class="personal-field-label">Potvrzení nového hesla</span>
                 <div class="personal-input-box">
                   <i class="pi pi-lock personal-input-icon"></i>
-                  <input v-model="securityForm.confirmPassword" :type="showSecurityPasswords ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
-                  <button class="security-eye-btn" type="button" @click="showSecurityPasswords = !showSecurityPasswords">
-                    <i :class="['pi', showSecurityPasswords ? 'pi-eye-slash' : 'pi-eye']"></i>
+                  <input v-model="securityForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
+                  <button class="security-eye-btn" type="button" :aria-label="showConfirmPassword ? 'Skrýt heslo' : 'Zobrazit heslo'" @click="showConfirmPassword = !showConfirmPassword">
+                    <i :class="['pi', showConfirmPassword ? 'pi-eye-slash' : 'pi-eye']"></i>
                   </button>
                 </div>
               </div>
@@ -5351,14 +5540,14 @@ if (typeof window !== "undefined") {
               <div class="personal-name-grid">
                 <div class="personal-field">
                   <span class="personal-field-label">Jméno</span>
-                  <div class="personal-input-box" @click="openPersonalEdit('firstName')">
-                    <span class="personal-field-value">{{ personal.firstName || '—' }}</span>
+                  <div class="personal-input-box">
+                    <input v-model="personal.firstName" class="payments-native-input" type="text" placeholder="Např. Tomáš" style="background: transparent; border: none; outline: none; width: 100%; font: inherit;" />
                   </div>
                 </div>
                 <div class="personal-field">
                   <span class="personal-field-label">Příjmení</span>
-                  <div class="personal-input-box" @click="openPersonalEdit('lastName')">
-                    <span class="personal-field-value">{{ personal.lastName || '—' }}</span>
+                  <div class="personal-input-box">
+                    <input v-model="personal.lastName" class="payments-native-input" type="text" placeholder="Např. Novák" style="background: transparent; border: none; outline: none; width: 100%; font: inherit;" />
                   </div>
                 </div>
               </div>
@@ -5398,9 +5587,33 @@ if (typeof window !== "undefined") {
               <p class="personal-note">Ukazujeme jen čtvrť — přesná adresa zůstane skrytá.</p>
             </div>
 
-            <div class="profile-personal-actions">
-              <button type="button" class="add-flow-cta-primary" @click="savePersonalChanges">Uložit změny</button>
-              <div v-if="personal.saved" class="profile-personal-saved">Uloženo ✓</div>
+            <!-- Bio -->
+            <div class="personal-section">
+              <div class="personal-field">
+                <span class="personal-field-label">Bio</span>
+                <div class="personal-input-box" style="height: auto; align-items: flex-start; padding: 10px 12px;">
+                  <i class="pi pi-align-left personal-input-icon" style="margin-top: 2px;"></i>
+                  <textarea
+                    v-model="personal.bio"
+                    class="payments-native-input"
+                    rows="3"
+                    placeholder="Pár slov o sobě — co rád/a půjčuješ, kde jsi..."
+                    style="resize: vertical; background: transparent; border: none; outline: none; width: 100%; font: inherit;"
+                  ></textarea>
+                </div>
+              </div>
+              <p class="personal-note">Zobrazuje se na tvém veřejném profilu.</p>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <button
+                type="button"
+                class="add-flow-cta-primary"
+                :disabled="!personalDirty"
+                :style="!personalDirty ? { opacity: '0.45', cursor: 'not-allowed' } : {}"
+                @click="savePersonalChanges"
+              >Uložit změny</button>
+              <div v-if="personal.saved" class="profile-personal-saved" style="text-align: center; margin-top: 8px;">Uloženo ✓</div>
             </div>
           </div>
 
@@ -5416,7 +5629,17 @@ if (typeof window !== "undefined") {
               <div class="confirm-modal-field">
                 <label :for="`personal-edit-${personalEditField ?? 'field'}`">{{ personalEditMeta.label }}</label>
                 <div class="confirm-modal-input-wrap">
+                  <textarea
+                    v-if="personalEditMeta.textarea"
+                    :id="`personal-edit-${personalEditField ?? 'field'}`"
+                    :value="personalEditValue"
+                    class="native-input"
+                    rows="4"
+                    :placeholder="personalEditMeta.placeholder"
+                    @input="personalEditValue = ($event.target as HTMLTextAreaElement).value"
+                  ></textarea>
                   <input
+                    v-else
                     :id="`personal-edit-${personalEditField ?? 'field'}`"
                     :value="personalEditValue"
                     class="native-input"
@@ -5484,6 +5707,26 @@ if (typeof window !== "undefined") {
               </div>
             </div>
           </div>
+
+          <!-- Neuložené změny dialog -->
+          <div v-if="personalUnsavedOpen" class="confirm-modal">
+            <button class="confirm-modal-backdrop" type="button" @click="personalUnsavedOpen = false" aria-label="Zavřít"></button>
+            <div class="confirm-modal-card">
+              <p class="confirm-modal-title">Neuložené změny</p>
+              <p class="confirm-modal-copy">Máš neuložené změny v osobních údajích. Chceš je uložit před odchodem?</p>
+              <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-primary" @click="confirmPersonalSaveAndLeave">
+                  Uložit a odejít
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="confirmPersonalDiscard">
+                  Zahodit změny
+                </button>
+                <button type="button" class="confirm-modal-ghost" @click="personalUnsavedOpen = false">
+                  Zůstat
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-else-if="screen === 'help'" class="screen-inner profile-page help-page">
@@ -5518,6 +5761,11 @@ if (typeof window !== "undefined") {
                     Číst celou odpověď
                   </button>
                 </div>
+              </div>
+              <div v-if="filteredHelpFaq.length === 0 && helpQuery.trim()" class="help-faq-empty">
+                <i class="pi pi-search" style="font-size: 1.5rem; opacity: 0.4;"></i>
+                <p>Nic jsme nenašli pro „{{ helpQuery }}".</p>
+                <button type="button" class="field-link" @click="openHelpContact">Napište nám přímo</button>
               </div>
             </div>
           </div>
@@ -5596,7 +5844,7 @@ if (typeof window !== "undefined") {
               {{ contactForm.isSending ? 'Odesílám...' : 'Odeslat zprávu' }}
             </button>
             <button class="add-flow-cta-ghost" @click="goBack">Zpět</button>
-            <p class="personal-note" style="text-align:center;">Odpovíme na e-mail registrovaný u tvého profilu.</p>
+            <p v-if="isAuthenticated" class="personal-note" style="text-align:center;">Odpovíme na e-mail registrovaný u tvého profilu.</p>
           </div>
 
         </div>

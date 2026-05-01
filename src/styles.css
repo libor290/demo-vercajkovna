@@ -98,6 +98,9 @@ a {
   gap: 12px;
   padding: 14px 0 10px;
 }
+.topbar-market .topbar-inner {
+  padding: 22px 0 18px;
+}
 .topbar-title {
   display: grid;
   gap: 2px;

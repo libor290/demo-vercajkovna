@@ -1282,7 +1282,7 @@ function persistPersonal() {
   }, 1200);
 }
 
-function openPersonalEdit(field: "firstName" | "lastName" | "email" | "phone" | "address") {
+function openPersonalEdit(field: "firstName" | "lastName" | "email" | "phone" | "address" | "bio") {
   personalEditField.value = field;
   if (field === "firstName") personalEditValue.value = personal.firstName;
   else if (field === "lastName") personalEditValue.value = personal.lastName;

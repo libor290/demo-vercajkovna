@@ -1607,6 +1607,20 @@ function skipOnboarding() {
   screen.value = 'market';
 }
 
+function goToLoginFromOnboarding() {
+  localStorage.setItem(ONBOARDED_KEY, '1');
+  switchAuthMode('login');
+  setScreen('auth');
+}
+
+function resetOnboarding() {
+  localStorage.removeItem(ONBOARDED_KEY);
+  onboardingStep.value = 0;
+  onboardingRole.value = 'majitel';
+  onboardingCategories.value = [];
+  setScreen('onboarding');
+}
+
 function openAddListing() {
   if (!requireAuth("add-listing")) return;
   addListingMode.value = 'create';
@@ -4198,7 +4212,7 @@ if (typeof window !== "undefined") {
             </div>
             <div style="padding: 0 20px 12px; display: flex; flex-direction: column; gap: 8px;">
               <button type="button" style="background: var(--brand); color: #fff; border: 0; border-radius: 14px; padding: 16px; font-size: 0.95rem; font-weight: 600; cursor: pointer; width: 100%;" @click="onboardingStep = 1">Jdu do toho →</button>
-              <p style="text-align: center; font-size: 0.82rem; color: var(--muted);">Už máš účet? <button type="button" style="background: transparent; border: 0; font-weight: 700; color: var(--brand); cursor: pointer; font-size: inherit;" @click="localStorage.setItem(ONBOARDED_KEY,'1'); switchAuthMode('login'); setScreen('auth')">Přihlásit se</button></p>
+              <p style="text-align: center; font-size: 0.82rem; color: var(--muted);">Už máš účet? <button type="button" style="background: transparent; border: 0; font-weight: 700; color: var(--brand); cursor: pointer; font-size: inherit;" @click="goToLoginFromOnboarding">Přihlásit se</button></p>
             </div>
           </template>
 
@@ -5780,7 +5794,7 @@ if (typeof window !== "undefined") {
               <i class="pi pi-chevron-right"></i>
             </button>
           </div>
-          <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: transparent; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); font-size: 0.84rem; cursor: pointer; margin-bottom: 10px;" @click="localStorage.removeItem(ONBOARDED_KEY); onboardingStep = 0; onboardingRole = 'majitel'; onboardingCategories = []; setScreen('onboarding')">
+          <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: transparent; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); font-size: 0.84rem; cursor: pointer; margin-bottom: 10px;" @click="resetOnboarding">
             <i class="pi pi-refresh" style="font-size: 0.8rem;"></i>
             Zobrazit onboarding znovu
           </button>

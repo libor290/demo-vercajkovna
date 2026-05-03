@@ -17,6 +17,26 @@ export type Listing = {
   photo?: string;
   pickupMode?: "personal" | "other";
   pickupDescription?: string;
+  depositAmount?: number;
+  brand?: string;
+  model?: string;
+  power?: string;
+  weight?: string;
+  accessories?: string;
+  condition?: "new" | "like_new" | "used_good" | "used_ok" | "worn" | "damaged";
+  additionalParams?: string;
+  pickupTimeFrom?: string;
+  pickupTimeTo?: string;
+  locationMode?: "profile" | "custom";
+  customAddress?: { street: string; city: string; zip: string };
+  rules?: {
+    noModifications: boolean;
+    purposeOnly: boolean;
+    noThirdParty: boolean;
+    depositForfeit: boolean;
+    other: boolean;
+    otherDescription: string;
+  };
 };
 
 export const categories = [

@@ -15,12 +15,14 @@ type Screen =
   | "profile-security"
   | "profile-language"
   | "profile-notifications"
+  | "profile-privacy"
   | "help"
   | "help-detail"
   | "help-contact"
   | "profile-list"
   | "public-profile-list"
   | "public-profile-reviews"
+  | "onboarding"
   | "rules"
   | "payment"
   | "payment-bank"
@@ -43,9 +45,12 @@ const PERSONAL_KEY = "vercajkovna-personal";
 const SCREEN_KEY = "vercajkovna-screen";
 const REMEMBER_KEY = "vercajkovna-remember";
 const FAVORITES_KEY = "vercajkovna-favorites";
+const ONBOARDED_KEY = "vercajkovna-onboarded";
 
 const forgotSuccess = ref(false);
 const resendTimer = ref(0);
+const registerNameModalOpen = ref(false);
+const registerNameConfirmed = ref(false);
 let timerInterval: number | null = null;
 
 const startResendTimer = () => {
@@ -377,7 +382,7 @@ const requestNote = ref("Potřebuji ji na víkendový projekt.");
 const requestStatus = ref("Čeká na schválení");
 const requestStep = ref<1 | 2 | 3>(1);
 
-type AddListingPhoto = { file: File; url: string };
+type AddListingPhoto = { file: File | null; url: string };
 type AddListingDraft = {
   photoSlots: Array<AddListingPhoto | null>;
   title: string;
@@ -386,6 +391,8 @@ type AddListingDraft = {
   pricePerDay: number;
   depositEnabled: boolean;
   depositAmount: number;
+  availabilityMode: 'always' | 'weekdays' | 'weekends' | 'custom';
+  availabilityUntil: string;
   availabilityDays: string[];
   locationMode: "profile" | "custom";
   customAddress: {
@@ -400,6 +407,8 @@ type AddListingDraft = {
   accessories: string;
   condition: "new" | "like_new" | "used_good" | "used_ok" | "worn" | "damaged";
   additionalParams: string;
+  pickupTimeFrom: string;
+  pickupTimeTo: string;
   pickupMethods: {
     mode: "personal" | "other";
     otherPickupDescription: string;
@@ -414,7 +423,9 @@ type AddListingDraft = {
   };
 };
 
-const addListingStep = ref<1 | 2 | 3>(1);
+const addListingStep = ref<1 | 2 | 3 | 4>(1);
+const addListingMode = ref<'create' | 'edit'>('create');
+const editingListingId = ref<string | null>(null);
 const addListingProceedAttempt = ref(false);
 const addListingShowMore = ref(false);
 const brandSuggestions = ref<string[]>([]);
@@ -468,6 +479,8 @@ const addListingDraft = reactive<AddListingDraft>({
   pricePerDay: 0,
   depositEnabled: false,
   depositAmount: 0,
+  availabilityMode: 'always',
+  availabilityUntil: '',
   availabilityDays: [],
   locationMode: "profile",
   customAddress: { street: "", city: "", zip: "" },
@@ -478,6 +491,8 @@ const addListingDraft = reactive<AddListingDraft>({
   accessories: "",
   condition: "new",
   additionalParams: "",
+  pickupTimeFrom: "",
+  pickupTimeTo: "",
   pickupMethods: { mode: "personal", otherPickupDescription: "" },
   rules: { noModifications: false, purposeOnly: false, noThirdParty: false, depositForfeit: false, other: false, otherDescription: "" },
   });const publishedListingId = ref<string | null>(null);
@@ -552,11 +567,16 @@ const detailDateRow = ref<HTMLElement | null>(null);
 const publicReviewsSection = ref<HTMLElement | null>(null);
 const notificationCount = ref(2);
 const techSpecsOpen = ref(true);
+const techSpecsMore = ref(false);
 const rentalTermsOpen = ref(true);
 const descriptionExpanded = ref(false);
 const profileListTab = ref<"offers" | "requests">("offers");
 const publicProfileListTab = ref<"offers" | "requests">("offers");
 const publicProfileReviewsTab = ref<"owners" | "renters">("owners");
+const onboardingStep = ref(0);
+const onboardingRole = ref<"majitel" | "najemce" | null>("majitel");
+const onboardingCategories = ref<string[]>([]);
+const onboardingLocMode = ref<"gps" | "manual">("gps");
 const screenHistory = ref<Screen[]>([]);
 const lastListScreen = ref<Screen | null>(null);
 
@@ -600,12 +620,12 @@ const pendingStatusOptions = [
   "Zamítnuto",
   "Zrušeno",
 ];
-const screenLabels: Record<Screen, string> = {
+const screenLabels = computed<Record<Screen, string>>(() => ({
   auth: "Přihlášení",
   market: "Marketplace",
   favorites: "Oblíbené",
   detail: "Detail",
-  "add-listing": "Nová nabídka",
+  "add-listing": addListingMode.value === 'edit' ? "Upravit nabídku" : "Nová nabídka",
   "add-listing-confirmation": "Hotovo",
   "public-profile": "Veřejný profil",
   "profile-personal": "Osobní údaje",
@@ -613,12 +633,14 @@ const screenLabels: Record<Screen, string> = {
   "profile-security": "Zabezpečení",
   "profile-language": "Jazyk a měna",
   "profile-notifications": "Oznámení",
+  "profile-privacy": "Soukromí",
   help: "Nápověda",
   "help-detail": "Nápověda",
   "help-contact": "Napište nám",
   "profile-list": "Moje nabídky a poptávky",
   "public-profile-list": "Veřejné položky",
   "public-profile-reviews": "Hodnocení",
+  onboarding: "",
   rules: "Pravidla užívání",
   payment: "Platba",
   "payment-bank": "Platba převodem",
@@ -633,7 +655,7 @@ const screenLabels: Record<Screen, string> = {
   chat: "Zprávy",
   "chat-detail": "Konverzace",
   profile: "Profil",
-};
+}));
 
 const selectedListing = computed<Listing>(
   () => listings.find((listing) => listing.id === selectedListingId.value) ?? listings[0],
@@ -641,6 +663,9 @@ const selectedListing = computed<Listing>(
 const requestDateError = computed(() => requestStep.value === 1 && !requestDate.value.trim());
 const addListingTitleError = computed(
   () => addListingStep.value === 1 && !addListingDraft.title.trim(),
+);
+const addListingBrandError = computed(
+  () => addListingStep.value === 3 && !addListingDraft.brand.trim(),
 );
 const addListingCategoryError = computed(
   () => addListingStep.value === 1 && !addListingDraft.categoryId.trim(),
@@ -660,17 +685,18 @@ const addListingDepositError = computed(
 const addListingAvailabilityError = computed(
   () =>
     addListingStep.value === 2 &&
+    addListingDraft.availabilityMode === 'custom' &&
     addListingDraft.availabilityDays.length === 0,
 );
 const addListingOtherRuleError = computed(
   () =>
-    addListingStep.value === 3 &&
+    addListingStep.value === 4 &&
     addListingDraft.rules.other &&
     !addListingDraft.rules.otherDescription.trim(),
 );
 const addListingOtherPickupError = computed(
   () =>
-    addListingStep.value === 3 &&
+    addListingStep.value === 4 &&
     addListingDraft.pickupMethods.mode === "other" &&
     !addListingDraft.pickupMethods.otherPickupDescription.trim(),
 );
@@ -939,6 +965,7 @@ const profileOffers = computed(() => {
       if (!listing) return null;
       const status = offerStatusMap[id] ?? { label: "Čeká na schválení", tone: "is-brown" };
       const dateRange = requestDateRanges[id] ?? "—";
+      const canEdit = status.label !== 'Čeká na schválení' && status.label !== 'Schváleno - čeká na platbu';
       return {
         id,
         title: listing.title,
@@ -947,6 +974,7 @@ const profileOffers = computed(() => {
         statusLabel: status.label,
         statusTone: status.tone,
         dateRange,
+        canEdit,
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -1475,6 +1503,52 @@ function openPendingOffer(offer: {
   setScreen("pending-request");
 }
 
+function openEditListing(id: string) {
+  if (!requireAuth("add-listing")) return;
+  const listing = listings.find((item) => item.id === id);
+  if (!listing) return;
+
+  resetAddListingDraft();
+  addListingMode.value = 'edit';
+  editingListingId.value = id;
+  addListingStep.value = 1;
+  addListingProceedAttempt.value = false;
+  pendingPhotoSlotIndex.value = 0;
+
+  addListingDraft.title = listing.title;
+  addListingDraft.categoryId = listing.category;
+  addListingDraft.description = listing.description;
+  addListingDraft.pricePerDay = listing.priceValue;
+  addListingDraft.depositEnabled = listing.depositRequired;
+  addListingDraft.pickupTimeFrom = listing.pickupTimeFrom ?? '';
+  addListingDraft.pickupTimeTo = listing.pickupTimeTo ?? '';
+  addListingDraft.pickupMethods.mode = listing.pickupMode ?? 'personal';
+  addListingDraft.pickupMethods.otherPickupDescription = listing.pickupDescription ?? '';
+  addListingDraft.depositAmount = listing.depositAmount ?? 0;
+  addListingDraft.brand = listing.brand ?? '';
+  addListingDraft.model = listing.model ?? '';
+  addListingDraft.power = listing.power ?? '';
+  addListingDraft.weight = listing.weight ?? '';
+  addListingDraft.accessories = listing.accessories ?? '';
+  addListingDraft.condition = listing.condition ?? 'used_good';
+  addListingDraft.additionalParams = listing.additionalParams ?? '';
+  addListingDraft.locationMode = listing.locationMode ?? 'profile';
+  if (listing.customAddress) {
+    addListingDraft.customAddress.street = listing.customAddress.street;
+    addListingDraft.customAddress.city = listing.customAddress.city;
+    addListingDraft.customAddress.zip = listing.customAddress.zip;
+  }
+  if (listing.rules) {
+    Object.assign(addListingDraft.rules, listing.rules);
+  }
+  if (listing.photo) {
+    addListingDraft.photoSlots[0] = { file: null, url: listing.photo };
+  }
+  applyAvailabilityPreset('always');
+
+  setScreen('add-listing');
+}
+
 function openRequest(id?: string) {
   if (id) selectedListingId.value = id;
   requestStep.value = 1;
@@ -1483,7 +1557,7 @@ function openRequest(id?: string) {
 
 function resetAddListingDraft() {
   addListingDraft.photoSlots.forEach((photo) => {
-    if (photo) URL.revokeObjectURL(photo.url);
+    if (photo?.file) URL.revokeObjectURL(photo.url);
   });
   addListingDraft.photoSlots = Array.from({ length: 4 }, () => null);
   addListingDraft.title = "";
@@ -1492,6 +1566,8 @@ function resetAddListingDraft() {
   addListingDraft.pricePerDay = 0;
   addListingDraft.depositEnabled = false;
   addListingDraft.depositAmount = 0;
+  addListingDraft.availabilityMode = 'always';
+  addListingDraft.availabilityUntil = '';
   addListingDraft.availabilityDays = [];
   addListingDraft.locationMode = "profile";
   addListingDraft.customAddress.street = "";
@@ -1504,6 +1580,8 @@ function resetAddListingDraft() {
   addListingDraft.accessories = "";
   addListingDraft.condition = "new";
   addListingDraft.additionalParams = "";
+  addListingDraft.pickupTimeFrom = "";
+  addListingDraft.pickupTimeTo = "";
   addListingDraft.pickupMethods.mode = "personal";
   addListingDraft.pickupMethods.otherPickupDescription = "";
   addListingDraft.rules.noModifications = false;
@@ -1514,8 +1592,25 @@ function resetAddListingDraft() {
   publishedListingId.value = null;
 }
 
+function completeOnboarding() {
+  localStorage.setItem(ONBOARDED_KEY, '1');
+  if (onboardingRole.value === 'majitel') {
+    screen.value = 'market';
+    openAddListing();
+  } else {
+    screen.value = 'market';
+  }
+}
+
+function skipOnboarding() {
+  localStorage.setItem(ONBOARDED_KEY, '1');
+  screen.value = 'market';
+}
+
 function openAddListing() {
   if (!requireAuth("add-listing")) return;
+  addListingMode.value = 'create';
+  editingListingId.value = null;
   addListingStep.value = 1;
   addListingProceedAttempt.value = false;
   pendingPhotoSlotIndex.value = 0;
@@ -1533,12 +1628,15 @@ function nextAddListingStep() {
     if (addListingPriceError.value || addListingDepositError.value || addListingAvailabilityError.value) return;
   }
   if (addListingStep.value === 3) {
+    if (addListingBrandError.value) return;
+  }
+  if (addListingStep.value === 4) {
     if (addListingOtherRuleError.value || addListingOtherPickupError.value) return;
     submitAddListing();
     return;
   }
   addListingProceedAttempt.value = false;
-  addListingStep.value = (addListingStep.value + 1) as 1 | 2 | 3;
+  addListingStep.value = (addListingStep.value + 1) as 1 | 2 | 3 | 4;
 }
 
 function prevAddListingStep() {
@@ -1547,7 +1645,7 @@ function prevAddListingStep() {
     goBack();
     return;
   }
-  addListingStep.value = (addListingStep.value - 1) as 1 | 2 | 3;
+  addListingStep.value = (addListingStep.value - 1) as 1 | 2 | 3 | 4;
 }
 
 const availabilityCalendar = computed(() => {
@@ -1621,6 +1719,39 @@ function isAvailabilitySelected(day: number) {
   const month = availabilityMonth.month + 1;
   const formatted = `${availabilityMonth.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   return addListingDraft.availabilityDays.includes(formatted);
+}
+
+function applyAvailabilityPreset(mode: AddListingDraft['availabilityMode']) {
+  addListingDraft.availabilityMode = mode;
+  availabilityRangeStart.value = null;
+
+  if (mode === 'custom') {
+    addListingDraft.availabilityDays = [];
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  end.setMonth(end.getMonth() + 6);
+
+  const days: string[] = [];
+  for (let d = new Date(today); d <= end; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay(); // 0=Ne, 6=So
+    const isWeekend = dow === 0 || dow === 6;
+    const isWeekday = dow >= 1 && dow <= 5;
+    if (
+      mode === 'always' ||
+      (mode === 'weekends' && isWeekend) ||
+      (mode === 'weekdays' && isWeekday)
+    ) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      days.push(`${y}-${m}-${day}`);
+    }
+  }
+  addListingDraft.availabilityDays = days;
 }
 
 function handleAddListingFiles(event: Event) {
@@ -1717,9 +1848,58 @@ function slugifyId(value: string) {
 function submitAddListing() {
   if (addListingPhotosError.value || addListingTitleError.value || addListingCategoryError.value) return;
   if (addListingPriceError.value || addListingDepositError.value || addListingAvailabilityError.value) return;
-  if (addListingOtherRuleError.value || addListingOtherPickupError.value) return;
+  if (addListingBrandError.value || addListingOtherRuleError.value || addListingOtherPickupError.value) return;
   if (!requireAuth("add-listing")) return;
+  if (!addListingDraft.model.trim()) addListingDraft.model = 'Ostatní';
 
+  const priceValueComputed = Math.round(Number(addListingDraft.pricePerDay) || 0);
+  const locationComputed =
+    addListingDraft.locationMode === "custom"
+      ? [addListingDraft.customAddress.city, addListingDraft.customAddress.street]
+          .filter(Boolean)
+          .join(", ") || "—"
+      : (personal.address || "—");
+
+  // --- EDIT MODE ---
+  if (addListingMode.value === 'edit' && editingListingId.value) {
+    const idx = listings.findIndex((item) => item.id === editingListingId.value);
+    if (idx !== -1) {
+      const existing = listings[idx];
+      listings.splice(idx, 1, {
+        ...existing,
+        title: addListingDraft.title.trim(),
+        price: `${priceValueComputed} Kč / den`,
+        priceValue: priceValueComputed,
+        location: locationComputed,
+        category: addListingDraft.categoryId,
+        depositRequired: Boolean(addListingDraft.depositEnabled),
+        description: addListingDraft.description.trim() || existing.description,
+        pickupMode: addListingDraft.pickupMethods.mode === 'other' ? 'other' : 'personal',
+        pickupDescription: addListingDraft.pickupMethods.mode === 'other'
+          ? addListingDraft.pickupMethods.otherPickupDescription
+          : undefined,
+        pickupTimeFrom: addListingDraft.pickupTimeFrom || undefined,
+        pickupTimeTo: addListingDraft.pickupTimeTo || undefined,
+        depositAmount: addListingDraft.depositEnabled ? addListingDraft.depositAmount : undefined,
+        brand: addListingDraft.brand.trim() || undefined,
+        model: addListingDraft.model.trim() || undefined,
+        power: addListingDraft.power.trim() || undefined,
+        weight: addListingDraft.weight.trim() || undefined,
+        accessories: addListingDraft.accessories.trim() || undefined,
+        condition: addListingDraft.condition,
+        additionalParams: addListingDraft.additionalParams.trim() || undefined,
+        locationMode: addListingDraft.locationMode,
+        customAddress: addListingDraft.locationMode === 'custom' ? { ...addListingDraft.customAddress } : undefined,
+        rules: { ...addListingDraft.rules },
+      });
+    }
+    addListingMode.value = 'create';
+    editingListingId.value = null;
+    setScreen('profile-list');
+    return;
+  }
+
+  // --- CREATE MODE ---
   const baseId = slugifyId(addListingDraft.title);
   let id = baseId;
   let counter = 2;
@@ -1728,20 +1908,12 @@ function submitAddListing() {
     counter += 1;
   }
 
-  const priceValue = Math.round(Number(addListingDraft.pricePerDay) || 0);
-  const location =
-    addListingDraft.locationMode === "custom"
-      ? [addListingDraft.customAddress.city, addListingDraft.customAddress.street]
-          .filter(Boolean)
-          .join(", ") || "—"
-      : (personal.address || "—");
-
   const newListing: Listing = {
     id,
     title: addListingDraft.title.trim(),
-    price: `${priceValue} Kč / den`,
-    priceValue,
-    location,
+    price: `${priceValueComputed} Kč / den`,
+    priceValue: priceValueComputed,
+    location: locationComputed,
     distance: "0.0 km",
     distanceValue: 0,
     rating: 0,
@@ -1754,6 +1926,19 @@ function submitAddListing() {
     badges: ["Novinka"],
     pickupMode: addListingDraft.pickupMethods.mode === "other" ? "other" : "personal",
     pickupDescription: addListingDraft.pickupMethods.mode === "other" ? addListingDraft.pickupMethods.otherPickupDescription : undefined,
+    pickupTimeFrom: addListingDraft.pickupTimeFrom || undefined,
+    pickupTimeTo: addListingDraft.pickupTimeTo || undefined,
+    depositAmount: addListingDraft.depositEnabled ? addListingDraft.depositAmount : undefined,
+    brand: addListingDraft.brand.trim() || undefined,
+    model: addListingDraft.model.trim() || undefined,
+    power: addListingDraft.power.trim() || undefined,
+    weight: addListingDraft.weight.trim() || undefined,
+    accessories: addListingDraft.accessories.trim() || undefined,
+    condition: addListingDraft.condition,
+    additionalParams: addListingDraft.additionalParams.trim() || undefined,
+    locationMode: addListingDraft.locationMode,
+    customAddress: addListingDraft.locationMode === 'custom' ? { ...addListingDraft.customAddress } : undefined,
+    rules: { ...addListingDraft.rules },
   };
 
   listings.unshift(newListing);
@@ -1766,7 +1951,7 @@ function submitAddListing() {
 
 onBeforeUnmount(() => {
   addListingDraft.photoSlots.forEach((photo) => {
-    if (photo) URL.revokeObjectURL(photo.url);
+    if (photo?.file) URL.revokeObjectURL(photo.url);
   });
 });
 
@@ -1965,6 +2150,59 @@ function openProfileNotifications() {
   setScreen("profile-notifications");
 }
 
+const privacy = reactive({
+  contactPhone: true,
+  contactEmail: false,
+  contactSms: true,
+  emailValue: "",
+  contactError: false,
+  emailModalOpen: false,
+  emailModalValue: "",
+});
+
+function openProfilePrivacy() {
+  if (!requireAuth("profile-privacy")) return;
+  if (!privacy.emailValue) privacy.emailValue = personal.email ?? "";
+  setScreen("profile-privacy");
+}
+
+function togglePrivacyPhone() {
+  if (privacy.contactPhone && !privacy.contactSms) {
+    privacy.contactError = true;
+    setTimeout(() => { privacy.contactError = false; }, 3000);
+    return;
+  }
+  privacy.contactPhone = !privacy.contactPhone;
+}
+
+function togglePrivacySms() {
+  if (privacy.contactSms && !privacy.contactPhone) {
+    privacy.contactError = true;
+    setTimeout(() => { privacy.contactError = false; }, 3000);
+    return;
+  }
+  privacy.contactSms = !privacy.contactSms;
+}
+
+function openEmailModal() {
+  privacy.emailModalValue = privacy.emailValue || personal.email || "";
+  privacy.emailModalOpen = true;
+}
+
+function confirmEmailModal() {
+  privacy.emailValue = privacy.emailModalValue;
+  privacy.emailModalOpen = false;
+}
+
+function togglePrivacyEmail() {
+  if (!privacy.contactEmail) {
+    privacy.contactEmail = true;
+    openEmailModal();
+  } else {
+    privacy.contactEmail = false;
+  }
+}
+
 const settings = reactive({
   language: "cz",
   currency: "CZK"
@@ -2093,6 +2331,12 @@ function openHelpDetail(id: string) {
   setScreen("help-detail");
 }
 
+function confirmRegisterName() {
+  registerNameConfirmed.value = true;
+  registerNameModalOpen.value = false;
+  submitAuth();
+}
+
 function submitAuth() {
   const email = auth.email.trim();
   const password = auth.password.trim();
@@ -2132,6 +2376,11 @@ function submitAuth() {
     return;
   }
 
+  if (!registerNameConfirmed.value) {
+    registerNameModalOpen.value = true;
+    return;
+  }
+
   const passwordChecks = passwordRules.value;
   const failedRule = passwordChecks.find((rule) => !rule.ok);
   if (failedRule) {
@@ -2159,7 +2408,14 @@ function submitAuth() {
   personal.email = email;
   personal.emailVerified = true;
   persistAuth(true, name, email);
-  afterAuth();
+  if (!localStorage.getItem(ONBOARDED_KEY)) {
+    onboardingStep.value = 0;
+    onboardingRole.value = "majitel";
+    onboardingCategories.value = [];
+    setScreen("onboarding");
+  } else {
+    afterAuth();
+  }
 }
 
 function useDemoProfile(profile: { name: string; email: string; password: string }) {
@@ -2341,6 +2597,7 @@ if (typeof window !== "undefined") {
         screen !== 'auth' &&
         screen !== 'help-contact' &&
         screen !== 'detail' &&
+        screen !== 'onboarding' &&
         screen !== 'public-profile' &&
         screen !== 'pending-request' &&
         screen !== 'rules' &&
@@ -2656,6 +2913,19 @@ if (typeof window !== "undefined") {
                 Potřebuješ pomoc? <strong class="auth-switch-link" @click="openHelpContact">Napiš nám.</strong>
               </div>
             </form>
+          </div>
+
+          <!-- Modal potvrzení jména při registraci -->
+          <div v-if="registerNameModalOpen" class="confirm-modal">
+            <button class="confirm-modal-backdrop" type="button" aria-label="Zavřít" @click="registerNameModalOpen = false"></button>
+            <div class="confirm-modal-card" @click.stop>
+              <p class="confirm-modal-title">Sedí tvoje jméno?</p>
+              <p class="confirm-modal-copy">Jméno <strong>{{ auth.name.trim() }}</strong> se zobrazuje ostatním uživatelům a po registraci ho nepůjde změnit.</p>
+              <div class="confirm-modal-actions">
+                <button class="confirm-modal-primary" type="button" @click="confirmRegisterName">Ano, je správně</button>
+                <button class="confirm-modal-ghost" type="button" @click="registerNameModalOpen = false">Zpět — chci opravit</button>
+              </div>
+            </div>
           </div>
 
           <div class="auth-ticker" aria-hidden="true">
@@ -3120,10 +3390,17 @@ if (typeof window !== "undefined") {
               <span class="detail-section-toggle"><i :class="['pi', techSpecsOpen ? 'pi-chevron-up' : 'pi-chevron-down']"></i></span>
             </button>
             <div v-if="techSpecsOpen" class="detail-spec-list">
-              <div><span>Značka</span><strong>Bosch</strong></div>
-              <div><span>Výkon</span><strong>50 Nm</strong></div>
-              <div><span>Hmotnost</span><strong>1.1 kg</strong></div>
-              <div><span>Příslušenství</span><strong>2x baterie, kufr</strong></div>
+              <div><span>Značka</span><strong>{{ selectedListing.brand || '' }}</strong></div>
+              <div><span>Stav</span><strong>{{ conditionOptions.find(o => o.id === selectedListing.condition)?.label || '' }}</strong></div>
+              <div><span>Příslušenství</span><strong>{{ selectedListing.accessories || '' }}</strong></div>
+              <template v-if="techSpecsMore">
+                <div><span>Hmotnost</span><strong>{{ selectedListing.weight || '' }}</strong></div>
+                <div><span>Výkon</span><strong>{{ selectedListing.power || '' }}</strong></div>
+                <div v-if="selectedListing.additionalParams"><span>Poznámka</span><strong>{{ selectedListing.additionalParams }}</strong></div>
+              </template>
+              <button type="button" class="detail-spec-more" @click="techSpecsMore = !techSpecsMore">
+                {{ techSpecsMore ? 'Zobrazit méně' : 'Zobrazit více' }}
+              </button>
             </div>
           </div>
 
@@ -3134,10 +3411,10 @@ if (typeof window !== "undefined") {
               <span class="detail-section-toggle"><i :class="['pi', rentalTermsOpen ? 'pi-chevron-up' : 'pi-chevron-down']"></i></span>
             </div>
             <div v-if="rentalTermsOpen" class="detail-spec-list">
-              <div><span>Vratná kauce</span><strong>2 000 Kč</strong></div>
+              <div><span>Vratná kauce</span><strong>{{ selectedListing.depositAmount ? selectedListing.depositAmount + ' Kč' : '' }}</strong></div>
               <div>
                 <span>Způsob předání</span>
-                <strong>{{ selectedListing.pickupMode === 'other' ? (selectedListing.pickupDescription || 'Jiné') : 'Osobně' }}</strong>
+                <strong>{{ selectedListing.pickupMode === 'other' ? 'Jiné' : 'Osobně' }}</strong>
               </div>
               <div class="detail-spec-row-link" @click="openRules">
                 <span>Pravidla užívání</span>
@@ -3181,11 +3458,11 @@ if (typeof window !== "undefined") {
             <div class="rules-card-grid">
               <div class="rules-card">
                 <small>Vyzvednutí</small>
-                <strong>Po 14:00</strong>
+                <strong>{{ selectedListing.pickupTimeFrom ? 'Po ' + selectedListing.pickupTimeFrom : '—' }}</strong>
               </div>
               <div class="rules-card">
                 <small>Vrácení</small>
-                <strong>Do 11:00</strong>
+                <strong>{{ selectedListing.pickupTimeTo ? 'Do ' + selectedListing.pickupTimeTo : '—' }}</strong>
               </div>
             </div>
             <div class="rules-card rules-card-block">
@@ -3206,10 +3483,14 @@ if (typeof window !== "undefined") {
             <div class="rules-card rules-card-block">
               <strong>Omezení užívání</strong>
               <ul class="rules-list">
-                <li>Zákaz úprav a modifikací</li>
-                <li>Určeno jen k běžnému účelu</li>
-                <li>Zákaz půjčení 3. osobě</li>
+                <li v-if="selectedListing.rules?.noModifications">Zákaz úprav a modifikací</li>
+                <li v-if="selectedListing.rules?.purposeOnly">Určeno jen k běžnému účelu</li>
+                <li v-if="selectedListing.rules?.noThirdParty">Zákaz půjčení 3. osobě</li>
               </ul>
+            </div>
+            <div class="rules-card rules-card-block" v-if="selectedListing.rules?.other && selectedListing.rules?.otherDescription">
+              <strong>Další pravidlo</strong>
+              <p>{{ selectedListing.rules.otherDescription }}</p>
             </div>
           </div>
 
@@ -3219,7 +3500,7 @@ if (typeof window !== "undefined") {
               <strong>Při porušení pravidel</strong>
               <div class="rules-row">
                 <span>Ztráta nároku na zálohu</span>
-                <strong>Ano</strong>
+                <strong>{{ selectedListing.rules?.depositForfeit ? 'Ano' : 'Ne' }}</strong>
               </div>
               <div class="rules-row">
                 <span>Smluvní sankce</span>
@@ -3892,6 +4173,244 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
+        <div v-else-if="screen === 'onboarding'" class="screen-inner" style="background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; padding: 0;">
+
+          <!-- KROK 0: Welcome -->
+          <template v-if="onboardingStep === 0">
+            <div style="display: flex; justify-content: flex-end; padding: 16px 20px 0;">
+              <button type="button" style="background: transparent; border: 0; font-size: 0.88rem; color: var(--muted); cursor: pointer;" @click="skipOnboarding">Přeskočit</button>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 24px 24px;">
+              <div style="width: 200px; height: 200px; background: #fff; border-radius: 32px; display: grid; place-items: center; margin-bottom: 40px;">
+                <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M34 44l-8 8 22 22 32-32-8-8-24 24-14-14z" stroke="#1f1610" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  <path d="M56 28c4-4 10-4 14 0l6 6-6 6" stroke="#1f1610" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  <circle cx="30" cy="30" r="8" stroke="#1b5431" stroke-width="5" fill="none"/>
+                  <path d="M22 38s-8 4-8 14" stroke="#1b5431" stroke-width="5" stroke-linecap="round" fill="none"/>
+                </svg>
+              </div>
+              <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 10px;">Vítej ve Vercajkovně</span>
+              <h1 style="font-family: var(--font-raw); font-size: 2.2rem; font-weight: 800; color: var(--brand); line-height: 1.1; text-align: center; margin-bottom: 12px;">
+                Ahoj {{ personal.firstName || user.name.split(' ')[0] }},<br>
+                <em style="color: var(--brand-2); font-style: italic;">pojď dál.</em>
+              </h1>
+              <p style="font-size: 0.9rem; color: var(--muted); text-align: center; line-height: 1.55; max-width: 280px;">Komunita sousedů, kteří si půjčují věci. Ať už vrtačku, vozík nebo reproduktor.</p>
+            </div>
+            <div style="padding: 0 20px 12px; display: flex; flex-direction: column; gap: 8px;">
+              <button type="button" style="background: var(--brand); color: #fff; border: 0; border-radius: 14px; padding: 16px; font-size: 0.95rem; font-weight: 600; cursor: pointer; width: 100%;" @click="onboardingStep = 1">Jdu do toho →</button>
+              <p style="text-align: center; font-size: 0.82rem; color: var(--muted);">Už máš účet? <button type="button" style="background: transparent; border: 0; font-weight: 700; color: var(--brand); cursor: pointer; font-size: inherit;" @click="localStorage.setItem(ONBOARDED_KEY,'1'); switchAuthMode('login'); setScreen('auth')">Přihlásit se</button></p>
+            </div>
+          </template>
+
+          <!-- KROK 1: Role -->
+          <template v-else-if="onboardingStep === 1">
+            <div style="padding: 16px 20px 0;">
+              <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 6px;" @click="onboardingStep = 0"><i class="pi pi-arrow-left" style="font-size: 0.75rem;"></i> zpět</button>
+            </div>
+            <div style="flex: 1; padding: 20px 20px 0;">
+              <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); display: block; margin-bottom: 10px;">Vítej ve Vercajkovně</span>
+              <h1 style="font-family: var(--font-raw); font-size: 2.2rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">Půjčuješ,<br><em style="color: var(--brand-2); font-style: italic;">nebo hledáš?</em></h1>
+              <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 28px;">Roli můžeš kdykoliv změnit.</p>
+
+              <!-- Karta Půjčuji -->
+              <div
+                :style="{
+                  background: onboardingRole === 'majitel' ? 'var(--brand)' : '#fff',
+                  border: '1.5px solid ' + (onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--border)'),
+                  borderRadius: '18px', padding: '20px 20px', marginBottom: '12px', cursor: 'pointer',
+                  transition: 'all 0.18s'
+                }"
+                @click="onboardingRole = 'majitel'; onboardingStep = 2"
+              >
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div :style="{ width: '46px', height: '46px', background: onboardingRole === 'majitel' ? 'rgba(255,255,255,0.15)' : 'rgba(58,37,25,0.07)', borderRadius: '12px', display: 'grid', placeItems: 'center', flexShrink: '0' }">
+                    <i class="pi pi-wrench" :style="{ color: onboardingRole === 'majitel' ? '#fff' : 'var(--brand)', fontSize: '1.1rem' }"></i>
+                  </div>
+                  <div style="flex: 1;">
+                    <strong :style="{ fontSize: '1.15rem', color: onboardingRole === 'majitel' ? '#fff' : 'var(--brand)', display: 'block', marginBottom: '3px' }">Půjčuji</strong>
+                    <span :style="{ fontSize: '0.83rem', color: onboardingRole === 'majitel' ? 'rgba(255,255,255,0.7)' : 'var(--muted)' }">Mám věci pro sousedy</span>
+                  </div>
+                  <i class="pi pi-arrow-right" :style="{ color: onboardingRole === 'majitel' ? 'rgba(255,255,255,0.6)' : 'var(--muted-2)', fontSize: '0.85rem', flexShrink: '0' }"></i>
+                </div>
+              </div>
+
+              <!-- Karta Hledám -->
+              <div
+                :style="{
+                  background: onboardingRole === 'najemce' ? 'var(--brand)' : '#fff',
+                  border: '1.5px solid ' + (onboardingRole === 'najemce' ? 'var(--brand)' : 'var(--border)'),
+                  borderRadius: '18px', padding: '20px 20px', cursor: 'pointer',
+                  transition: 'all 0.18s'
+                }"
+                @click="onboardingRole = 'najemce'; onboardingStep = 2"
+              >
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div :style="{ width: '46px', height: '46px', background: onboardingRole === 'najemce' ? 'rgba(255,255,255,0.15)' : 'rgba(58,37,25,0.07)', borderRadius: '12px', display: 'grid', placeItems: 'center', flexShrink: '0' }">
+                    <i class="pi pi-search" :style="{ color: onboardingRole === 'najemce' ? '#fff' : 'var(--brand)', fontSize: '1.1rem' }"></i>
+                  </div>
+                  <div style="flex: 1;">
+                    <strong :style="{ fontSize: '1.15rem', color: onboardingRole === 'najemce' ? '#fff' : 'var(--brand)', display: 'block', marginBottom: '3px' }">Hledám</strong>
+                    <span :style="{ fontSize: '0.83rem', color: onboardingRole === 'najemce' ? 'rgba(255,255,255,0.7)' : 'var(--muted)' }">Potřebuji si půjčit</span>
+                  </div>
+                  <i class="pi pi-arrow-right" :style="{ color: onboardingRole === 'najemce' ? 'rgba(255,255,255,0.6)' : 'var(--muted-2)', fontSize: '0.85rem', flexShrink: '0' }"></i>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 8px 20px 28px;">
+              <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; width: 100%; text-align: center;" @click="skipOnboarding">teď ne</button>
+            </div>
+          </template>
+
+          <!-- KROKY 2–5: progress bar + role badge -->
+          <template v-else>
+            <!-- Back + progress bar + role badge -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 0; gap: 12px;">
+              <button type="button" style="background: transparent; border: 0; cursor: pointer; color: var(--muted); display: flex; align-items: center; gap: 4px; font-size: 0.82rem; flex-shrink: 0; padding: 0;" @click="onboardingStep > 2 ? onboardingStep-- : onboardingStep = 1">
+                <i class="pi pi-arrow-left" style="font-size: 0.75rem;"></i> zpět
+              </button>
+              <div style="display: flex; gap: 4px; flex: 1;">
+                <div v-for="i in 4" :key="i" :style="{ flex: 1, height: '3px', borderRadius: '999px', background: i <= onboardingStep - 1 ? (onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)') : 'rgba(58,37,25,0.14)' }"></div>
+              </div>
+              <div :style="{ display: 'flex', alignItems: 'center', gap: '6px', background: onboardingRole === 'majitel' ? 'rgba(58,37,25,0.08)' : 'rgba(27,84,49,0.08)', border: '1px solid ' + (onboardingRole === 'majitel' ? 'rgba(58,37,25,0.2)' : 'rgba(27,84,49,0.2)'), borderRadius: '999px', padding: '4px 10px 4px 8px' }">
+                <i :class="onboardingRole === 'majitel' ? 'pi pi-wrench' : 'pi pi-search'" style="font-size: 0.72rem; color: var(--brand-2);"></i>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--brand);">{{ onboardingRole === 'majitel' ? 'Majitel' : 'Nájemce' }}</span>
+                <button type="button" style="background: transparent; border: 0; cursor: pointer; color: var(--muted-2); font-size: 0.72rem; padding: 0; margin-left: 2px; line-height: 1;" @click="onboardingStep = 1">×</button>
+              </div>
+            </div>
+
+            <!-- KROK 2: Jak to funguje -->
+            <template v-if="onboardingStep === 2">
+              <div style="flex: 1; padding: 20px 24px 0;">
+                <h1 style="font-family: var(--font-raw); font-size: 2.2rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">
+                  {{ onboardingRole === 'majitel' ? 'Jak to' : 'Jak si' }}<br>
+                  <em :style="{ color: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', fontStyle: 'italic' }">{{ onboardingRole === 'majitel' ? 'funguje.' : 'půjčit.' }}</em>
+                </h1>
+                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 32px;">{{ onboardingRole === 'majitel' ? 'Čtyři kroky, aby ti vercajk vydělával.' : 'Pět kroků a vercajk je tvůj.' }}</p>
+
+                <div v-for="(step, i) in (onboardingRole === 'majitel'
+                  ? [{ label: 'Přidej nabídku', desc: 'Foto, popis, cena a kauce' }, { label: 'Schval žádost', desc: 'Přijde notifikace, ty rozhoduješ' }, { label: 'Potvrď platbu', desc: 'Nájemce zaplatí, ty potvrdíš' }, { label: 'Předej a převezmi', desc: 'Napiš hodnocení' }]
+                  : [{ label: 'Najdi', desc: 'Hledej podle kategorie nebo vzdálenosti' }, { label: 'Požádej', desc: 'Majitel tě schválí nebo odmítne' }, { label: 'Zaplať', desc: 'Pošli platbu, majitel potvrdí' }, { label: 'Vyzvedni a vrať', desc: 'Předání i vrácení probíhá osobně' }, { label: 'Ohodnoť', desc: 'Obě strany hodnotí — komunita stojí na důvěře' }])"
+                  :key="i"
+                  style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px;"
+                >
+                  <div :style="{ width: '34px', height: '34px', borderRadius: '999px', background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.85rem', fontWeight: '700', flexShrink: '0', marginTop: '1px' }">{{ i + 1 }}</div>
+                  <div>
+                    <strong style="font-size: 1rem; color: var(--brand); display: block; margin-bottom: 2px;">{{ step.label }}</strong>
+                    <span style="font-size: 0.83rem; color: var(--muted);">{{ step.desc }}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="padding: 16px 20px 28px; display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 3">Pokračovat →</button>
+                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; padding: 4px; text-align: center;" @click="onboardingStep = 1">← zpět</button>
+              </div>
+            </template>
+
+            <!-- KROK 3: Komunita -->
+            <template v-else-if="onboardingStep === 3">
+              <div style="flex: 1; padding: 20px 20px 0;">
+                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">Komunita,<br><em style="color: var(--brand-2); font-style: italic;">co si věří.</em></h1>
+                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 20px;">Ověřené profily, kauce a hodnocení po každé půjčce.</p>
+
+                <div v-for="item in (onboardingRole === 'majitel'
+                  ? [{ icon: 'pi-verified', label: 'Ověřené profily', desc: 'Každý uživatel projde ověřením e-mailu.' }, { icon: 'pi-credit-card', label: 'Kauce', desc: 'Jako majitel si volíš kauci v případě poškození.' }, { icon: 'pi-star', label: 'Hodnocení', desc: 'Na reputaci záleží.' }]
+                  : [{ icon: 'pi-verified', label: 'Ověřené profily', desc: 'Každý uživatel projde ověřením e-mailu.' }, { icon: 'pi-credit-card', label: 'Kauce', desc: 'Majitel může požadovat kauci. Vrátí se po vrácení vercajku.' }, { icon: 'pi-star', label: 'Hodnocení', desc: 'Na reputaci záleží.' }]
+                )" :key="item.label"
+                  style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px;">
+                  <div style="width: 40px; height: 40px; background: rgba(58,37,25,0.06); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; margin-top: 2px;"><i :class="['pi', item.icon]" style="color: var(--brand);"></i></div>
+                  <div><strong style="font-size: 0.9rem; color: var(--brand); display: block; margin-bottom: 2px;">{{ item.label }}</strong><span style="font-size: 0.8rem; color: var(--muted); line-height: 1.4;">{{ item.desc }}</span></div>
+                </div>
+              </div>
+              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
+                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 4">Pokračovat →</button>
+              </div>
+            </template>
+
+            <!-- KROK 4: Kategorie -->
+            <template v-else-if="onboardingStep === 4">
+              <div style="flex: 1; padding: 20px 20px 0;">
+                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">{{ onboardingRole === 'majitel' ? 'Co budeš' : 'Co tě' }}<br><em style="color: var(--brand-2); font-style: italic;">{{ onboardingRole === 'majitel' ? 'půjčovat?' : 'zajímá?' }}</em></h1>
+                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 16px;">{{ onboardingRole === 'majitel' ? 'Vyber kategorie — tržiště ti ukáže, jak na tom jsi v okolí.' : 'Vyber kategorie a ukážeme ti nejlepší nabídky v okolí.' }}</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                  <button
+                    v-for="cat in ['Elektrické nářadí','Ruční nářadí','Zahrada','Zvuk & světlo','Outdoor & stan','Vozíky & stěhování','Party výbava','Kola & sport','Dětské','Čištění & úklid']"
+                    :key="cat"
+                    type="button"
+                    :style="{ background: onboardingCategories.includes(cat) ? 'var(--brand-2)' : '#fff', color: onboardingCategories.includes(cat) ? '#fff' : 'var(--brand)', border: '1px solid ' + (onboardingCategories.includes(cat) ? 'var(--brand-2)' : 'var(--border)'), borderRadius: '999px', padding: '8px 14px', fontSize: '0.82rem', cursor: 'pointer' }"
+                    @click="onboardingCategories.includes(cat) ? onboardingCategories.splice(onboardingCategories.indexOf(cat), 1) : onboardingCategories.push(cat)"
+                  >{{ cat }}</button>
+                </div>
+                <p style="font-size: 0.78rem; color: var(--muted-2);">Vyber aspoň jednu — nebo pokračuj bez výběru.</p>
+              </div>
+              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
+                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 5">Pokračovat →</button>
+                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; text-align: center;" @click="onboardingStep = 5">přeskočit</button>
+              </div>
+            </template>
+
+            <!-- KROK 5: Lokace -->
+            <template v-else-if="onboardingStep === 5">
+              <div style="flex: 1; padding: 20px 20px 0;">
+                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">{{ onboardingRole === 'majitel' ? 'Kde máš' : 'Kde hledáš' }}<br><em style="color: var(--brand-2); font-style: italic;">{{ onboardingRole === 'majitel' ? 'verštat?' : 'vercajk?' }}</em></h1>
+                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 20px;">{{ onboardingRole === 'majitel' ? 'Nájemci uvidí čtvrť, ne adresu. Přesnost = víc zájemců.' : 'Najdeme sousedy s vercajkem co nejblíže tobě.' }}</p>
+
+                <div :style="{ background: '#fff', border: onboardingLocMode === 'gps' ? '2px solid var(--brand-2)' : '1px solid var(--border)', borderRadius: '14px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }" @click="onboardingLocMode = 'gps'">
+                  <div style="width: 40px; height: 40px; background: rgba(27,84,49,0.08); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;"><i class="pi pi-map-marker" style="color: var(--brand-2);"></i></div>
+                  <div><strong style="font-size: 0.9rem; color: var(--brand); display: block;">Použít moji polohu</strong><span style="font-size: 0.78rem; color: var(--muted);">Jedno kliknutí, nejpřesnější výsledek.</span></div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                  <div style="flex: 1; height: 1px; background: var(--border);"></div>
+                  <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted-2); text-transform: uppercase;">nebo</span>
+                  <div style="flex: 1; height: 1px; background: var(--border);"></div>
+                </div>
+
+                <div :style="{ background: '#fff', border: onboardingLocMode === 'manual' ? '2px solid var(--brand-2)' : '1px solid var(--border)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }" @click="onboardingLocMode = 'manual'">
+                  <div style="width: 40px; height: 40px; background: rgba(58,37,25,0.06); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;"><i class="pi pi-search" style="color: var(--muted);"></i></div>
+                  <span style="font-size: 0.84rem; color: var(--muted-2);">Praha 7 — Letná...</span>
+                </div>
+
+                <div style="background: rgba(58,37,25,0.05); border-radius: 10px; padding: 10px 14px; margin-top: 10px;">
+                  <span style="font-size: 0.78rem; color: var(--muted);">{{ onboardingRole === 'majitel' ? 'Nájemci uvidí čtvrť — přesnou adresu nikdo neuvidí.' : 'Tvoji polohu vidíš jen ty. Výsledky jsou anonymizované.' }}</span>
+                </div>
+              </div>
+              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
+                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 6">Pokračovat →</button>
+                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; text-align: center;" @click="onboardingStep = 6">přeskočit</button>
+              </div>
+            </template>
+
+            <!-- KROK 6: CTA závěr -->
+            <template v-else-if="onboardingStep === 6">
+              <div style="flex: 1; padding: 20px 20px 0;">
+                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">
+                  <template v-if="onboardingRole === 'majitel'">Přidej první<br><em style="color: var(--brand-2); font-style: italic;">vercajk.</em></template>
+                  <template v-else>Najdi první<br><em style="color: var(--brand-2); font-style: italic;">vercajk.</em></template>
+                </h1>
+
+                <div style="background: rgba(27,84,49,0.07); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;">
+                  <p style="font-size: 0.86rem; font-weight: 600; color: var(--brand);">{{ onboardingRole === 'majitel' ? 'Skvělý start! Přidej první vercajk — za 2 minuty jsi v nabídce.' : 'Vítej v komunitě! Podívej se, co nabízejí sousedé v okolí.' }}</p>
+                </div>
+
+                <div v-for="(item, i) in (onboardingRole === 'majitel' ? [{ icon: 'pi-camera', label: 'Fotky', desc: 'Stačí 1–3 fotky.' }, { icon: 'pi-file-edit', label: 'Popis', desc: 'Co to je, stav, co přibalíš.' }, { icon: 'pi-credit-card', label: 'Cena a kauce', desc: 'Průměr v okolí ti poradíme.' }] : [{ icon: 'pi-search', label: 'Hledej v okolí', desc: 'Filtruj podle kategorie nebo vzdálenosti.' }, { icon: 'pi-heart', label: 'Ulož si oblíbené', desc: 'Věci, ke kterým se chceš vrátit.' }])" :key="i"
+                  style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 40px; height: 40px; background: rgba(58,37,25,0.06); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;"><i :class="['pi', item.icon]" style="color: var(--brand);"></i></div>
+                  <div style="flex: 1;"><strong style="font-size: 0.88rem; color: var(--brand); display: block;">{{ item.label }}</strong><span style="font-size: 0.78rem; color: var(--muted);">{{ item.desc }}</span></div>
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--muted-2);">0{{ i + 1 }}</span>
+                </div>
+              </div>
+              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
+                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }"
+                  @click="completeOnboarding">
+                  {{ onboardingRole === 'majitel' ? 'Přidat vercajk →' : 'Prohlížet nabídky →' }}
+                </button>
+                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; text-align: center;" @click="skipOnboarding">přeskočit</button>
+              </div>
+            </template>
+          </template>
+        </div>
+
         <div v-else-if="screen === 'pending-request'" class="screen-inner pending-request-page">
           <div class="pending-request-header">
             <button class="pending-request-back" type="button" aria-label="Zpět" @click="goBack">
@@ -4087,19 +4606,19 @@ if (typeof window !== "undefined") {
               </button>
               <button
                 type="button"
-                aria-label="WhatsApp"
+                aria-label="SMS"
                 :disabled="pendingRequestActionsDisabled"
                 :class="{ 'is-disabled': pendingRequestActionsDisabled }"
               >
-                <i class="pi pi-whatsapp"></i>
+                <i class="pi pi-comment"></i>
               </button>
               <button
                 type="button"
-                aria-label="Zpráva"
+                aria-label="E-mail"
                 :disabled="pendingRequestActionsDisabled"
                 :class="{ 'is-disabled': pendingRequestActionsDisabled }"
               >
-                <i class="pi pi-send"></i>
+                <i class="pi pi-envelope"></i>
               </button>
             </div>
           </div>
@@ -4375,29 +4894,43 @@ if (typeof window !== "undefined") {
                   {{ option.label }}
                 </button>
               </div>
-              <button
+              <div
                 v-for="offer in filteredProfileOffers"
                 :key="`page-offer-${offer.id}`"
                 class="profile-item"
                 :class="{
                   'is-dimmed':
                     offer.statusLabel === 'Pronájem ukončen' ||
-                  offer.statusLabel === 'Zamítnutí' ||
-                  offer.statusLabel === 'Zrušeno',
+                    offer.statusLabel === 'Zamítnutí' ||
+                    offer.statusLabel === 'Zrušeno',
                 }"
-                type="button"
-                @click="
-                  offer.statusLabel === 'Čeká na hodnocení'
-                    ? openRatingFlow('owner')
-                    : openPendingOffer(offer)
-                "
               >
-                <div class="profile-item-copy">
-                  <span class="profile-item-title">{{ offer.title }}</span>
-                  <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
-                </div>
-                <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
-              </button>
+                <button
+                  type="button"
+                  class="profile-item-main"
+                  @click="
+                    offer.statusLabel === 'Čeká na hodnocení'
+                      ? openRatingFlow('owner')
+                      : openPendingOffer(offer)
+                  "
+                >
+                  <div class="profile-item-copy">
+                    <span class="profile-item-title">{{ offer.title }}</span>
+                    <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
+                  </div>
+                  <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="profile-item-edit-icon"
+                  :class="{ 'is-active': offer.canEdit }"
+                  aria-label="Upravit nabídku"
+                  :disabled="!offer.canEdit"
+                  @click="offer.canEdit && openEditListing(offer.id)"
+                >
+                  <i class="pi pi-pencil"></i>
+                </button>
+              </div>
               <div v-if="!filteredProfileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
             </div>
             <div v-else class="profile-panel-list">
@@ -4413,7 +4946,7 @@ if (typeof window !== "undefined") {
                   {{ option.label }}
                 </button>
               </div>
-              <button
+              <div
                 v-for="request in filteredProfileRequests"
                 :key="`page-request-${request.id}`"
                 class="profile-item"
@@ -4422,24 +4955,28 @@ if (typeof window !== "undefined") {
                     request.statusLabel === 'Pronájem ukončen' ||
                   request.statusLabel === 'Zamítnutí' ||
                   request.statusLabel === 'Zrušeno',
-              }"
-              type="button"
-              @click="
-                request.statusLabel === 'Čeká na hodnocení'
-                  ? openRatingFlow('tenant')
-                  : isRequestReservationStatus(request.statusLabel)
-                    ? openPendingRequest(request)
-                    : openListing(request.id)
-              "
-            >
-              <div class="profile-item-copy">
-                <span class="profile-item-title">{{ request.title }}</span>
-                <span class="profile-item-meta">
-                  {{ request.location }} · {{ request.dateRange }}
-                </span>
+                }"
+              >
+                <button
+                  type="button"
+                  class="profile-item-main"
+                  @click="
+                    request.statusLabel === 'Čeká na hodnocení'
+                      ? openRatingFlow('tenant')
+                      : isRequestReservationStatus(request.statusLabel)
+                        ? openPendingRequest(request)
+                        : openListing(request.id)
+                  "
+                >
+                  <div class="profile-item-copy">
+                    <span class="profile-item-title">{{ request.title }}</span>
+                    <span class="profile-item-meta">
+                      {{ request.location }} · {{ request.dateRange }}
+                    </span>
+                  </div>
+                  <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
+                </button>
               </div>
-              <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
-            </button>
               <div v-if="!filteredProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
             </div>
           </div>
@@ -4450,21 +4987,23 @@ if (typeof window !== "undefined") {
             <template #content>
               <div class="add-flow-header">
                 <div class="add-flow-step-row">
-                  <span class="add-flow-step">Krok {{ addListingStep }} z 3</span>
+                  <span class="add-flow-step">Krok {{ addListingStep }} z 4</span>
                   <span class="add-flow-step-label">
                     {{
                       addListingStep === 1
                         ? "Základní info"
                         : addListingStep === 2
                           ? "Nastavení pronájmu"
-                          : "Detail vercajku"
+                          : addListingStep === 3
+                            ? "Detail vercajku"
+                            : "Předání a pravidla"
                     }}
                   </span>
                 </div>
                 <div class="add-flow-progress" aria-hidden="true">
                   <div
                     class="add-flow-progress-bar"
-                    :style="{ width: `${Math.round((addListingStep / 3) * 100)}%` }"
+                    :style="{ width: `${Math.round((addListingStep / 4) * 100)}%` }"
                   />                </div>
               </div>
 
@@ -4648,7 +5187,18 @@ if (typeof window !== "undefined") {
 
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Dostupnost pro vypůjčení</div>
-                  <div class="add-flow-calendar" :class="{ 'is-error': addListingProceedAttempt && addListingAvailabilityError }">
+                  <div class="add-flow-chips">
+                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'always' }" @click="applyAvailabilityPreset('always')">Vždy</button>
+                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekdays' }" @click="applyAvailabilityPreset('weekdays')">Pracovní dny</button>
+                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekends' }" @click="applyAvailabilityPreset('weekends')">Víkendy</button>
+                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'custom' }" @click="applyAvailabilityPreset('custom')">Vlastní výběr</button>
+                  </div>
+                  <div class="add-flow-avail-until">
+                    <label class="add-flow-avail-until-label">Dostupné do:</label>
+                    <input type="date" v-model="addListingDraft.availabilityUntil" class="add-flow-native add-flow-avail-until-input" :min="new Date().toISOString().slice(0, 10)" />
+                    <span class="add-flow-help">Nechte prázdné pro trvalou nabídku.</span>
+                  </div>
+                  <div class="add-flow-calendar" :class="{ 'is-error': addListingProceedAttempt && addListingAvailabilityError }" style="margin-top: 12px;">
                     <div class="add-flow-calendar-head">
                       <strong>{{ availabilityCalendar.label }}</strong>
                       <div class="add-flow-calendar-nav">
@@ -4682,7 +5232,7 @@ if (typeof window !== "undefined") {
                   </div>
                   <div class="add-flow-help">
                     <span v-if="availabilityRangeStart">Vyberte poslední den rozmezí.</span>
-                    <span v-else>Označte dny, nebo rozmezí: klepněte na první a poslední den.</span>
+                    <span v-else>Klepnutím na preset předvyplníš dny — pak je můžeš libovolně upravit.</span>
                   </div>
                 </div>
 
@@ -4714,14 +5264,14 @@ if (typeof window !== "undefined") {
                 </div>
               </div>
 
-              <div v-else class="add-listing-body add-flow-step3">
+              <div v-else-if="addListingStep === 3" class="add-listing-body add-flow-step3">
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Technické parametry</div>
                   <div class="add-flow-grid">
                     <div class="add-flow-field">
-                      <span>Značka</span>
+                      <span>Značka <span class="add-flow-required">*</span></span>
                       <div class="add-flow-brand-wrap">
-                        <div class="add-flow-input">
+                        <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingBrandError }">
                           <input
                             :value="addListingDraft.brand"
                             class="add-flow-native"
@@ -4732,8 +5282,9 @@ if (typeof window !== "undefined") {
                             @blur="clearBrandSuggestions()"
                           />
                         </div>
-                        <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3" class="add-flow-brand-hint">
-                          zadej alespoň 3 znaky — např. <em>Bosch</em>
+                        <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3 && addListingDraft.brand !== 'Ostatní'" class="add-flow-brand-hint">
+                          zadej alespoň 3 znaky — nebo zvol
+                          <button type="button" class="add-flow-brand-other" @mousedown.prevent="selectBrand('Ostatní')">Ostatní</button>
                         </div>
                         <div v-if="brandSuggestions.length" class="add-flow-brand-suggestions">
                           <button
@@ -4745,8 +5296,10 @@ if (typeof window !== "undefined") {
                           >
                             {{ brand }}
                           </button>
+                          <button type="button" class="add-flow-brand-option" @mousedown.prevent="selectBrand('Ostatní')">Ostatní</button>
                         </div>
                       </div>
+                      <div v-if="addListingProceedAttempt && addListingBrandError" class="add-flow-error">Vyber nebo zadej značku.</div>
                     </div>
                     <div class="add-flow-field">
                       <span>Model</span>
@@ -4786,7 +5339,10 @@ if (typeof window !== "undefined") {
                     <div class="add-flow-field add-flow-field-full">
                       <span>Příslušenství</span>
                       <div class="add-flow-input">
-                        <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." />
+                        <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." maxlength="150" />
+                      </div>
+                      <div class="add-flow-char-count" :class="{ 'is-near': addListingDraft.accessories.length > 120 }">
+                        {{ addListingDraft.accessories.length }} / 150
                       </div>
                     </div>
                     <div class="add-flow-field-full add-flow-show-more-toggle">
@@ -4818,6 +5374,9 @@ if (typeof window !== "undefined") {
                   </div>
                 </div>
 
+              </div>
+
+              <div v-else-if="addListingStep === 4" class="add-listing-body add-flow-step3">
                 <div class="add-flow-section">
                   <div class="add-flow-section-title">Způsob vyzvednutí</div>
                   <div class="add-flow-checklist">
@@ -4837,6 +5396,23 @@ if (typeof window !== "undefined") {
                           placeholder="Upřesněte způsob (např. dovoz, zásilkovna...)"
                           rows="2"
                         ></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="add-flow-section">
+                  <div class="add-flow-section-title">Čas předání</div>
+                  <div class="add-flow-grid">
+                    <div class="add-flow-field">
+                      <span>Vyzvednutí od</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.pickupTimeFrom" class="add-flow-native" type="time" />
+                      </div>
+                    </div>
+                    <div class="add-flow-field">
+                      <span>Vrácení do</span>
+                      <div class="add-flow-input">
+                        <input v-model="addListingDraft.pickupTimeTo" class="add-flow-native" type="time" />
                       </div>
                     </div>
                   </div>
@@ -4864,15 +5440,17 @@ if (typeof window !== "undefined") {
                       <input v-model="addListingDraft.rules.other" type="checkbox" />
                       <span>Jiné</span>
                     </label>
-                    <div v-if="addListingDraft.rules.other" class="add-flow-field" style="margin-top: 0.5rem;">
-                      <div class="add-flow-input add-flow-input-textarea" :class="{ 'is-invalid': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }">
-                        <textarea
-                          v-model="addListingDraft.rules.otherDescription"
-                          class="add-flow-native"
-                          placeholder="Popište vlastní pravidla (povinné)"
-                          rows="3"
-                        ></textarea>
-                      </div>
+                  </div>
+                  <div v-if="addListingDraft.rules.other" class="add-flow-field" style="margin-top: 12px;">
+                    <textarea
+                      v-model="addListingDraft.rules.otherDescription"
+                      class="rules-other-textarea"
+                      :class="{ 'is-error': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }"
+                      placeholder="Popište vlastní pravidla (povinné)"
+                      rows="3"
+                    ></textarea>
+                    <div v-if="addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim()" class="add-flow-error">
+                      Popiš vlastní pravidla — pole nesmí být prázdné.
                     </div>
                   </div>
                 </div>
@@ -4880,7 +5458,7 @@ if (typeof window !== "undefined") {
 
               <div class="add-flow-cta">
                 <button type="button" class="add-flow-cta-primary" @click="nextAddListingStep">
-                  {{ addListingStep === 3 ? "Zveřejnit nabídku" : "Pokračovat" }}
+                  {{ addListingStep === 4 ? (addListingMode === 'edit' ? "Uložit změny" : "Zveřejnit nabídku") : "Pokračovat" }}
                 </button>
                 <button type="button" class="add-flow-cta-ghost" @click="prevAddListingStep">Zpět</button>
               </div>
@@ -5177,6 +5755,14 @@ if (typeof window !== "undefined") {
               </div>
               <i class="pi pi-chevron-right"></i>
             </button>
+            <button class="profile-list-item" type="button" @click="openProfilePrivacy">
+              <div class="profile-list-item-icon"><i class="pi pi-eye-slash"></i></div>
+              <div class="profile-list-item-content">
+                <span class="profile-list-item-title">Soukromí</span>
+                <span class="profile-list-item-subtitle">Jak mě kontaktovat</span>
+              </div>
+              <i class="pi pi-chevron-right"></i>
+            </button>
             <button class="profile-list-item" type="button" @click="openProfileNotifications">
               <div class="profile-list-item-icon"><i class="pi pi-bell"></i></div>
               <div class="profile-list-item-content">
@@ -5194,6 +5780,10 @@ if (typeof window !== "undefined") {
               <i class="pi pi-chevron-right"></i>
             </button>
           </div>
+          <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: transparent; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); font-size: 0.84rem; cursor: pointer; margin-bottom: 10px;" @click="localStorage.removeItem(ONBOARDED_KEY); onboardingStep = 0; onboardingRole = 'majitel'; onboardingCategories = []; setScreen('onboarding')">
+            <i class="pi pi-refresh" style="font-size: 0.8rem;"></i>
+            Zobrazit onboarding znovu
+          </button>
           <button class="logout-button-new" type="button" @click="logout">
             <i class="pi pi-sign-out"></i>
             Odhlásit se
@@ -5287,6 +5877,90 @@ if (typeof window !== "undefined") {
               </div>
             </div>
           </template>
+
+        </div>
+
+        <div v-else-if="screen === 'profile-privacy'" class="screen-inner profile-page">
+
+          <!-- Info banner -->
+          <div class="privacy-info-banner">
+            <i class="pi pi-shield"></i>
+            <span>Tvůj kontakt <strong>zůstane skrytý</strong> až do potvrzení rezervace. Teprve pak ho druhá strana uvidí.</span>
+          </div>
+
+          <!-- Jak mě kontaktovat -->
+          <div class="profile-section">
+            <span class="personal-section-label">Jak mě kontaktovat</span>
+
+            <!-- Telefon — z profilu, nelze měnit -->
+            <div class="add-flow-toggle-card" @click="togglePrivacyPhone">
+              <div class="add-flow-toggle-card-copy">
+                <strong>Telefon</strong>
+                <span>{{ personal.phone || 'Není vyplněno' }}</span>
+              </div>
+              <div class="add-flow-toggle" role="presentation">
+                <input type="checkbox" :checked="privacy.contactPhone" readonly />
+                <span aria-hidden="true"></span>
+              </div>
+            </div>
+
+            <!-- E-mail — z profilu, editace přes modal -->
+            <div class="add-flow-toggle-card" @click="togglePrivacyEmail">
+              <div class="add-flow-toggle-card-copy">
+                <strong>E-mail</strong>
+                <span>{{ privacy.emailValue || personal.email || 'Není vyplněno' }}</span>
+              </div>
+              <button v-if="privacy.contactEmail" type="button" class="privacy-edit-link" @click.stop="openEmailModal">Změnit</button>
+              <div class="add-flow-toggle" role="presentation">
+                <input type="checkbox" :checked="privacy.contactEmail" readonly />
+                <span aria-hidden="true"></span>
+              </div>
+            </div>
+
+            <!-- SMS — z profilu, nelze měnit -->
+            <div class="add-flow-toggle-card" @click="togglePrivacySms">
+              <div class="add-flow-toggle-card-copy">
+                <strong>SMS</strong>
+                <span>{{ personal.phone || 'Není vyplněno' }}</span>
+              </div>
+              <div class="add-flow-toggle" role="presentation">
+                <input type="checkbox" :checked="privacy.contactSms" readonly />
+                <span aria-hidden="true"></span>
+              </div>
+            </div>
+
+          </div>
+
+          <div v-if="privacy.contactError" class="privacy-error" style="margin: 0 16px 8px;">
+            <i class="pi pi-exclamation-circle"></i>
+            Musíš mít zapnutý alespoň Telefon nebo SMS.
+          </div>
+
+          <!-- E-mail modal -->
+          <div v-if="privacy.emailModalOpen" class="confirm-modal" @click.self="privacy.emailModalOpen = false">
+            <button class="confirm-modal-backdrop" type="button" aria-label="Zavřít" @click="privacy.emailModalOpen = false"></button>
+            <div class="confirm-modal-card" @click.stop>
+              <p class="confirm-modal-title">Kontaktní e-mail</p>
+              <p class="confirm-modal-copy">Zadej e-mail, který chceš sdílet po schválení rezervace. Nemusí být stejný jako přihlašovací.</p>
+              <div class="confirm-modal-field">
+                <label>E-mail</label>
+                <div class="personal-input-box">
+                  <i class="pi pi-envelope personal-input-icon"></i>
+                  <input
+                    v-model="privacy.emailModalValue"
+                    type="email"
+                    class="payments-native-input"
+                    placeholder="tomas@email.cz"
+                    @keydown.enter="confirmEmailModal"
+                  />
+                </div>
+              </div>
+              <div class="confirm-modal-actions">
+                <button class="confirm-modal-primary" type="button" @click="confirmEmailModal">Uložit</button>
+                <button class="confirm-modal-ghost" type="button" @click="privacy.emailModalOpen = false">Zrušit</button>
+              </div>
+            </div>
+          </div>
 
         </div>
 
@@ -5535,19 +6209,23 @@ if (typeof window !== "undefined") {
               </div>
             </div>
 
-            <!-- Jméno a příjmení -->
+            <!-- Jméno a příjmení — nelze měnit po registraci -->
             <div class="personal-section">
               <div class="personal-name-grid">
                 <div class="personal-field">
                   <span class="personal-field-label">Jméno</span>
-                  <div class="personal-input-box">
-                    <input v-model="personal.firstName" class="payments-native-input" type="text" placeholder="Např. Tomáš" style="background: transparent; border: none; outline: none; width: 100%; font: inherit;" />
+                  <div class="personal-input-box" style="cursor: default;">
+                    <i class="pi pi-user personal-input-icon"></i>
+                    <span class="personal-field-value" style="color: var(--muted); font-weight: 400;">{{ personal.firstName || '—' }}</span>
+                    <span class="personal-locked-badge"><i class="pi pi-lock" style="font-size: 10px;"></i></span>
                   </div>
                 </div>
                 <div class="personal-field">
                   <span class="personal-field-label">Příjmení</span>
-                  <div class="personal-input-box">
-                    <input v-model="personal.lastName" class="payments-native-input" type="text" placeholder="Např. Novák" style="background: transparent; border: none; outline: none; width: 100%; font: inherit;" />
+                  <div class="personal-input-box" style="cursor: default;">
+                    <i class="pi pi-user personal-input-icon"></i>
+                    <span class="personal-field-value" style="color: var(--muted); font-weight: 400;">{{ personal.lastName || '—' }}</span>
+                    <span class="personal-locked-badge"><i class="pi pi-lock" style="font-size: 10px;"></i></span>
                   </div>
                 </div>
               </div>
@@ -5889,7 +6567,7 @@ if (typeof window !== "undefined") {
       </section>
     </main>
 
-    <footer class="bottom-nav" aria-label="Spodní navigace">
+    <footer v-if="screen !== 'onboarding'" class="bottom-nav" aria-label="Spodní navigace">
       <button class="bottom-nav-item" :class="{ 'is-active': screen === 'market' }" type="button" @click="setScreen('market')">
         <i class="pi pi-home"></i>
         <span>Domů</span>

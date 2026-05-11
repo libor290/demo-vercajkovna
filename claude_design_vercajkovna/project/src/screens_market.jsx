@@ -69,7 +69,7 @@ const MarketScreen = ({ listings, categories, favorites, onToggleFav, onOpen, on
             whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0,
             display: 'inline-flex', alignItems: 'center', gap: 7,
           }}>
-            <span style={{ fontSize: 11, opacity: 0.7 }}>{c.glyph}</span>
+            <Icon name={c.icon} size={13} stroke={2} color="currentColor"/>
             {c.label}
           </button>
         ))}

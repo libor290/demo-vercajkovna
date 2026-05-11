@@ -168,11 +168,12 @@ const AddListingFlow = ({ onClose, onPublish, categories }) => {
                   padding: '11px 12px', borderRadius: 11, cursor: 'pointer',
                   background: on ? accent.accentSoft : palette.card,
                   border: `1.5px solid ${on ? accent.accent : (attempted && !draft.category ? '#c33' : palette.line)}`,
-                  color: on ? accent.accent : palette.brand,
+                  color: on ? accent.accent : palette.inkSoft,
                   fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
-                  display: 'flex', alignItems: 'center', gap: 7,
+                  display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 7,
                 }}>
-                  <span style={{ opacity: 0.75 }}>{c.glyph}</span>{c.label}
+                  <Icon name={c.icon} size={15} stroke={2} color="currentColor"/>
+                  {c.label}
                 </button>;
               })}
             </div>

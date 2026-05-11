@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, nextTick, reactive, ref, watch } from "vue";
 import { categories, listings, conversations as initialConversations, chatStatusMeta, type Listing, type Conversation, type ChatMessage, type ChatStatusType } from "@/data/mockData";
 
 type Screen =
@@ -1190,7 +1190,7 @@ function toggleFavorite(id: string) {
   persistFavorites(next);
 }
 
-const featuredListings = computed(() => filteredListings.value.slice(0, 6));
+const featuredListings = computed(() => filteredListings.value.slice(0, 10));
 const allMarketplaceListings = computed(() => filteredListings.value);
 const marketResultsCount = computed(() => filteredListings.value.length);
 const activeFilterCount = computed(() => {
@@ -1982,6 +1982,12 @@ onMounted(() => {
   document.addEventListener("pointerdown", onDocPointerDown);
 });
 
+watch(screen, (val) => {
+  if (val === 'detail') {
+    nextTick(() => setTimeout(scrollCarouselToMain, 50));
+  }
+});
+
 function onDocPointerDown(event: PointerEvent) {
   const root = conditionDropdownEl.value;
   if (!root) return;
@@ -2564,6 +2570,33 @@ function toggleFilters() {
   filtersOpen.value = !filtersOpen.value;
 }
 
+const topListingsRef = ref<HTMLElement | null>(null);
+function scrollTopListings(dir: 'left' | 'right') {
+  const el = topListingsRef.value;
+  if (!el) return;
+  el.scrollBy({ left: dir === 'right' ? 340 : -340, behavior: 'smooth' });
+}
+
+const detailCarouselRef = ref<HTMLElement | null>(null);
+const lightboxSrc = ref<string | null>(null);
+const MAIN_PHOTO_INDEX = 2; // hlavní foto je na pozici 2 (prostředek z 5)
+
+function scrollCarouselToMain() {
+  const el = detailCarouselRef.value;
+  if (!el) return;
+  const itemWidth = el.querySelector('.detail-carousel-item')?.clientWidth ?? 420;
+  const gap = 8;
+  const scrollTo = MAIN_PHOTO_INDEX * (itemWidth + gap) - (el.clientWidth - itemWidth) / 2;
+  el.scrollLeft = scrollTo;
+}
+
+function scrollCarousel(dir: 'left' | 'right') {
+  const el = detailCarouselRef.value;
+  if (!el) return;
+  const itemWidth = el.querySelector('.detail-carousel-item')?.clientWidth ?? 420;
+  el.scrollBy({ left: dir === 'right' ? itemWidth + 8 : -(itemWidth + 8), behavior: 'smooth' });
+}
+
 function openSearchFilters() {
   searchExpanded.value = true;
   if (window.matchMedia("(max-width: 720px)").matches) {
@@ -2949,6 +2982,7 @@ if (typeof window !== "undefined") {
       </section>
 
       <section v-else class="main-panel">
+        <div v-if="filtersOpen" class="market-filter-backdrop" @click="filtersOpen = false"></div>
         <div v-if="screen === 'market'" class="screen-inner market-shell market-page">
           <header class="market-hero-card">
             <div class="market-topbar market-desktop-header">
@@ -2956,6 +2990,19 @@ if (typeof window !== "undefined") {
                 <span class="market-brand-mark">V</span>
                 <span class="market-brand-word">Vercajkovna</span>
               </button>
+              <div class="market-topbar-search" @mousedown.capture="openSearchFilters" @click.capture="openSearchFilters">
+                <i class="pi pi-search"></i>
+                <PvInputText
+                  v-model="search"
+                  class="market-search"
+                  autocomplete="off"
+                  placeholder="Bosch, žebřík, Praha..."
+                />
+                <button class="market-topbar-filter-btn" type="button" @click.stop="toggleFilters" aria-label="Filtry">
+                  <i class="pi pi-sliders-h"></i>
+                  <span v-if="activeFilterCount > 0" class="market-topbar-filter-badge">{{ activeFilterCount }}</span>
+                </button>
+              </div>
               <div class="market-topbar-actions">
                 <button class="market-avatar-btn" type="button" aria-label="Profil">
                   {{ user.name.charAt(0).toUpperCase() }}
@@ -3028,7 +3075,90 @@ if (typeof window !== "undefined") {
             </button>
           </div>
 
-            <div v-show="searchExpanded" class="market-filter-shell">
+          <section class="market-section market-section-top">
+            <div class="market-section-head market-section-head-row">
+              <h2>Nejbližší nabídky</h2>
+              <div class="market-section-arrows">
+                <button class="market-arrow-btn" type="button" aria-label="Předchozí" @click="scrollTopListings('left')">
+                  <i class="pi pi-chevron-left"></i>
+                </button>
+                <button class="market-arrow-btn" type="button" aria-label="Další" @click="scrollTopListings('right')">
+                  <i class="pi pi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+            <div class="market-card-grid market-card-grid-top" ref="topListingsRef">
+              <div
+                v-for="listing in featuredListings"
+                :key="listing.id"
+                class="market-item-card"
+                @click="openListing(listing.id)"
+              >
+                <div class="market-item-thumb" aria-hidden="true">
+                  <img v-if="listing.photo" :src="listing.photo" :alt="listing.title" class="market-item-thumb-img" />
+                  <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
+                </div>
+                <button
+                  class="market-item-favorite"
+                  :class="{ 'is-active': isFavorite(listing.id) }"
+                  type="button"
+                  :aria-label="isFavorite(listing.id) ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'"
+                  @click.stop="toggleFavorite(listing.id)"
+                >
+                  <i :class="['pi', isFavorite(listing.id) ? 'pi-heart-fill' : 'pi-heart']"></i>
+                </button>
+                <div class="market-item-copy">
+                  <div class="market-item-copy-head">
+                    <h3>{{ listing.title }}</h3>
+                  </div>
+                  <p class="market-item-location">{{ listing.location }} • {{ listing.distance }}</p>
+                  <div class="market-item-meta">
+                    <span class="market-item-price">{{ listing.price }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="market-bottom-shell">
+            <section class="market-section">
+              <div class="market-section-head market-section-head-row">
+                <h2>Všechny nabídky</h2>
+              </div>
+              <div class="market-card-grid">
+                <div
+                  v-for="listing in allMarketplaceListings"
+                  :key="listing.id"
+                  class="market-item-card"
+                  @click="openListing(listing.id)"
+                >
+                  <div class="market-item-thumb" aria-hidden="true">
+                    <img v-if="listing.photo" :src="listing.photo" :alt="listing.title" class="market-item-thumb-img" />
+                    <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
+                  </div>
+                  <button
+                    class="market-item-favorite"
+                    :class="{ 'is-active': isFavorite(listing.id) }"
+                    type="button"
+                    :aria-label="isFavorite(listing.id) ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'"
+                    @click.stop="toggleFavorite(listing.id)"
+                  >
+                    <i :class="['pi', isFavorite(listing.id) ? 'pi-heart-fill' : 'pi-heart']"></i>
+                  </button>
+                  <div class="market-item-copy">
+                    <div class="market-item-copy-head">
+                      <h3>{{ listing.title }}</h3>
+                    </div>
+                    <p class="market-item-location">{{ listing.location }} • {{ listing.distance }}</p>
+                    <div class="market-item-meta">
+                      <span class="market-item-price">{{ listing.price }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div v-show="searchExpanded" class="market-filter-shell" :class="{ 'is-desktop-open': filtersOpen }">
             <div class="market-filter-panel" :class="{ 'is-open': filtersOpen }">
               <div class="market-filter-panel-mobile-top">
                 <div class="market-search-shell market-search-shell-overlay">
@@ -3084,7 +3214,7 @@ if (typeof window !== "undefined") {
                 </div>
 
               <div class="market-filter-grid">
-                <label class="field filter-field">
+                <label class="field filter-field filter-range-field">
                   <span>Cena za den</span>
                   <div class="filter-range-input">
                     <div class="filter-inline-input">
@@ -3182,80 +3312,7 @@ if (typeof window !== "undefined") {
             </div>
             </div>
           </div>
-
-          <section class="market-section">
-            <div class="market-section-head">
-              <h2>Nejbližší nabídky</h2>
-            </div>
-            <div class="market-card-grid market-card-grid-top">
-              <div
-                v-for="listing in featuredListings"
-                :key="listing.id"
-                class="market-item-card"
-                @click="openListing(listing.id)"
-              >
-                <div class="market-item-thumb" aria-hidden="true">
-                  <img v-if="listing.photo" :src="listing.photo" :alt="listing.title" class="market-item-thumb-img" />
-                  <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
-                </div>
-                <button
-                  class="market-item-favorite"
-                  :class="{ 'is-active': isFavorite(listing.id) }"
-                  type="button"
-                  :aria-label="isFavorite(listing.id) ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'"
-                  @click.stop="toggleFavorite(listing.id)"
-                >
-                  <i :class="['pi', isFavorite(listing.id) ? 'pi-heart-fill' : 'pi-heart']"></i>
-                </button>
-                <div class="market-item-copy">
-                  <div class="market-item-copy-head">
-                    <h3>{{ listing.title }}</h3>
-                  </div>
-                  <p class="market-item-location">{{ listing.location }} • {{ listing.distance }}</p>
-                  <div class="market-item-meta">
-                    <span class="market-item-price">{{ listing.price }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="market-section">
-            <div class="market-section-head market-section-head-row">
-              <h2>Všechny nabídky</h2>
-            </div>
-            <div class="market-card-grid">
-              <div
-                v-for="listing in allMarketplaceListings"
-                :key="listing.id"
-                class="market-item-card"
-                @click="openListing(listing.id)"
-              >
-                <div class="market-item-thumb" aria-hidden="true">
-                  <img v-if="listing.photo" :src="listing.photo" :alt="listing.title" class="market-item-thumb-img" />
-                  <span v-if="!listing.depositRequired" class="market-item-thumb-badge">Bez zálohy</span>
-                </div>
-                <button
-                  class="market-item-favorite"
-                  :class="{ 'is-active': isFavorite(listing.id) }"
-                  type="button"
-                  :aria-label="isFavorite(listing.id) ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'"
-                  @click.stop="toggleFavorite(listing.id)"
-                >
-                  <i :class="['pi', isFavorite(listing.id) ? 'pi-heart-fill' : 'pi-heart']"></i>
-                </button>
-                <div class="market-item-copy">
-                  <div class="market-item-copy-head">
-                    <h3>{{ listing.title }}</h3>
-                  </div>
-                  <p class="market-item-location">{{ listing.location }} • {{ listing.distance }}</p>
-                  <div class="market-item-meta">
-                    <span class="market-item-price">{{ listing.price }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+          </div>
 
         </div>
 
@@ -3315,8 +3372,6 @@ if (typeof window !== "undefined") {
 
           <!-- Hero foto -->
           <div class="detail-hero-media">
-            <img v-if="selectedListing.photo" :src="selectedListing.photo" :alt="selectedListing.title" class="detail-hero-img" />
-            <div v-else class="detail-hero-placeholder" aria-hidden="true"></div>
             <div class="detail-hero-actions">
               <button class="detail-action-btn" type="button" aria-label="Zpět" @click="goBack">
                 <i class="pi pi-angle-left"></i>
@@ -3336,7 +3391,33 @@ if (typeof window !== "undefined") {
                 </button>
               </div>
             </div>
-            <div class="detail-hero-counter">1 / 4</div>
+            <div class="detail-carousel-wrap">
+              <button class="detail-carousel-arrow detail-carousel-arrow--left" type="button" @click="scrollCarousel('left')" aria-label="Předchozí">
+                <i class="pi pi-chevron-left"></i>
+              </button>
+              <div class="detail-carousel" ref="detailCarouselRef">
+                <div class="detail-carousel-item">
+                  <div class="detail-carousel-placeholder"></div>
+                </div>
+                <div class="detail-carousel-item">
+                  <div class="detail-carousel-placeholder"></div>
+                </div>
+                <div class="detail-carousel-item detail-carousel-item--main" @click="selectedListing.photo && (lightboxSrc = selectedListing.photo)">
+                  <img v-if="selectedListing.photo" :src="selectedListing.photo" :alt="selectedListing.title" class="detail-hero-img" />
+                  <div v-else class="detail-carousel-placeholder"></div>
+                  <span class="detail-carousel-star"><i class="pi pi-star-fill"></i></span>
+                </div>
+                <div class="detail-carousel-item">
+                  <div class="detail-carousel-placeholder"></div>
+                </div>
+                <div class="detail-carousel-item">
+                  <div class="detail-carousel-placeholder"></div>
+                </div>
+              </div>
+              <button class="detail-carousel-arrow detail-carousel-arrow--right" type="button" @click="scrollCarousel('right')" aria-label="Další">
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            </div>
           </div>
 
           <!-- Hlavička -->
@@ -3384,6 +3465,22 @@ if (typeof window !== "undefined") {
                 <i class="pi pi-comment"></i>
               </button>
             </div>
+
+            <!-- Lokalita (pravý sloupec) -->
+            <div class="detail-section detail-section--location">
+              <div class="detail-section-head detail-section-head-row">
+                <strong>Lokalita</strong>
+                <small>{{ selectedListing.location }} ({{ selectedListing.distance }})</small>
+              </div>
+              <div class="detail-map-placeholder">
+                <span class="detail-map-pin"><i class="pi pi-map-marker"></i></span>
+              </div>
+            </div>
+
+            <!-- Rezervovat (pravý sloupec) -->
+            <button class="detail-reserve-cta" type="button" @click="handlePrimaryCTA">
+              REZERVOVAT
+            </button>
           </div>
 
           <!-- Popis -->
@@ -3437,23 +3534,6 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <!-- Lokalita -->
-          <div class="detail-section">
-            <div class="detail-section-head detail-section-head-row">
-              <strong>Lokalita</strong>
-              <small>{{ selectedListing.location }} ({{ selectedListing.distance }})</small>
-            </div>
-            <div class="detail-map-placeholder">
-              <span class="detail-map-pin"><i class="pi pi-map-marker"></i></span>
-            </div>
-          </div>
-
-          <!-- CTA -->
-          <div class="detail-sticky-cta">
-            <button class="detail-reserve-cta" type="button" @click="handlePrimaryCTA">
-              REZERVOVAT
-            </button>
-          </div>
 
         </div>
 
@@ -6708,6 +6788,14 @@ if (typeof window !== "undefined") {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div v-if="lightboxSrc" class="lightbox-overlay" @click="lightboxSrc = null">
+      <button class="lightbox-close" type="button" @click="lightboxSrc = null" aria-label="Zavřít">
+        <i class="pi pi-times"></i>
+      </button>
+      <img :src="lightboxSrc" class="lightbox-img" @click.stop />
     </div>
 
     <!-- Confirm Logout All Modal -->

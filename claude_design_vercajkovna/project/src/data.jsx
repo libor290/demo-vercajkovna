@@ -1,12 +1,12 @@
 // Mock data for Vercajkovna
 
 const CATEGORIES = [
-  { id: 'all', label: 'Všechno', glyph: '◍' },
-  { id: 'stavba', label: 'Stavba', glyph: '▲' },
-  { id: 'dilna', label: 'Dílna', glyph: '◆' },
-  { id: 'udrzba', label: 'Údržba', glyph: '●' },
-  { id: 'mereni', label: 'Měření', glyph: '│' },
-  { id: 'ostatni', label: 'Ostatní', glyph: '◌' },
+  { id: 'all', label: 'Vše', icon: 'grid' },
+  { id: 'stavba', label: 'Stavba', icon: 'wrench' },
+  { id: 'dilna', label: 'Dílna', icon: 'settings' },
+  { id: 'udrzba', label: 'Údržba', icon: 'sliders' },
+  { id: 'mereni', label: 'Měření', icon: 'ruler' },
+  { id: 'ostatni', label: 'Ostatní', icon: 'tag' },
 ];
 
 // Real photos from Unsplash for hero listings

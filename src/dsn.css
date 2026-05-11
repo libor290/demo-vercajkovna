@@ -152,19 +152,20 @@ button:active { transform: none !important; }
 /* ── BOTTOM NAV ─────────────────────────────────────────────── */
 
 .bottom-nav {
-  background: var(--dsn-surface);
-  border-top: 1px solid var(--dsn-border);
-  box-shadow: 0 -2px 12px rgba(58,37,25,.06);
+  background: var(--dsn-brand-dark, #24140d);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28);
   height: var(--h-nav);
 }
 
 .bottom-nav-item {
-  color: var(--dsn-subtle);
+  color: rgba(255,255,255,0.45);
   transition: color var(--ease-fast);
 }
 
 .bottom-nav-item.is-active {
-  color: var(--dsn-brand);
+  color: #fff;
+  background: rgba(255,255,255,0.1);
 }
 
 .bottom-nav-item i {
@@ -175,6 +176,31 @@ button:active { transform: none !important; }
   font-size: var(--t-xs);
   font-weight: 600;
   letter-spacing: 0.03em;
+}
+
+@media (min-width: 1200px) {
+  .bottom-nav {
+    background: var(--dsn-brand-dark, #24140d);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+    height: auto;
+  }
+  .bottom-nav-item {
+    color: rgba(255,255,255,0.45);
+  }
+  .bottom-nav-item.is-active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
+  .bottom-nav-item i {
+    font-size: 1rem;
+  }
+  .bottom-nav-item span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 }
 
 /* ── AUTH — SHELL ────────────────────────────────────────────── */
@@ -900,9 +926,20 @@ button:active { transform: none !important; }
 /* ── MARKET — HERO CARD ──────────────────────────────────────── */
 
 .market-hero-card {
-  border-radius: var(--r-xl);
+  border-radius: var(--r-md);
   overflow: hidden;
   box-shadow: var(--sh-2);
+}
+
+@media (min-width: 1200px) {
+  .market-hero-card {
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--dsn-border);
+  }
 }
 
 .market-page-kicker {

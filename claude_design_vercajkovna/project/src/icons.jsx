@@ -37,6 +37,9 @@ const Icon = ({ name, size = 20, stroke = 1.6, color = 'currentColor' }) => {
     case 'send': return <svg {...P}><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>;
     case 'edit': return <svg {...P}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
     case 'dots': return <svg {...P}><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>;
+    case 'grid': return <svg {...P}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
+    case 'ruler': return <svg {...P}><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M8 3v4M12 3v2M16 3v4M3 8h4M3 12h2M3 16h4"/></svg>;
+    case 'tag': return <svg {...P}><path d="M12 2H7a2 2 0 0 0-2 2v5l7 13 8.5-8.5L12 2z"/><circle cx="9" cy="9" r="1.5" fill={color}/></svg>;
     case 'sparkles': return <svg {...P}><path d="m12 3 2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z"/><path d="M19 12l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"/></svg>;
     case 'wrench': return <svg {...P}><path d="M14.7 6.3a4.5 4.5 0 0 0 6 6L17 16l-6 6-3-3 6-6-3.3-3.7a4.5 4.5 0 0 0 4-3z"/></svg>;
     case 'hammer': return <svg {...P}><path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64a1 1 0 0 0 0-1.41L19 6.28a1 1 0 0 0-1.41 0L13 10.64"/><path d="m11 8 5 5"/></svg>;

@@ -165,7 +165,7 @@ const AuthScreen = ({ onAuth, onClose }) => {
         )}
 
         <Btn variant="primary" size="lg" onClick={submit} disabled={!canSubmit} style={{ marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {mode === 'login' ? 'Jdeme na to' : mode === 'register' ? 'POJĎ DO TOHO' : 'POSLAT ODKAZ'}
+          {mode === 'login' ? 'test' : mode === 'register' ? 'POJĎ DO TOHO' : 'POSLAT ODKAZ'}
         </Btn>
       </div>
 

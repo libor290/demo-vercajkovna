@@ -569,6 +569,7 @@ const notificationCount = ref(2);
 const techSpecsOpen = ref(true);
 const techSpecsMore = ref(false);
 const rentalTermsOpen = ref(true);
+const rulesInlineOpen = ref(false);
 const descriptionExpanded = ref(false);
 const profileListTab = ref<"offers" | "requests">("offers");
 const publicProfileListTab = ref<"offers" | "requests">("offers");
@@ -2250,7 +2251,11 @@ function openFavorites() {
 }
 
 function openRules() {
-  setScreen("rules");
+  if (window.innerWidth >= 1280) {
+    rulesInlineOpen.value = !rulesInlineOpen.value;
+  } else {
+    setScreen("rules");
+  }
 }
 
 function openPayment() {
@@ -3372,26 +3377,26 @@ if (typeof window !== "undefined") {
 
           <!-- Hero foto -->
           <div class="detail-hero-media">
-            <div class="detail-hero-actions">
-              <button class="detail-action-btn" type="button" aria-label="Zpět" @click="goBack">
-                <i class="pi pi-angle-left"></i>
-              </button>
-              <div class="detail-action-group">
-                <button class="detail-action-btn" type="button" aria-label="Sdílet">
-                  <i class="pi pi-share-alt"></i>
-                </button>
-                <button
-                  class="detail-action-btn"
-                  type="button"
-                  :class="{ 'is-active': isFavorite(selectedListing.id) }"
-                  :aria-label="isFavorite(selectedListing.id) ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'"
-                  @click="toggleFavorite(selectedListing.id)"
-                >
-                  <i :class="['pi', isFavorite(selectedListing.id) ? 'pi-heart-fill' : 'pi-heart']"></i>
-                </button>
-              </div>
-            </div>
             <div class="detail-carousel-wrap">
+              <div class="detail-hero-actions">
+                <button class="detail-action-btn" type="button" aria-label="Zpět" @click="goBack">
+                  <i class="pi pi-angle-left"></i>
+                </button>
+                <div class="detail-action-group">
+                  <button class="detail-action-btn" type="button" aria-label="Sdílet">
+                    <i class="pi pi-share-alt"></i>
+                  </button>
+                  <button
+                    class="detail-action-btn"
+                    type="button"
+                    :class="{ 'is-active': isFavorite(selectedListing.id) }"
+                    :aria-label="isFavorite(selectedListing.id) ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'"
+                    @click="toggleFavorite(selectedListing.id)"
+                  >
+                    <i :class="['pi', isFavorite(selectedListing.id) ? 'pi-heart-fill' : 'pi-heart']"></i>
+                  </button>
+                </div>
+              </div>
               <button class="detail-carousel-arrow detail-carousel-arrow--left" type="button" @click="scrollCarousel('left')" aria-label="Předchozí">
                 <i class="pi pi-chevron-left"></i>
               </button>
@@ -3466,8 +3471,8 @@ if (typeof window !== "undefined") {
               </button>
             </div>
 
-            <!-- Lokalita (pravý sloupec) -->
-            <div class="detail-section detail-section--location">
+            <!-- Lokalita + Rezervovat — desktop only (pravý sloupec) -->
+            <div class="detail-section detail-desktop-only">
               <div class="detail-section-head detail-section-head-row">
                 <strong>Lokalita</strong>
                 <small>{{ selectedListing.location }} ({{ selectedListing.distance }})</small>
@@ -3477,8 +3482,7 @@ if (typeof window !== "undefined") {
               </div>
             </div>
 
-            <!-- Rezervovat (pravý sloupec) -->
-            <button class="detail-reserve-cta" type="button" @click="handlePrimaryCTA">
+            <button class="detail-reserve-cta detail-desktop-only" type="button" @click="handlePrimaryCTA">
               REZERVOVAT
             </button>
           </div>
@@ -3534,6 +3538,86 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
+          <!-- Lokalita — mobil only -->
+          <div class="detail-section detail-mobile-only">
+            <div class="detail-section-head detail-section-head-row">
+              <strong>Lokalita</strong>
+              <small>{{ selectedListing.location }} ({{ selectedListing.distance }})</small>
+            </div>
+            <div class="detail-map-placeholder">
+              <span class="detail-map-pin"><i class="pi pi-map-marker"></i></span>
+            </div>
+          </div>
+
+          <!-- Plovoucí rezervovat — mobil only -->
+          <div class="detail-sticky-cta detail-mobile-only">
+            <button class="detail-reserve-cta" type="button" @click="handlePrimaryCTA">
+              REZERVOVAT
+            </button>
+          </div>
+
+          <!-- Pravidla inline — desktop only -->
+          <div v-if="rulesInlineOpen" class="detail-rules-inline detail-desktop-only">
+            <div class="rules-section">
+              <span class="rules-section-label">Předání a vrácení</span>
+              <div class="rules-card-grid">
+                <div class="rules-card">
+                  <small>Vyzvednutí</small>
+                  <strong>{{ selectedListing.pickupTimeFrom ? 'Po ' + selectedListing.pickupTimeFrom : '—' }}</strong>
+                </div>
+                <div class="rules-card">
+                  <small>Vrácení</small>
+                  <strong>{{ selectedListing.pickupTimeTo ? 'Do ' + selectedListing.pickupTimeTo : '—' }}</strong>
+                </div>
+              </div>
+              <div class="rules-card rules-card-block">
+                <small>Způsob předání</small>
+                <div class="rules-chip-row">
+                  <span class="rules-chip" :class="{ 'is-active': selectedListing.pickupMode !== 'other' }">Osobně</span>
+                  <span class="rules-chip" :class="{ 'is-active': selectedListing.pickupMode === 'other' }">Jiné</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rules-section">
+              <span class="rules-section-label">Pravidla zacházení</span>
+              <div class="rules-card rules-card-block">
+                <strong>Stav věci</strong>
+                <p>Vrátit v původním a čistém stavu</p>
+              </div>
+              <div class="rules-card rules-card-block">
+                <strong>Omezení užívání</strong>
+                <ul class="rules-list">
+                  <li v-if="selectedListing.rules?.noModifications">Zákaz úprav a modifikací</li>
+                  <li v-if="selectedListing.rules?.purposeOnly">Určeno jen k běžnému účelu</li>
+                  <li v-if="selectedListing.rules?.noThirdParty">Zákaz půjčení 3. osobě</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="rules-section">
+              <span class="rules-section-label">Poškození a sankce</span>
+              <div class="rules-card rules-card-block">
+                <strong>Při porušení pravidel</strong>
+                <div class="rules-row">
+                  <span>Ztráta nároku na zálohu</span>
+                  <strong>{{ selectedListing.rules?.depositForfeit ? 'Ano' : 'Ne' }}</strong>
+                </div>
+                <div class="rules-row">
+                  <span>Smluvní sankce</span>
+                  <strong>Dle smlouvy</strong>
+                </div>
+              </div>
+              <div class="rules-card rules-card-block">
+                <strong>Pozdní vrácení</strong>
+                <p>Poplatek 100 Kč za každou započatou hodinu prodlení</p>
+              </div>
+            </div>
+
+            <button class="detail-rules-close" type="button" @click="rulesInlineOpen = false">
+              SKRÝT PRAVIDLA
+            </button>
+          </div>
 
         </div>
 
@@ -5534,17 +5618,17 @@ if (typeof window !== "undefined") {
                       <input v-model="addListingDraft.rules.other" type="checkbox" />
                       <span>Jiné</span>
                     </label>
-                  </div>
-                  <div v-if="addListingDraft.rules.other" class="add-flow-field" style="margin-top: 12px;">
-                    <textarea
-                      v-model="addListingDraft.rules.otherDescription"
-                      class="rules-other-textarea"
-                      :class="{ 'is-error': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }"
-                      placeholder="Popište vlastní pravidla (povinné)"
-                      rows="3"
-                    ></textarea>
-                    <div v-if="addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim()" class="add-flow-error">
-                      Popiš vlastní pravidla — pole nesmí být prázdné.
+                    <div v-if="addListingDraft.rules.other" class="add-flow-rules-other">
+                      <textarea
+                        v-model="addListingDraft.rules.otherDescription"
+                        class="rules-other-textarea"
+                        :class="{ 'is-error': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }"
+                        placeholder="Popište vlastní pravidla (povinné)"
+                        rows="3"
+                      ></textarea>
+                      <div v-if="addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim()" class="add-flow-error">
+                        Popiš vlastní pravidla — pole nesmí být prázdné.
+                      </div>
                     </div>
                   </div>
                 </div>

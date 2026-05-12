@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  --bg: #F4EDE0;
+  --bg: #FFF9EF;
   --bg-soft: #e9e0d1;
   --surface: rgba(253, 249, 241, 0.98);
   --surface-strong: #fdf9f1;
@@ -37,7 +37,7 @@ body {
   min-height: 100vh;
   font-family: var(--font-body);
   color: var(--text);
-  background: var(--bg);
+  background: var(--surface);
 }
 button,
 input,
@@ -55,7 +55,7 @@ a {
 .app-shell {
   position: relative;
   min-height: 100vh;
-  background: var(--bg);
+  background: #FFF9EF;
 }
 .backdrop {
   position: fixed;
@@ -6380,6 +6380,13 @@ a {
 .hidden {
   display: none !important;
 }
+/* Defaultně (mobil): desktop-only skryté, mobile-only viditelné */
+.detail-desktop-only {
+  display: none !important;
+}
+.detail-mobile-only {
+  display: block;
+}
 @media (max-width: 720px) {
   .frame,
   .topbar-inner {
@@ -8260,6 +8267,10 @@ a {
   margin-top: 1px;
   flex-shrink: 0;
 }
+.add-flow-rules-other {
+  grid-column: 1 / -1;
+  padding: 12px 0 4px 28px;
+}
 .rules-other-textarea {
   width: 100%;
   border-radius: 14px;
@@ -8820,6 +8831,136 @@ a {
     display: none;
   }
 
+  /* Skrýt pravidla tlačítko */
+  .detail-rules-hide {
+    width: 100%;
+    padding: 12px;
+    background: none;
+    border: none;
+    color: var(--dsn-muted, #6d584a);
+    font-family: var(--font-raw);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .detail-rules-hide:hover {
+    color: var(--dsn-text, #352116);
+  }
+
+  /* Toggle řádek pro pravidla uvnitř podmínek */
+  .detail-spec-row-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--dsn-text, #352116);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  /* Pravidla užívání — inline v detailu, 2 sloupce */
+  .detail-rules-inline,
+  .detail-spec-list .detail-rules-inline {
+    display: grid !important;
+    flex-direction: unset;
+    align-items: unset;
+    justify-content: unset;
+    gap: 20px;
+    padding-top: 12px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .detail-rules-inline .rules-section {
+    min-width: 0;
+    width: 100%;
+  }
+  .detail-rules-inline .rules-card {
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* Pravidla inline — samostatná bílá karta */
+  .detail-rules-inline,
+  .detail-spec-list .detail-rules-inline {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0;
+    padding: 20px;
+    border: 1px solid rgba(58,37,25,0.12);
+    border-radius: 18px;
+    background: #fff;
+    align-items: unset;
+    justify-content: unset;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .detail-rules-inline .rules-section {
+    display: contents !important;
+  }
+  .detail-rules-inline .rules-section-label {
+    display: none !important;
+  }
+  .detail-rules-inline .rules-card-grid {
+    display: contents !important;
+  }
+  .detail-rules-inline .rules-card {
+    display: grid !important;
+    gap: 6px;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px solid rgba(58,37,25,0.08);
+    border-radius: 0;
+    background: transparent;
+    align-items: unset;
+    justify-content: unset;
+  }
+  .detail-rules-inline .rules-card:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .detail-rules-inline,
+  .detail-spec-list .detail-rules-inline {
+    gap: 10px;
+  }
+  .detail-rules-inline .rules-chip-row {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .detail-rules-inline .rules-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 0;
+  }
+
+  /* Pravidla užívání — stránka (zachovat pro mobil) */
+  .rules-page {
+    max-width: 860px;
+  }
+  .rules-section {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rules-section-label {
+    grid-column: 1 / -1;
+  }
+  .rules-card-grid {
+    grid-column: 1 / -1;
+  }
+
   /* Detail page — 2-sloupcový layout */
   .detail-page {
     display: grid;
@@ -8832,11 +8973,13 @@ a {
   /* Carousel a hero media přes celou šířku gridu */
   .detail-hero-media {
     grid-column: 1 / -1;
-    position: relative;
     min-height: 0;
     background: transparent;
-    border-radius: 20px;
-    overflow: visible;
+  }
+
+  /* Wrap má position: relative pro overlay akcí a šipek */
+  .detail-carousel-wrap {
+    position: relative;
   }
 
   /* Lightbox */
@@ -8962,17 +9105,24 @@ a {
   .detail-head,
   .detail-description,
   .detail-specs,
-  .detail-badges-section {
+  .detail-badges-section,
+  .detail-section,
+  .detail-section-card {
     grid-column: 1;
+    min-width: 0;
   }
 
   /* Pravý sloupec — booking karty sticky */
   .detail-info-stack {
     grid-column: 2;
-    grid-row: 2 / span 10;
+    grid-row: 3 / span 10;
     position: sticky;
     top: 20px;
   }
+
+  /* Desktop/mobil only utility */
+  .detail-desktop-only { display: block !important; }
+  .detail-mobile-only  { display: none !important; }
 
   /* Rezervovat — normální tlačítko v pravém sloupci, ne floating */
   .detail-sticky-cta {
@@ -8989,5 +9139,35 @@ a {
   }
   .detail-section--location {
     margin-top: 4px;
+  }
+
+  /* Inline pravidla — levý sloupec */
+  .detail-rules-inline {
+    grid-column: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    padding: 20px;
+    border-radius: 20px;
+    background: var(--surface, #f5f0e8);
+    border: 1px solid rgba(58, 37, 25, 0.1);
+    margin-top: -32px;
+  }
+
+  .detail-rules-close {
+    grid-column: 1 / -1;
+    justify-self: center;
+    background: none;
+    border: none;
+    font-family: var(--font-raw, monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 8px 0;
+  }
+  .detail-rules-close:hover {
+    color: var(--brand);
   }
 }

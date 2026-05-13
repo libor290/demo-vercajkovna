@@ -2648,7 +2648,6 @@ if (typeof window !== "undefined") {
       v-if="
         screen !== 'auth' &&
         screen !== 'help-contact' &&
-        screen !== 'detail' &&
         screen !== 'onboarding' &&
         screen !== 'public-profile' &&
         screen !== 'pending-request' &&
@@ -2685,18 +2684,18 @@ if (typeof window !== "undefined") {
           </template>
         </div>
 
-        <!-- Pravá strana — prázdný placeholder pro symetrii -->
-        <div style="width: 44px; flex-shrink: 0;">
-          <button
-            v-if="false"
-            class="icon-button"
-            type="button"
-            aria-label="Přihlas se"
-            @click="openAuth()"
-          >
-            <i class="pi pi-sign-in"></i>
-          </button>
+        <!-- DESKTOP only: logo uprostřed (absolutně) -->
+        <div class="topbar-desktop-brand">
+          <strong>Vercajkovna</strong>
         </div>
+
+        <!-- Pravá strana — placeholder pro symetrii (mobil) -->
+        <div style="width: 44px; flex-shrink: 0;"></div>
+
+        <!-- DESKTOP only: profil vpravo -->
+        <button class="icon-button topbar-desktop-profile" type="button" aria-label="Profil" @click="openProfile()">
+          <i class="pi pi-user"></i>
+        </button>
       </div>
     </header>
 
@@ -3379,9 +3378,6 @@ if (typeof window !== "undefined") {
           <div class="detail-hero-media">
             <div class="detail-carousel-wrap">
               <div class="detail-hero-actions">
-                <button class="detail-action-btn" type="button" aria-label="Zpět" @click="goBack">
-                  <i class="pi pi-angle-left"></i>
-                </button>
                 <div class="detail-action-group">
                   <button class="detail-action-btn" type="button" aria-label="Sdílet">
                     <i class="pi pi-share-alt"></i>
@@ -3485,6 +3481,11 @@ if (typeof window !== "undefined") {
             <button class="detail-reserve-cta detail-desktop-only" type="button" @click="handlePrimaryCTA">
               REZERVOVAT
             </button>
+
+            <!-- Placeholder reklamy -->
+            <div class="detail-ad-placeholder detail-desktop-only">
+              <span>REKLAMA</span>
+            </div>
           </div>
 
           <!-- Popis -->
@@ -3562,16 +3563,16 @@ if (typeof window !== "undefined") {
               <span class="rules-section-label">Předání a vrácení</span>
               <div class="rules-card-grid">
                 <div class="rules-card">
-                  <small>Vyzvednutí</small>
+                  <strong>Vyzvednutí</strong>
                   <strong>{{ selectedListing.pickupTimeFrom ? 'Po ' + selectedListing.pickupTimeFrom : '—' }}</strong>
                 </div>
                 <div class="rules-card">
-                  <small>Vrácení</small>
+                  <strong>Vrácení</strong>
                   <strong>{{ selectedListing.pickupTimeTo ? 'Do ' + selectedListing.pickupTimeTo : '—' }}</strong>
                 </div>
               </div>
               <div class="rules-card rules-card-block">
-                <small>Způsob předání</small>
+                <strong>Způsob předání</strong>
                 <div class="rules-chip-row">
                   <span class="rules-chip" :class="{ 'is-active': selectedListing.pickupMode !== 'other' }">Osobně</span>
                   <span class="rules-chip" :class="{ 'is-active': selectedListing.pickupMode === 'other' }">Jiné</span>

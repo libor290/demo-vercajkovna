@@ -24,6 +24,7 @@ const LISTINGS = [
     badges: ['Top hodnocení', 'Rychle odpovídá'],
     description: 'Přesná ponorná pila pro řezání laminovaných desek, podlah i masivu. Pila jede jako hodinky, řez je čistý bez otřepů. Přibalím i vodicí lištu 1400 mm, paralelní doraz a náhradní pilový kotouč na dřevo.',
     available: true,
+    rules: { pickup: 'Osobní předání', lateFee: 450, noMods: true, purposeOnly: true, noThirdParty: false, depositForfeit: true },
   },
   {
     id: 'makita-drill',
@@ -38,6 +39,7 @@ const LISTINGS = [
     badges: ['Oblíbené'],
     description: 'Klasika do garáže. Dvě nabité baterie + nabíječka, chuck bez klíče, kufřík. Sadu bitů nepůjčuju — není to moje, je to od táty.',
     available: true,
+    rules: { pickup: 'Osobní předání', lateFee: 180, noMods: false, purposeOnly: true, noThirdParty: true, depositForfeit: false },
   },
   {
     id: 'karcher-wash',
@@ -52,6 +54,7 @@ const LISTINGS = [
     badges: ['Doporučujeme'],
     description: 'K5 Premium. Bere 145 bar, naplní kbelík fakt rychle. Hadice 8 m, rotační tryska přibalená. V létě je o něj zájem, rezervujte dopředu.',
     available: true,
+    rules: { pickup: 'Osobní předání', lateFee: 290, noMods: true, purposeOnly: false, noThirdParty: true, depositForfeit: true },
   },
   {
     id: 'laser-level',
@@ -66,6 +69,7 @@ const LISTINGS = [
     badges: ['Profi'],
     description: 'Tři plné laserové roviny, samonivelace do 4°. Použitelný pro SDK stropy, obklady i venku se stativem. Stativ k dispozici za příplatek 50 Kč/den.',
     available: true,
+    rules: { pickup: 'Zásilkovna nebo osobně', lateFee: 220, noMods: true, purposeOnly: true, noThirdParty: true, depositForfeit: true },
   },
   {
     id: 'hilti-breaker',
@@ -78,8 +82,9 @@ const LISTINGS = [
     owner: { name: 'Honza', initial: 'H', since: '2022', rating: 4.8 },
     photo: 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80',
     badges: ['Těžká kategorie'],
-    description: 'Kladivo váží svoje, ale práci odvede. Vhodné na bourání příček a odsekávání dlažby. Půjčuji jen zkušeným — předám s instrukcí.',
+    description: 'Kladivo váží svojé, ale práci odvede. Vhodné na bourání příček a odsekávání dlažby. Půjčuji jen zkušeným — předám s instrukcí.',
     available: true,
+    rules: { pickup: 'Osobní předání', lateFee: 680, noMods: true, purposeOnly: true, noThirdParty: true, depositForfeit: true },
   },
   {
     id: 'miter-saw',
@@ -94,6 +99,7 @@ const LISTINGS = [
     badges: ['Novinka'],
     description: 'Čerstvě servisovaná pila, kotouč ostrý. Ideální na obložky, lišty a rámy. Přibalím i náhradní kotouč na hliník.',
     available: false,
+    rules: { pickup: 'Osobní předání', lateFee: 320, noMods: true, purposeOnly: false, noThirdParty: false, depositForfeit: true },
   },
   {
     id: 'scaffold',
@@ -108,6 +114,7 @@ const LISTINGS = [
     badges: [],
     description: 'Stabilní hliníkové lešení na kolečkách. Sestavení vysvětlím. Vejde se i do výtahu po rozložení.',
     available: true,
+    rules: { pickup: 'Rozvoz po domluvě', lateFee: 390, noMods: false, purposeOnly: true, noThirdParty: false, depositForfeit: true },
   },
   {
     id: 'heat-gun',
@@ -122,6 +129,7 @@ const LISTINGS = [
     badges: ['Levně'],
     description: 'Na odstraňování laků, svařování fólií nebo rozehřívání zámků v zimě. Kufřík a pár trysek.',
     available: true,
+    rules: { pickup: 'Zásilkovna nebo osobně', lateFee: 110, noMods: false, purposeOnly: false, noThirdParty: false, depositForfeit: false },
   },
 ];
 

@@ -254,6 +254,33 @@ const DetailScreen = ({ listing, onBack, favorites, onToggleFav, onChat, onReser
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: palette.inkSoft }}>{listing.description}</p>
           </div>
 
+          {/* Pravidla užívání */}
+          {listing.rules && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: palette.inkMuted, fontWeight: 700, marginBottom: 10 }}>Pravidla užívání</div>
+              <div style={{ border: `1px solid ${palette.line}`, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                  <div style={{ background: '#fff', padding: '12px 16px' }}>
+                    <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, color: palette.inkMuted, marginBottom: 5 }}>Vyzvednutí</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: palette.brand }}>{listing.rules.pickup}</div>
+                  </div>
+                  <div style={{ background: '#fff', padding: '12px 16px', borderLeft: `1px solid ${palette.line}` }}>
+                    <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, color: palette.inkMuted, marginBottom: 5 }}>Pozdní vrácení</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: palette.brand }}>+{listing.rules.lateFee} Kč/den</div>
+                  </div>
+                </div>
+                {(listing.rules.noMods || listing.rules.purposeOnly || listing.rules.noThirdParty || listing.rules.depositForfeit) && (
+                  <div style={{ background: '#fff', borderTop: `1px solid ${palette.line}`, padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {listing.rules.noMods && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Zákaz úprav</span>}
+                    {listing.rules.purposeOnly && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Jen k účelu</span>}
+                    {listing.rules.noThirdParty && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Zákaz půjčení dál</span>}
+                    {listing.rules.depositForfeit && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Kauce při poškození</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Availability calendar mini */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: palette.inkMuted, fontWeight: 700, marginBottom: 10 }}>Dostupnost · Duben 2026</div>

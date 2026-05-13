@@ -106,6 +106,12 @@ a {
   gap: 2px;
   justify-items: center;
 }
+.topbar-desktop-brand {
+  display: none;
+}
+.topbar-desktop-profile {
+  display: none !important;
+}
 .topbar-title strong {
   font-size: 1rem;
   line-height: 1.05;
@@ -3787,6 +3793,7 @@ a {
 .detail-action-group {
   display: inline-flex;
   gap: 8px;
+  margin-left: auto;
 }
 .detail-action-btn {
   width: 40px;
@@ -4515,6 +4522,7 @@ a {
 .rules-row strong {
   color: var(--brand);
   font-weight: 700;
+  font-size: 0.84rem;
 }
 .payment-page {
   gap: 24px;
@@ -8433,10 +8441,37 @@ a {
     color: #24140d;
   }
 
-  /* Content frame */
-  .frame,
+  /* Content frame — omezená šířka, centrovaný */
+  .frame {
+    width: min(100vw - 80px, 1120px);
+    position: relative;
+  }
+  /* Header — původní šířka */
   .topbar-inner {
-    width: min(100vw - 48px, 1400px);
+    width: min(100vw - 48px, 1400px) !important;
+    position: relative;
+  }
+  .topbar-title {
+    display: none !important;
+  }
+  .topbar-desktop-brand {
+    display: flex;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .topbar-desktop-brand strong {
+    font-family: var(--font-raw);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--brand);
+    letter-spacing: -0.01em;
+  }
+  .topbar-desktop-profile {
+    display: grid;
+    place-items: center;
+    margin-left: auto;
   }
 
   /* Remove bottom padding (no bottom nav) */
@@ -8485,6 +8520,10 @@ a {
     border-bottom: 1px solid var(--dsn-border, rgba(58,37,25,.14));
     border-radius: 0;
     box-shadow: none;
+    /* Rozšíř nad rámec .frame na šířku headeru */
+    --hero-w: min(100vw - 48px, 1400px);
+    width: var(--hero-w);
+    margin-left: calc((100% - var(--hero-w)) / 2);
   }
 
   /* Bottom shell: listings přes celou šířku */
@@ -8932,7 +8971,7 @@ a {
   }
   .detail-rules-inline,
   .detail-spec-list .detail-rules-inline {
-    gap: 10px;
+    gap: 14px !important;
   }
   .detail-rules-inline .rules-chip-row {
     display: flex !important;
@@ -9137,6 +9176,24 @@ a {
     border-radius: 14px;
     box-shadow: none;
   }
+  .detail-ad-placeholder {
+    margin-top: 16px;
+    width: 100%;
+    min-height: 360px;
+    border-radius: 14px;
+    border: 2px dashed rgba(58, 37, 25, 0.18);
+    background: rgba(58, 37, 25, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .detail-ad-placeholder span {
+    font-family: var(--font-raw);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: rgba(58, 37, 25, 0.3);
+  }
   .detail-section--location {
     margin-top: 4px;
   }
@@ -9144,12 +9201,12 @@ a {
   /* Inline pravidla — levý sloupec */
   .detail-rules-inline {
     grid-column: 1;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px !important;
     padding: 20px;
     border-radius: 20px;
-    background: var(--surface, #f5f0e8);
+    background: #fff;
     border: 1px solid rgba(58, 37, 25, 0.1);
     margin-top: -32px;
   }
@@ -9166,6 +9223,7 @@ a {
     color: var(--muted);
     cursor: pointer;
     padding: 8px 0;
+    margin-top: 24px;
   }
   .detail-rules-close:hover {
     color: var(--brand);

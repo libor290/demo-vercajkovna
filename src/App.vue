@@ -2815,7 +2815,7 @@ if (typeof window !== "undefined") {
               <div class="auth-success-icon">
                 <i class="pi pi-check-circle"></i>
               </div>
-              <h2>Instrukce odeslány!</h3>
+              <h2>Instrukce odeslány!</h2>
               <p>Koukni se do e-mailu. Pokud tam nic nenajdeš, zkus se podívat i do spamu.</p>
               
               <div class="auth-resend-box" style="margin-top: 24px;">

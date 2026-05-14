@@ -3122,7 +3122,7 @@ if (typeof window !== "undefined") {
 
           <section class="market-section market-section-top">
             <div class="market-section-head market-section-head-row">
-              <h2>Nejbližší nabídky</h3>
+              <h2>Nejbližší nabídky</h2>
               <div class="market-section-arrows">
                 <button class="market-arrow-btn" type="button" aria-label="Předchozí" @click="scrollTopListings('left')">
                   <i class="pi pi-chevron-left"></i>
@@ -3168,7 +3168,7 @@ if (typeof window !== "undefined") {
           <div class="market-bottom-shell">
             <section class="market-section">
               <div class="market-section-head market-section-head-row">
-                <h2>Všechny nabídky</h3>
+                <h2>Všechny nabídky</h2>
               </div>
               <div class="market-card-grid">
                 <div
@@ -6815,7 +6815,7 @@ if (typeof window !== "undefined") {
     <div v-if="cardToDelete" class="modal-overlay" @click.self="cardToDelete = null">
       <div class="modal-card">
         <div class="modal-head">
-          <h2>Odstranit kartu?</h3>
+          <h2>Odstranit kartu?</h2>
           <p>Opravdu chcete tuto kartu trvale odstranit?</p>
         </div>
         <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
@@ -6830,7 +6830,7 @@ if (typeof window !== "undefined") {
       <div class="modal-card 2fa-setup-card">
         <div class="modal-head">
           <span class="eyebrow" v-if="securityForm.twoFactorStep < 4">Krok {{ securityForm.twoFactorStep }} ze 3</span>
-          <h2>Nastavení 2FA</h3>
+          <h2>Nastavení 2FA</h2>
         </div>
 
         <!-- Step 1: Password Verification -->
@@ -6924,7 +6924,7 @@ if (typeof window !== "undefined") {
     <div v-if="confirmLogoutAllOpen" class="modal-overlay" @click.self="confirmLogoutAllOpen = false">
       <div class="modal-card">
         <div class="modal-head">
-          <h2>Odhlásit ze všech zařízení?</h3>
+          <h2>Odhlásit ze všech zařízení?</h2>
           <p>Budete odhlášeni na tomto i na všech ostatních zařízeních, kde jste přihlášeni.</p>
         </div>
         <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">

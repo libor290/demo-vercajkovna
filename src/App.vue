@@ -4126,7 +4126,7 @@ if (typeof window !== "undefined") {
               {{ viewedPublicProfile.charAt(0).toUpperCase() }}
             </div>
             <div style="text-align: center; display: grid; gap: 5px; width: 100%;">
-              <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h3>
+              <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h2>
               <button
                 type="button"
                 style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 0; cursor: pointer; padding: 0; font-size: 0.88rem; color: var(--brand);"

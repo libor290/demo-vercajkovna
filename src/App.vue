@@ -2584,22 +2584,63 @@ function scrollTopListings(dir: 'left' | 'right') {
 
 const detailCarouselRef = ref<HTMLElement | null>(null);
 const lightboxSrc = ref<string | null>(null);
-const MAIN_PHOTO_INDEX = 2; // hlavní foto je na pozici 2 (prostředek z 5)
+const carouselIndex = ref(1); // 1 = první reálná fotka (index 0 je klon posledního)
 
-function scrollCarouselToMain() {
+// Fotky aktivního listingu
+const carouselPhotos = computed<string[]>(() => {
+  if (!selectedListing.value) return [];
+  const l = selectedListing.value;
+  if (l.photos && l.photos.length > 0) return l.photos;
+  if (l.photo) return [l.photo];
+  return [];
+});
+
+// Pole s klony: [klon_posledního, ...reálné, klon_prvního]
+const carouselItems = computed<(string | null)[]>(() => {
+  const photos = carouselPhotos.value;
+  if (photos.length === 0) return [null];
+  if (photos.length === 1) return [photos[0]];
+  return [photos[photos.length - 1], ...photos, photos[0]];
+});
+
+function scrollToCarouselIndex(index: number, smooth: boolean) {
   const el = detailCarouselRef.value;
   if (!el) return;
-  const itemWidth = el.querySelector('.detail-carousel-item')?.clientWidth ?? 420;
+  const item = el.querySelectorAll<HTMLElement>('.detail-carousel-item')[index];
+  if (!item) return;
+  const itemWidth = item.clientWidth;
   const gap = 8;
-  const scrollTo = MAIN_PHOTO_INDEX * (itemWidth + gap) - (el.clientWidth - itemWidth) / 2;
-  el.scrollLeft = scrollTo;
+  const scrollLeft = index * (itemWidth + gap) - (el.clientWidth - itemWidth) / 2;
+  el.scrollTo({ left: scrollLeft, behavior: smooth ? 'smooth' : 'instant' });
 }
 
+function scrollCarouselToMain() {
+  carouselIndex.value = 1;
+  nextTick(() => scrollToCarouselIndex(1, false));
+}
+
+let carouselScrollTimer: ReturnType<typeof setTimeout> | null = null;
+
 function scrollCarousel(dir: 'left' | 'right') {
-  const el = detailCarouselRef.value;
-  if (!el) return;
-  const itemWidth = el.querySelector('.detail-carousel-item')?.clientWidth ?? 420;
-  el.scrollBy({ left: dir === 'right' ? itemWidth + 8 : -(itemWidth + 8), behavior: 'smooth' });
+  const photos = carouselPhotos.value;
+  if (photos.length <= 1) return;
+
+  const next = dir === 'right' ? carouselIndex.value + 1 : carouselIndex.value - 1;
+  carouselIndex.value = next;
+  scrollToCarouselIndex(next, true);
+
+  // Po animaci: pokud jsme na klonu, tiše přeskočit na reálnou pozici
+  if (carouselScrollTimer) clearTimeout(carouselScrollTimer);
+  carouselScrollTimer = setTimeout(() => {
+    const realCount = photos.length;
+    if (carouselIndex.value <= 0) {
+      carouselIndex.value = realCount;
+      scrollToCarouselIndex(realCount, false);
+    } else if (carouselIndex.value >= realCount + 1) {
+      carouselIndex.value = 1;
+      scrollToCarouselIndex(1, false);
+    }
+  }, 380);
 }
 
 function openSearchFilters() {
@@ -2774,7 +2815,7 @@ if (typeof window !== "undefined") {
               <div class="auth-success-icon">
                 <i class="pi pi-check-circle"></i>
               </div>
-              <h2>Instrukce odeslány!</h2>
+              <h2>Instrukce odeslány!</h3>
               <p>Koukni se do e-mailu. Pokud tam nic nenajdeš, zkus se podívat i do spamu.</p>
               
               <div class="auth-resend-box" style="margin-top: 24px;">
@@ -3081,7 +3122,7 @@ if (typeof window !== "undefined") {
 
           <section class="market-section market-section-top">
             <div class="market-section-head market-section-head-row">
-              <h2>Nejbližší nabídky</h2>
+              <h2>Nejbližší nabídky</h3>
               <div class="market-section-arrows">
                 <button class="market-arrow-btn" type="button" aria-label="Předchozí" @click="scrollTopListings('left')">
                   <i class="pi pi-chevron-left"></i>
@@ -3127,7 +3168,7 @@ if (typeof window !== "undefined") {
           <div class="market-bottom-shell">
             <section class="market-section">
               <div class="market-section-head market-section-head-row">
-                <h2>Všechny nabídky</h2>
+                <h2>Všechny nabídky</h3>
               </div>
               <div class="market-card-grid">
                 <div
@@ -3323,13 +3364,12 @@ if (typeof window !== "undefined") {
         <div v-else-if="screen === 'favorites'" class="screen-inner">
           <div class="detail-hero">
             <div class="detail-hero-copy">
-              <span class="eyebrow">Oblíbené</span>
-              <h1>Uložený vercajk</h1>
+              <h1>Uložený <span style="color: var(--brand-2)">vercajk</span></h1>
               <p>Věci, které sis označil a chceš se k nim vrátit později.</p>
             </div>
           </div>
 
-          <div v-if="favoriteListings.length" class="market-card-grid">
+          <div v-if="favoriteListings.length" class="market-card-grid" style="margin-top: 24px;">
             <div
               v-for="listing in favoriteListings"
               :key="listing.id"
@@ -3397,22 +3437,16 @@ if (typeof window !== "undefined") {
                 <i class="pi pi-chevron-left"></i>
               </button>
               <div class="detail-carousel" ref="detailCarouselRef">
-                <div class="detail-carousel-item">
-                  <div class="detail-carousel-placeholder"></div>
-                </div>
-                <div class="detail-carousel-item">
-                  <div class="detail-carousel-placeholder"></div>
-                </div>
-                <div class="detail-carousel-item detail-carousel-item--main" @click="selectedListing.photo && (lightboxSrc = selectedListing.photo)">
-                  <img v-if="selectedListing.photo" :src="selectedListing.photo" :alt="selectedListing.title" class="detail-hero-img" />
+                <div
+                  v-for="(photo, i) in carouselItems"
+                  :key="i"
+                  class="detail-carousel-item"
+                  :class="{ 'detail-carousel-item--main': i === 1 && carouselPhotos.length > 0 }"
+                  @click="photo && (lightboxSrc = photo)"
+                >
+                  <img v-if="photo" :src="photo" :alt="selectedListing.title" class="detail-hero-img" />
                   <div v-else class="detail-carousel-placeholder"></div>
-                  <span class="detail-carousel-star"><i class="pi pi-star-fill"></i></span>
-                </div>
-                <div class="detail-carousel-item">
-                  <div class="detail-carousel-placeholder"></div>
-                </div>
-                <div class="detail-carousel-item">
-                  <div class="detail-carousel-placeholder"></div>
+                  <span v-if="i === 1 && carouselPhotos.length > 0" class="detail-carousel-star"><i class="pi pi-star-fill"></i></span>
                 </div>
               </div>
               <button class="detail-carousel-arrow detail-carousel-arrow--right" type="button" @click="scrollCarousel('right')" aria-label="Další">
@@ -4092,7 +4126,7 @@ if (typeof window !== "undefined") {
               {{ viewedPublicProfile.charAt(0).toUpperCase() }}
             </div>
             <div style="text-align: center; display: grid; gap: 5px; width: 100%;">
-              <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h2>
+              <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h3>
               <button
                 type="button"
                 style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 0; cursor: pointer; padding: 0; font-size: 0.88rem; color: var(--brand);"
@@ -5161,7 +5195,7 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'add-listing'" class="screen-inner">
+        <div v-else-if="screen === 'add-listing'" class="screen-inner" :class="`add-listing-step-${addListingStep}`">
           <PvCard class="add-flow">
             <template #content>
               <div class="add-flow-header">
@@ -5188,7 +5222,7 @@ if (typeof window !== "undefined") {
 
               <div v-if="addListingStep === 1" class="add-listing-body">
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Fotografie vercajku</div>
+                  <h3 class="add-flow-section-title">Fotografie vercajku</h3>
 
                   <input
                     ref="addListingPhotoInput"
@@ -5280,7 +5314,7 @@ if (typeof window !== "undefined") {
                 </div>
 
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Název vercajku</div>
+                  <h3 class="add-flow-section-title">Název vercajku</h3>
                   <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingTitleError }">
                     <input
                       v-model="addListingDraft.title"
@@ -5295,7 +5329,7 @@ if (typeof window !== "undefined") {
                 </div>
 
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Kategorie</div>
+                  <h3 class="add-flow-section-title">Kategorie</h3>
                   <div class="add-flow-chips" :class="{ 'is-error': addListingProceedAttempt && addListingCategoryError }">
                     <button
                       v-for="item in categories.filter((cat) => cat.id !== 'all')"
@@ -5314,7 +5348,7 @@ if (typeof window !== "undefined") {
                 </div>
 
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Popis vercajku</div>
+                  <h3 class="add-flow-section-title">Popis vercajku</h3>
                   <div class="add-flow-input add-flow-input-textarea">
                     <textarea
                       v-model="addListingDraft.description"
@@ -5324,11 +5358,14 @@ if (typeof window !== "undefined") {
                     ></textarea>
                   </div>
                 </div>
+                <div class="add-flow-section add-flow-inline-cta">
+                  <button type="button" class="add-flow-cta-primary" @click="nextAddListingStep">Pokračovat</button>
+                </div>
               </div>
 
               <div v-else-if="addListingStep === 2" class="add-listing-body add-flow-step2">
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Cena za den</div>
+                  <h3 class="add-flow-section-title">Cena za den</h3>
                   <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingPriceError }">
                     <input v-model.number="addListingDraft.pricePerDay" class="add-flow-native" type="number" min="0" placeholder="0" />
                     <span class="add-flow-suffix">Kč</span>
@@ -5365,7 +5402,7 @@ if (typeof window !== "undefined") {
                 </div>
 
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Dostupnost pro vypůjčení</div>
+                  <h3 class="add-flow-section-title">Dostupnost pro vypůjčení</h3>
                   <div class="add-flow-chips">
                     <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'always' }" @click="applyAvailabilityPreset('always')">Vždy</button>
                     <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekdays' }" @click="applyAvailabilityPreset('weekdays')">Pracovní dny</button>
@@ -5416,7 +5453,7 @@ if (typeof window !== "undefined") {
                 </div>
 
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Lokalita vercajku</div>
+                  <h3 class="add-flow-section-title">Lokalita vercajku</h3>
                   <div class="add-flow-radio">
                     <label class="add-flow-radio-item">
                       <input v-model="addListingDraft.locationMode" type="radio" value="profile" />
@@ -5445,7 +5482,7 @@ if (typeof window !== "undefined") {
 
               <div v-else-if="addListingStep === 3" class="add-listing-body add-flow-step3">
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Technické parametry</div>
+                  <h3 class="add-flow-section-title">Technické parametry</h3>
                   <div class="add-flow-grid">
                     <div class="add-flow-field">
                       <span>Značka <span class="add-flow-required">*</span></span>
@@ -5557,7 +5594,7 @@ if (typeof window !== "undefined") {
 
               <div v-else-if="addListingStep === 4" class="add-listing-body add-flow-step3">
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Způsob vyzvednutí</div>
+                  <h3 class="add-flow-section-title">Způsob vyzvednutí</h3>
                   <div class="add-flow-checklist">
                     <label class="add-flow-check">
                       <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="personal" name="pickup-mode" />
@@ -5580,7 +5617,7 @@ if (typeof window !== "undefined") {
                   </div>
                 </div>
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Čas předání</div>
+                  <h3 class="add-flow-section-title">Čas předání</h3>
                   <div class="add-flow-grid">
                     <div class="add-flow-field">
                       <span>Vyzvednutí od</span>
@@ -5597,7 +5634,7 @@ if (typeof window !== "undefined") {
                   </div>
                 </div>
                 <div class="add-flow-section">
-                  <div class="add-flow-section-title">Pravidla a omezení</div>
+                  <h3 class="add-flow-section-title">Pravidla a omezení</h3>
                   <div class="add-flow-checklist">
                     <label class="add-flow-check">
                       <input v-model="addListingDraft.rules.noModifications" type="checkbox" />
@@ -6778,7 +6815,7 @@ if (typeof window !== "undefined") {
     <div v-if="cardToDelete" class="modal-overlay" @click.self="cardToDelete = null">
       <div class="modal-card">
         <div class="modal-head">
-          <h2>Odstranit kartu?</h2>
+          <h2>Odstranit kartu?</h3>
           <p>Opravdu chcete tuto kartu trvale odstranit?</p>
         </div>
         <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
@@ -6793,7 +6830,7 @@ if (typeof window !== "undefined") {
       <div class="modal-card 2fa-setup-card">
         <div class="modal-head">
           <span class="eyebrow" v-if="securityForm.twoFactorStep < 4">Krok {{ securityForm.twoFactorStep }} ze 3</span>
-          <h2>Nastavení 2FA</h2>
+          <h2>Nastavení 2FA</h3>
         </div>
 
         <!-- Step 1: Password Verification -->
@@ -6887,7 +6924,7 @@ if (typeof window !== "undefined") {
     <div v-if="confirmLogoutAllOpen" class="modal-overlay" @click.self="confirmLogoutAllOpen = false">
       <div class="modal-card">
         <div class="modal-head">
-          <h2>Odhlásit ze všech zařízení?</h2>
+          <h2>Odhlásit ze všech zařízení?</h3>
           <p>Budete odhlášeni na tomto i na všech ostatních zařízeních, kde jste přihlášeni.</p>
         </div>
         <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">

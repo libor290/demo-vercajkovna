@@ -123,7 +123,7 @@ const ListingCardHero = ({ listing, onOpen, onFav, isFav }) => {
           <Icon name={isFav ? 'heart-fill' : 'heart'} size={18} color={isFav ? '#c33' : palette.ink}/>
         </button>
         {listing.badges[0] && (
-          <div style={{ position: 'absolute', top: 12, left: 12, padding: '5px 10px', background: palette.brand, color: palette.brandInk, borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{listing.badges[0]}</div>
+          <div style={{ position: 'absolute', top: 12, left: 12, padding: '5px 10px', background: palette.brand, color: palette.brandInk, borderRadius: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{listing.badges[0]}</div>
         )}
       </div>
       <div style={{ padding: 16 }}>
@@ -217,7 +217,7 @@ const DetailScreen = ({ listing, onBack, favorites, onToggleFav, onChat, onReser
         <div style={{ padding: '20px 22px 24px' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
             {listing.badges.map(b => (
-              <span key={b} style={{ padding: '4px 10px', background: accent.accentSoft, color: accent.accent, borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{b}</span>
+              <span key={b} style={{ padding: '4px 10px', background: accent.accentSoft, color: accent.accent, borderRadius: 8, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{b}</span>
             ))}
           </div>
           <h1 style={{ margin: 0, fontFamily: displayFont, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: palette.brand, lineHeight: 1.15, textWrap: 'balance' }}>{listing.title}</h1>
@@ -271,10 +271,10 @@ const DetailScreen = ({ listing, onBack, favorites, onToggleFav, onChat, onReser
                 </div>
                 {(listing.rules.noMods || listing.rules.purposeOnly || listing.rules.noThirdParty || listing.rules.depositForfeit) && (
                   <div style={{ background: '#fff', borderTop: `1px solid ${palette.line}`, padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {listing.rules.noMods && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Zákaz úprav</span>}
-                    {listing.rules.purposeOnly && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Jen k účelu</span>}
-                    {listing.rules.noThirdParty && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Zákaz půjčení dál</span>}
-                    {listing.rules.depositForfeit && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 999, fontSize: 12, color: palette.inkSoft }}>Kauce při poškození</span>}
+                    {listing.rules.noMods && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 8, fontSize: 12, color: palette.inkSoft }}>Zákaz úprav</span>}
+                    {listing.rules.purposeOnly && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 8, fontSize: 12, color: palette.inkSoft }}>Jen k účelu</span>}
+                    {listing.rules.noThirdParty && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 8, fontSize: 12, color: palette.inkSoft }}>Zákaz půjčení dál</span>}
+                    {listing.rules.depositForfeit && <span style={{ padding: '4px 10px', background: palette.bgDim, border: `1px solid ${palette.line}`, borderRadius: 8, fontSize: 12, color: palette.inkSoft }}>Kauce při poškození</span>}
                   </div>
                 )}
               </div>

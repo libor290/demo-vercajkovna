@@ -5141,6 +5141,9 @@ a {
   gap: 14px;
   padding: 22px 0 4px;
 }
+.add-flow-inline-cta {
+  display: none;
+}
 .add-flow-section + .add-flow-section {
   border-top: 1px solid rgba(58, 37, 25, 0.10);
 }
@@ -9227,5 +9230,66 @@ a {
   }
   .detail-rules-close:hover {
     color: var(--brand);
+  }
+}
+
+@media (min-width: 1200px) {
+  .add-flow-dropzone-inner {
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+  }
+
+  /* Step 1: fotky vlevo, pole vpravo — jednoduché 2 sloupce */
+  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 32px;
+    row-gap: 10px;
+    align-items: start;
+  }
+  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3) .add-flow-section:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+  }
+  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3) .add-flow-section:nth-child(n+2) {
+    grid-column: 2;
+  }
+
+  .add-flow-cta-ghost {
+    display: none;
+  }
+
+  /* Inline CTA v step 1 — viditelný jen na desktopu */
+  .add-flow-inline-cta {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+  .add-flow-inline-cta .add-flow-cta-primary {
+    width: auto;
+    padding-left: 28px;
+    padding-right: 28px;
+    font-size: 0.8rem;
+    min-height: 38px;
+  }
+
+  /* Na kroku 1 řídí tlačítko inline CTA — hlavní schovat */
+  .add-listing-step-1 .add-flow-cta {
+    display: none;
+  }
+
+  h3.add-flow-section-title {
+    font-family: var(--font-body);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--brand);
+    margin: 0 0 2px;
+  }
+
+  .add-flow-section + .add-flow-section {
+    border-top: none;
   }
 }

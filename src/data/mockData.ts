@@ -15,6 +15,7 @@ export type Listing = {
   ownerSince: string;
   badges: string[];
   photo?: string;
+  photos?: string[];
   pickupMode?: "personal" | "other";
   pickupDescription?: string;
   depositAmount?: number;
@@ -69,6 +70,12 @@ export const listings: Listing[] = [
     pickupMode: "other",
     pickupDescription: "Garáž s kódem — kód dostaneš po potvrzení rezervace",
     photo: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600&q=80",
+      "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=600&q=80",
+      "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&q=80",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
+    ],
   },
   {
     id: "makita-drill",
@@ -89,6 +96,11 @@ export const listings: Listing[] = [
     badges: ["Top rating", "Rychlá odpověď", "Osobní předání"],
     pickupMode: "personal",
     photo: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=600&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=600&q=80",
+      "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80",
+      "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=600&q=80",
+    ],
   },
   {
     id: "karcher-wash",

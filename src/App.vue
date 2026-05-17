@@ -425,6 +425,23 @@ type AddListingDraft = {
 
 const addListingStep = ref<1 | 2 | 3 | 4>(1);
 const addListingMode = ref<'create' | 'edit'>('create');
+const addListingCancelConfirmOpen = ref(false);
+const addListingCancelCallback = ref<(() => void) | null>(null);
+
+function confirmAddListingCancel(callback: () => void) {
+  if (screen.value !== 'add-listing') { callback(); return; }
+  addListingCancelCallback.value = callback;
+  addListingCancelConfirmOpen.value = true;
+}
+function addListingCancelConfirmed() {
+  addListingCancelConfirmOpen.value = false;
+  addListingCancelCallback.value?.();
+  addListingCancelCallback.value = null;
+}
+function addListingCancelDismissed() {
+  addListingCancelConfirmOpen.value = false;
+  addListingCancelCallback.value = null;
+}
 const editingListingId = ref<string | null>(null);
 const addListingProceedAttempt = ref(false);
 const addListingShowMore = ref(false);
@@ -456,6 +473,14 @@ function clearBrandSuggestions() {
 const availabilityMonth = reactive({ year: new Date().getFullYear(), month: new Date().getMonth() }); // 0-indexed
 const availabilityRangeStart = ref<string | null>(null);
 const addListingPhotoInput = ref<HTMLInputElement | null>(null);
+const alCatScrollRef = ref<HTMLElement | null>(null);
+const alThumbScrollRef = ref<HTMLElement | null>(null);
+function alThumbScroll(dir: 'left' | 'right') {
+  alThumbScrollRef.value?.scrollBy({ left: dir === 'right' ? 180 : -180, behavior: 'smooth' });
+}
+function alCatScroll(dir: 'left' | 'right') {
+  alCatScrollRef.value?.scrollBy({ left: dir === 'right' ? 180 : -180, behavior: 'smooth' });
+}
 const pendingPhotoSlotIndex = ref(0);
 const draggingPhotoIndex = ref<number | null>(null);
 const dragOverPhotoIndex = ref<number | null>(null);
@@ -472,7 +497,7 @@ const conditionOptions = [
   note: string;
 }>;
 const addListingDraft = reactive<AddListingDraft>({
-  photoSlots: Array.from({ length: 4 }, () => null),
+  photoSlots: Array.from({ length: 8 }, () => null),
   title: "",
   description: "",
   categoryId: categories.find((item) => item.id !== "all")?.id ?? "stavba",
@@ -585,8 +610,54 @@ const lastListScreen = ref<Screen | null>(null);
 const chatConversations = ref<Conversation[]>(initialConversations.map(c => ({ ...c, messages: [...c.messages] })));
 const activeChatId = ref<string | null>(null);
 const chatInput = ref("");
+const chatSupportOpen = ref(false);
+const chatFilter = ref<'all' | 'owner' | 'tenant'>('all');
+const filteredChatConversations = computed(() =>
+  chatFilter.value === 'all'
+    ? chatConversations.value
+    : chatConversations.value.filter(c => convRole(c) === chatFilter.value)
+);
+const isDesktop = ref(typeof window !== 'undefined' && window.innerWidth >= 1200);
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => { isDesktop.value = window.innerWidth >= 1200; });
+}
 const activeConversation = computed(() => chatConversations.value.find(c => c.id === activeChatId.value) ?? null);
 const unreadChatCount = computed(() => chatConversations.value.reduce((sum, c) => sum + c.unread, 0));
+
+function convRole(conv: { listingId: string }): 'owner' | 'tenant' {
+  const listing = listings.find(l => l.id === conv.listingId);
+  return listing?.owner === (personal.firstName || user.name.split(' ')[0]) ? 'owner' : 'tenant';
+}
+
+// Desktop 3-sloupcový chat
+const desktopActiveConversation = computed(() =>
+  activeConversation.value ?? chatConversations.value[0] ?? null
+);
+const chatActiveListing = computed(() => {
+  const conv = desktopActiveConversation.value;
+  if (!conv) return null;
+  return listings.find((l: Listing) => l.id === conv.listingId) ?? null;
+});
+const chatRentalInfo = computed(() => {
+  const msgs = desktopActiveConversation.value?.messages ?? [];
+  const reservation = msgs.find(m => m.type === 'status' && (m as any).statusType === 'reservation-sent');
+  const returnMsg = msgs.find(m => m.type === 'status' && (m as any).statusType === 'return');
+  const handover = msgs.find(m => m.type === 'status' && (m as any).statusType === 'handover');
+  const stripPrefix = (text: string | undefined) => {
+    if (!text) return null;
+    return text
+      .replace(/^Odeslali jste žádost o rezervaci na\s*/i, '')
+      .replace(/^Vrácení potvrzeno\s*—?\s*/i, '')
+      .replace(/^Předání potvrzeno\s*—?\s*/i, '')
+      .trim();
+  };
+  const getText = (m: any) => m?.statusText as string | undefined;
+  return {
+    period: stripPrefix(getText(reservation)),
+    returned: stripPrefix(getText(returnMsg)),
+    handover: stripPrefix(getText(handover)),
+  };
+});
 const isChatClosed = computed(() =>
   activeConversation.value?.messages.some(
     m => m.type === "status" && (m.statusType === "reservation-rejected" || m.statusType === "reservation-cancelled")
@@ -1560,7 +1631,7 @@ function resetAddListingDraft() {
   addListingDraft.photoSlots.forEach((photo) => {
     if (photo?.file) URL.revokeObjectURL(photo.url);
   });
-  addListingDraft.photoSlots = Array.from({ length: 4 }, () => null);
+  addListingDraft.photoSlots = Array.from({ length: 8 }, () => null);
   addListingDraft.title = "";
   addListingDraft.description = "";
   addListingDraft.categoryId = categories.find((item) => item.id !== "all")?.id ?? "stavba";
@@ -1776,7 +1847,7 @@ function handleAddListingFiles(event: Event) {
   const images = files.filter((file) => file.type.startsWith("image/"));
   if (!images.length) return;
 
-  let slotIndex = Math.min(3, Math.max(0, pendingPhotoSlotIndex.value));
+  let slotIndex = Math.min(7, Math.max(0, pendingPhotoSlotIndex.value));
   images.forEach((file) => {
     if (slotIndex > 3) return;
     const url = URL.createObjectURL(file);
@@ -1797,7 +1868,7 @@ function removeAddListingPhoto(index: number) {
 }
 
 function openAddListingPhotoPicker(index: number) {
-  pendingPhotoSlotIndex.value = Math.min(3, Math.max(0, index));
+  pendingPhotoSlotIndex.value = Math.min(7, Math.max(0, index));
   addListingPhotoInput.value?.click();
 }
 
@@ -2340,6 +2411,17 @@ function openHelpContact() {
   setScreen("help-contact");
 }
 
+function openReportUser() {
+  const conv = desktopActiveConversation.value;
+  contactForm.topic = "Nahlášení uživatele";
+  contactForm.message = conv
+    ? `Nahlašuji uživatele ${conv.contactName} v konverzaci o „${conv.listingTitle}". \n\nPopis problému: `
+    : "Nahlašuji uživatele.\n\nPopis problému: ";
+  contactForm.isSending = false;
+  chatSupportOpen.value = false;
+  setScreen("help-contact");
+}
+
 function submitContact() {
   if (!contactForm.message.trim()) return;
   contactForm.isSending = true;
@@ -2763,6 +2845,12 @@ if (typeof window !== "undefined") {
       </div>
     </header>
 
+    <div class="ad-layout" :class="{ 'ad-layout--no-sides': !(screen === 'add-listing' && addListingStep <= 3) }">
+      <aside class="ad-sidebar ad-sidebar-left" aria-label="Reklama">
+        <div class="ad-placeholder">
+          <span>Reklama</span>
+        </div>
+      </aside>
     <main class="frame">
       <section v-if="screen === 'auth'" class="auth-shell">
         <div class="auth-page" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
@@ -5199,10 +5287,10 @@ if (typeof window !== "undefined") {
           <PvCard class="add-flow">
             <template #content>
               <!-- Mobilní header (skryt na desktopu pro krok 1) -->
-              <div class="add-flow-header" :class="{ 'add-flow-header--hide-desktop': addListingStep === 1 }">
+              <div class="add-flow-header">
                 <div class="add-flow-step-row">
-                  <span class="add-flow-step">Krok {{ addListingStep }} z 4</span>
-                  <span class="add-flow-step-label">
+                  <h3 class="add-flow-step">Krok {{ addListingStep }} z 4</h3>
+                  <h3 class="add-flow-step-label">
                     {{
                       addListingStep === 1
                         ? "Základní info"
@@ -5212,7 +5300,7 @@ if (typeof window !== "undefined") {
                             ? "Detail vercajku"
                             : "Předání a pravidla"
                     }}
-                  </span>
+                  </h3>
                 </div>
                 <div class="add-flow-progress" aria-hidden="true">
                   <div
@@ -5226,8 +5314,7 @@ if (typeof window !== "undefined") {
                 <!-- ── LEVÝ PANEL: Fotografie ── -->
                 <div class="al-col al-col-left">
                   <div class="al-editorial">
-                    <span class="al-editorial-label">01 / Fotografie</span>
-                    <h2 class="al-editorial-title">Ukažte svůj vercajk&nbsp;v&nbsp;akci</h2>
+                    <h2 class="al-editorial-title">Ukaž svůj <span class="al-editorial-accent">vercajk</span></h2>
                     <p class="al-editorial-desc">Kvalitní fotky zvyšují šanci na zapůjčení až o&nbsp;40&nbsp;%. Nahrajte ideálně fotku celého setu a detail značky.</p>
                   </div>
 
@@ -5276,15 +5363,15 @@ if (typeof window !== "undefined") {
                     Nahraj alespoň 1 fotografii.
                   </div>
 
-                  <div class="add-flow-thumbs">
+                  <!-- Mobilní grid — 4 sloty, bez šipek -->
+                  <div class="add-flow-thumbs al-thumb-mobile">
                     <div
                       v-for="idx in 4"
-                      :key="`add-flow-thumb-${idx}`"
+                      :key="`mob-thumb-${idx}`"
                       class="add-flow-thumb"
                       :class="{
                         'is-empty': !addListingDraft.photoSlots[idx - 1],
                         'is-dragover': dragOverPhotoIndex === idx - 1,
-                        'is-main': idx === 1 && Boolean(addListingDraft.photoSlots[0]),
                       }"
                       :draggable="Boolean(addListingDraft.photoSlots[idx - 1])"
                       @dragstart="handlePhotoDragStart($event, idx - 1)"
@@ -5295,21 +5382,10 @@ if (typeof window !== "undefined") {
                     >
                       <template v-if="addListingDraft.photoSlots[idx - 1]">
                         <img :src="addListingDraft.photoSlots[idx - 1]?.url" alt="Nahraná fotografie" loading="lazy" />
-                        <button
-                          type="button"
-                          class="add-flow-thumb-main"
-                          :class="{ 'is-active': idx === 1 }"
-                          :aria-label="idx === 1 ? 'Hlavní fotka' : 'Nastavit jako hlavní'"
-                          @click.stop="setMainAddListingPhoto(idx - 1)"
-                        >
+                        <button type="button" class="add-flow-thumb-main" :class="{ 'is-active': idx === 1 }" :aria-label="idx === 1 ? 'Hlavní fotka' : 'Nastavit jako hlavní'" @click.stop="setMainAddListingPhoto(idx - 1)">
                           <i :class="['pi', idx === 1 ? 'pi-star-fill' : 'pi-star']"></i>
                         </button>
-                        <button
-                          type="button"
-                          class="add-flow-thumb-remove"
-                          aria-label="Odebrat fotografii"
-                          @click.stop="removeAddListingPhoto(idx - 1)"
-                        >
+                        <button type="button" class="add-flow-thumb-remove" aria-label="Odebrat fotografii" @click.stop="removeAddListingPhoto(idx - 1)">
                           <i class="pi pi-times"></i>
                         </button>
                       </template>
@@ -5319,25 +5395,62 @@ if (typeof window !== "undefined") {
                     </div>
                   </div>
 
-                  <div class="al-photo-note">
-                    <i class="pi pi-info-circle" aria-hidden="true"></i>
-                    <span>Všechny fotky budou automaticky optimalizovány</span>
+                  <!-- Desktop scroll s šipkami — 8 slotů -->
+                  <div class="al-thumb-scroll-wrap">
+                    <button type="button" class="al-cat-arrow" aria-label="Posunout vlevo" @click="alThumbScroll('left')">
+                      <i class="pi pi-chevron-left"></i>
+                    </button>
+                    <div class="add-flow-thumbs al-thumb-scroll" ref="alThumbScrollRef">
+                      <div
+                        v-for="idx in 8"
+                        :key="`add-flow-thumb-${idx}`"
+                        class="add-flow-thumb"
+                        :class="{
+                          'is-empty': !addListingDraft.photoSlots[idx - 1],
+                          'is-dragover': dragOverPhotoIndex === idx - 1,
+                          'is-main': idx === 1 && Boolean(addListingDraft.photoSlots[0]),
+                        }"
+                        :draggable="Boolean(addListingDraft.photoSlots[idx - 1])"
+                        @dragstart="handlePhotoDragStart($event, idx - 1)"
+                        @dragover.prevent="handlePhotoDragOver($event, idx - 1)"
+                        @drop.prevent="handlePhotoDrop(idx - 1)"
+                        @dragend="handlePhotoDragEnd"
+                        @click="openAddListingPhotoPicker(idx - 1)"
+                      >
+                        <template v-if="addListingDraft.photoSlots[idx - 1]">
+                          <img :src="addListingDraft.photoSlots[idx - 1]?.url" alt="Nahraná fotografie" loading="lazy" />
+                          <button
+                            type="button"
+                            class="add-flow-thumb-main"
+                            :class="{ 'is-active': idx === 1 }"
+                            :aria-label="idx === 1 ? 'Hlavní fotka' : 'Nastavit jako hlavní'"
+                            @click.stop="setMainAddListingPhoto(idx - 1)"
+                          >
+                            <i :class="['pi', idx === 1 ? 'pi-star-fill' : 'pi-star']"></i>
+                          </button>
+                          <button
+                            type="button"
+                            class="add-flow-thumb-remove"
+                            aria-label="Odebrat fotografii"
+                            @click.stop="removeAddListingPhoto(idx - 1)"
+                          >
+                            <i class="pi pi-times"></i>
+                          </button>
+                        </template>
+                        <template v-else>
+                          <i class="pi pi-image" aria-hidden="true"></i>
+                        </template>
+                      </div>
+                    </div>
+                    <button type="button" class="al-cat-arrow" aria-label="Posunout vpravo" @click="alThumbScroll('right')">
+                      <i class="pi pi-chevron-right"></i>
+                    </button>
                   </div>
+
                 </div>
 
                 <!-- ── PRAVÝ PANEL: Formulář ── -->
                 <div class="al-col al-col-right">
-
-                  <!-- Desktopový header (progress bar) -->
-                  <div class="al-desktop-header">
-                    <div class="add-flow-step-row">
-                      <span class="add-flow-step">Krok 1 z 4</span>
-                      <span class="add-flow-step-label">Základní info</span>
-                    </div>
-                    <div class="add-flow-progress" aria-hidden="true">
-                      <div class="add-flow-progress-bar" style="width: 25%" />
-                    </div>
-                  </div>
 
                   <!-- Název -->
                   <div class="add-flow-section al-right-section">
@@ -5358,20 +5471,41 @@ if (typeof window !== "undefined") {
                   <!-- Kategorie -->
                   <div class="add-flow-section al-right-section" :class="{ 'is-error': addListingProceedAttempt && addListingCategoryError }">
                     <h3 class="al-section-heading">Vyberte kategorii</h3>
-                    <!-- Desktop: dlaždice s ikonami -->
-                    <div class="al-cat-tiles">
-                      <button
-                        v-for="item in categories.filter((cat) => cat.id !== 'all')"
-                        :key="`al-tile-${item.id}`"
-                        type="button"
-                        class="al-cat-tile"
-                        :class="{ 'is-active': addListingDraft.categoryId === item.id }"
-                        @click="addListingDraft.categoryId = item.id"
-                      >
-                        <span class="al-cat-tile-icon" aria-hidden="true">
-                          <i :class="['pi', item.id === 'stavba' ? 'pi-home' : item.id === 'dilna' ? 'pi-wrench' : item.id === 'udrzba' ? 'pi-cog' : item.id === 'mereni' ? 'pi-sliders-h' : 'pi-ellipsis-h']"></i>
-                        </span>
-                        <span class="al-cat-tile-label">{{ item.label.toUpperCase() }}</span>
+                    <!-- Desktop: dlaždice s ikonami + scroll šipky -->
+                    <div class="al-cat-scroll-wrap">
+                      <button type="button" class="al-cat-arrow al-cat-arrow-left" aria-label="Posunout vlevo" @click="alCatScroll('left')">
+                        <i class="pi pi-chevron-left"></i>
+                      </button>
+                      <div class="al-cat-tiles" ref="alCatScrollRef">
+                        <button
+                          v-for="item in categories.filter((cat) => cat.id !== 'all')"
+                          :key="`al-tile-${item.id}`"
+                          type="button"
+                          class="al-cat-tile"
+                          :class="{ 'is-active': addListingDraft.categoryId === item.id }"
+                          @click="addListingDraft.categoryId = item.id"
+                        >
+                          <span class="al-cat-tile-icon" aria-hidden="true">
+                            <i :class="['pi',
+                              item.id === 'stavba'    ? 'pi-home'       :
+                              item.id === 'dilna'     ? 'pi-wrench'     :
+                              item.id === 'udrzba'    ? 'pi-cog'        :
+                              item.id === 'mereni'    ? 'pi-sliders-h'  :
+                              item.id === 'zahrada'   ? 'pi-leaf'       :
+                              item.id === 'elektro'   ? 'pi-bolt'       :
+                              item.id === 'malovani'  ? 'pi-palette'    :
+                              item.id === 'auto'      ? 'pi-car'        :
+                              item.id === 'cisteni'   ? 'pi-sparkles'   :
+                              item.id === 'svarovani' ? 'pi-fire'       :
+                              item.id === 'vyska'     ? 'pi-arrow-up'   :
+                                                        'pi-ellipsis-h'
+                            ]"></i>
+                          </span>
+                          <span class="al-cat-tile-label">{{ item.label.toUpperCase() }}</span>
+                        </button>
+                      </div>
+                      <button type="button" class="al-cat-arrow al-cat-arrow-right" aria-label="Posunout vpravo" @click="alCatScroll('right')">
+                        <i class="pi pi-chevron-right"></i>
                       </button>
                     </div>
                     <!-- Mobilní: chips -->
@@ -5394,10 +5528,7 @@ if (typeof window !== "undefined") {
 
                   <!-- Popis / Podrobnosti -->
                   <div class="add-flow-section al-right-section">
-                    <div class="al-section-heading-row">
-                      <h3 class="al-section-heading">Podrobnosti</h3>
-                      <span class="al-badge-required">POVINNÉ</span>
-                    </div>
+                    <h3 class="al-section-heading">Popis</h3>
                     <div class="add-flow-input add-flow-input-textarea">
                       <textarea
                         v-model="addListingDraft.description"
@@ -5410,7 +5541,7 @@ if (typeof window !== "undefined") {
 
                   <!-- Akce (desktop spodní lišta) -->
                   <div class="al-right-actions">
-                    <button type="button" class="al-btn-cancel" @click="prevAddListingStep">Zrušit</button>
+                    <button type="button" class="al-btn-cancel" @click="confirmAddListingCancel(() => goBack())">Zrušit</button>
                     <button type="button" class="al-btn-proceed" @click="nextAddListingStep">
                       Pokračovat
                       <i class="pi pi-chevron-right" aria-hidden="true"></i>
@@ -5426,211 +5557,119 @@ if (typeof window !== "undefined") {
 
               </div>
 
-              <div v-else-if="addListingStep === 2" class="add-listing-body add-flow-step2">
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Cena za den</h3>
-                  <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingPriceError }">
-                    <input v-model.number="addListingDraft.pricePerDay" class="add-flow-native" type="number" min="0" placeholder="0" />
-                    <span class="add-flow-suffix">Kč</span>
-                  </div>
-                  <div v-if="addListingProceedAttempt && addListingPriceError" class="add-flow-error">
-                    Zadej cenu za den (alespoň 1 Kč).
-                  </div>
-                </div>
+              <div v-else-if="addListingStep === 2" class="add-listing-body add-flow-step2 al-step2">
 
-                <div class="add-flow-section">
-                  <label class="add-flow-toggle-card">
-                    <div class="add-flow-toggle-card-copy">
-                      <strong>Vratná kauce</strong>
-                      <span>Vrátí se po hladkém předání.</span>
+                <!-- ── LEVÝ SLOUPEC: Dostupnost + kalendář ── -->
+                <div class="al-col al-col-left al-step2-left">
+                  <div class="add-flow-section">
+                    <h3 class="al-section-heading al-step2-heading">Dostupnost pro vypůjčení</h3>
+                    <div class="add-flow-chips">
+                      <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'always' }" @click="applyAvailabilityPreset('always')">Vždy</button>
+                      <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekdays' }" @click="applyAvailabilityPreset('weekdays')">Pracovní dny</button>
+                      <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekends' }" @click="applyAvailabilityPreset('weekends')">Víkendy</button>
+                      <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'custom' }" @click="applyAvailabilityPreset('custom')">Vlastní výběr</button>
                     </div>
-                    <div class="add-flow-toggle" role="presentation">
-                      <input v-model="addListingDraft.depositEnabled" type="checkbox" />
-                      <span aria-hidden="true"></span>
+                    <div class="add-flow-avail-until">
+                      <label class="add-flow-avail-until-label">Dostupné do:</label>
+                      <input type="date" v-model="addListingDraft.availabilityUntil" class="add-flow-native add-flow-avail-until-input" :min="new Date().toISOString().slice(0, 10)" />
+                      <span class="add-flow-help">Nechte prázdné pro trvalou nabídku.</span>
                     </div>
-                  </label>
-                  <div v-if="addListingDraft.depositEnabled" class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingDepositError }">
-                    <input
-                      v-model.number="addListingDraft.depositAmount"
-                      class="add-flow-native"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                    />
-                    <span class="add-flow-suffix">Kč</span>
-                  </div>
-                  <div v-if="addListingProceedAttempt && addListingDepositError" class="add-flow-error">
-                    Zadej výši kauce (alespoň 1 Kč), nebo ji vypni.
-                  </div>
-                </div>
-
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Dostupnost pro vypůjčení</h3>
-                  <div class="add-flow-chips">
-                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'always' }" @click="applyAvailabilityPreset('always')">Vždy</button>
-                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekdays' }" @click="applyAvailabilityPreset('weekdays')">Pracovní dny</button>
-                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'weekends' }" @click="applyAvailabilityPreset('weekends')">Víkendy</button>
-                    <button type="button" class="add-flow-chip" :class="{ 'is-active': addListingDraft.availabilityMode === 'custom' }" @click="applyAvailabilityPreset('custom')">Vlastní výběr</button>
-                  </div>
-                  <div class="add-flow-avail-until">
-                    <label class="add-flow-avail-until-label">Dostupné do:</label>
-                    <input type="date" v-model="addListingDraft.availabilityUntil" class="add-flow-native add-flow-avail-until-input" :min="new Date().toISOString().slice(0, 10)" />
-                    <span class="add-flow-help">Nechte prázdné pro trvalou nabídku.</span>
-                  </div>
-                  <div class="add-flow-calendar" :class="{ 'is-error': addListingProceedAttempt && addListingAvailabilityError }" style="margin-top: 12px;">
-                    <div class="add-flow-calendar-head">
-                      <strong>{{ availabilityCalendar.label }}</strong>
-                      <div class="add-flow-calendar-nav">
-                        <button type="button" class="add-flow-calendar-btn" aria-label="Předchozí měsíc" @click="setAvailabilityMonth(-1)">
-                          <i class="pi pi-chevron-left"></i>
-                        </button>
-                        <button type="button" class="add-flow-calendar-btn" aria-label="Další měsíc" @click="setAvailabilityMonth(1)">
-                          <i class="pi pi-chevron-right"></i>
-                        </button>
+                    <div class="add-flow-calendar" :class="{ 'is-error': addListingProceedAttempt && addListingAvailabilityError }">
+                      <div class="add-flow-calendar-head">
+                        <strong>{{ availabilityCalendar.label }}</strong>
+                        <div class="add-flow-calendar-nav">
+                          <button type="button" class="add-flow-calendar-btn" aria-label="Předchozí měsíc" @click="setAvailabilityMonth(-1)"><i class="pi pi-chevron-left"></i></button>
+                          <button type="button" class="add-flow-calendar-btn" aria-label="Další měsíc" @click="setAvailabilityMonth(1)"><i class="pi pi-chevron-right"></i></button>
+                        </div>
+                      </div>
+                      <div class="add-flow-calendar-week">
+                        <span>Po</span><span>Út</span><span>St</span><span>Čt</span><span>Pá</span><span>So</span><span>Ne</span>
+                      </div>
+                      <div class="add-flow-calendar-grid">
+                        <button v-for="(cell, idx) in availabilityCalendar.cells" :key="`avail-cell-${idx}`" type="button" class="add-flow-calendar-day" :class="{ 'is-empty': !cell, 'is-selected': cell && isAvailabilitySelected(cell) }" :disabled="!cell" @click="cell && toggleAvailabilityDay(cell)">{{ cell ?? "" }}</button>
                       </div>
                     </div>
-                    <div class="add-flow-calendar-week">
-                      <span>Po</span><span>Út</span><span>St</span><span>Čt</span><span>Pá</span><span>So</span><span>Ne</span>
+                    <div v-if="addListingProceedAttempt && addListingAvailabilityError" class="add-flow-error">Vyber aspoň jeden den v kalendáři.</div>
+                    <div class="add-flow-help">
+                      <span v-if="availabilityRangeStart">Vyberte poslední den rozmezí.</span>
+                      <span v-else>Klepnutím na preset předvyplníš dny — pak je můžeš libovolně upravit.</span>
                     </div>
-                    <div class="add-flow-calendar-grid">
-                      <button
-                        v-for="(cell, idx) in availabilityCalendar.cells"
-                        :key="`avail-cell-${idx}`"
-                        type="button"
-                        class="add-flow-calendar-day"
-                        :class="{ 'is-empty': !cell, 'is-selected': cell && isAvailabilitySelected(cell) }"
-                        :disabled="!cell"
-                        @click="cell && toggleAvailabilityDay(cell)"
-                      >
-                        {{ cell ?? "" }}
-                      </button>
-                    </div>
-                  </div>
-                  <div v-if="addListingProceedAttempt && addListingAvailabilityError" class="add-flow-error">
-                    Vyber aspoň jeden den (nebo rozmezí) v kalendáři.
-                  </div>
-                  <div class="add-flow-help">
-                    <span v-if="availabilityRangeStart">Vyberte poslední den rozmezí.</span>
-                    <span v-else>Klepnutím na preset předvyplníš dny — pak je můžeš libovolně upravit.</span>
                   </div>
                 </div>
 
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Lokalita vercajku</h3>
-                  <div class="add-flow-radio">
-                    <label class="add-flow-radio-item">
-                      <input v-model="addListingDraft.locationMode" type="radio" value="profile" />
-                      <span>Stejná jako v profilu</span>
+                <!-- ── PRAVÝ SLOUPEC: Cena, kauce, lokalita ── -->
+                <div class="al-col al-col-right al-step2-right">
+
+                  <div class="add-flow-section al-right-section">
+                    <h3 class="al-section-heading al-step2-heading">Cena za den</h3>
+                    <div class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingPriceError }">
+                      <input v-model.number="addListingDraft.pricePerDay" class="add-flow-native" type="number" min="0" placeholder="0" />
+                      <span class="add-flow-suffix">Kč</span>
+                    </div>
+                    <div v-if="addListingProceedAttempt && addListingPriceError" class="add-flow-error">Zadej cenu za den (alespoň 1 Kč).</div>
+                  </div>
+
+                  <div class="add-flow-section al-right-section">
+                    <label class="add-flow-toggle-card">
+                      <div class="add-flow-toggle-card-copy">
+                        <strong>Vratná kauce</strong>
+                        <span>Vrátí se po hladkém předání.</span>
+                      </div>
+                      <div class="add-flow-toggle" role="presentation">
+                        <input v-model="addListingDraft.depositEnabled" type="checkbox" />
+                        <span aria-hidden="true"></span>
+                      </div>
                     </label>
-                    <label class="add-flow-radio-item">
-                      <input v-model="addListingDraft.locationMode" type="radio" value="custom" />
-                      <span>Jiná adresa</span>
-                    </label>
-                  </div>
-                  <div v-if="addListingDraft.locationMode === 'custom'" class="add-flow-address">
-                    <div class="add-flow-input">
-                      <input v-model="addListingDraft.customAddress.street" class="add-flow-native" type="text" placeholder="Ulice a číslo popisné" />
+                    <div v-if="addListingDraft.depositEnabled" class="add-flow-input add-flow-input-suffix" :class="{ 'is-error': addListingProceedAttempt && addListingDepositError }">
+                      <input v-model.number="addListingDraft.depositAmount" class="add-flow-native" type="number" min="0" placeholder="0" />
+                      <span class="add-flow-suffix">Kč</span>
                     </div>
-                    <div class="add-flow-address-row">
+                    <div v-if="addListingProceedAttempt && addListingDepositError" class="add-flow-error">Zadej výši kauce (alespoň 1 Kč), nebo ji vypni.</div>
+                  </div>
+
+                  <div class="add-flow-section al-right-section">
+                    <h3 class="al-section-heading al-step2-heading">Lokalita vercajku</h3>
+                    <div class="add-flow-radio">
+                      <label class="add-flow-radio-item">
+                        <input v-model="addListingDraft.locationMode" type="radio" value="profile" />
+                        <span>Stejná jako v profilu</span>
+                      </label>
+                      <label class="add-flow-radio-item">
+                        <input v-model="addListingDraft.locationMode" type="radio" value="custom" />
+                        <span>Jiná adresa</span>
+                      </label>
+                    </div>
+                    <div v-if="addListingDraft.locationMode === 'custom'" class="add-flow-address">
                       <div class="add-flow-input">
-                        <input v-model="addListingDraft.customAddress.city" class="add-flow-native" type="text" placeholder="Město" />
+                        <input v-model="addListingDraft.customAddress.street" class="add-flow-native" type="text" placeholder="Ulice a číslo popisné" />
                       </div>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.customAddress.zip" class="add-flow-native" type="text" placeholder="PSČ" />
+                      <div class="add-flow-address-row">
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.customAddress.city" class="add-flow-native" type="text" placeholder="Město" />
+                        </div>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.customAddress.zip" class="add-flow-native" type="text" placeholder="PSČ" />
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  <div class="al-right-actions">
+                    <button type="button" class="al-btn-cancel" @click="prevAddListingStep">Zpět</button>
+                    <button type="button" class="al-btn-proceed al-btn-proceed-2" @click="nextAddListingStep">
+                      Pokračovat <i class="pi pi-chevron-right" aria-hidden="true"></i>
+                    </button>
+                  </div>
+
                 </div>
               </div>
 
-              <div v-else-if="addListingStep === 3" class="add-listing-body add-flow-step3">
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Technické parametry</h3>
-                  <div class="add-flow-grid">
-                    <div class="add-flow-field">
-                      <span>Značka <span class="add-flow-required">*</span></span>
-                      <div class="add-flow-brand-wrap">
-                        <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingBrandError }">
-                          <input
-                            :value="addListingDraft.brand"
-                            class="add-flow-native"
-                            type="text"
-                            placeholder="Po 3 znacích nabídneme značky…"
-                            autocomplete="off"
-                            @input="onBrandInput(($event.target as HTMLInputElement).value)"
-                            @blur="clearBrandSuggestions()"
-                          />
-                        </div>
-                        <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3 && addListingDraft.brand !== 'Ostatní'" class="add-flow-brand-hint">
-                          zadej alespoň 3 znaky — nebo zvol
-                          <button type="button" class="add-flow-brand-other" @mousedown.prevent="selectBrand('Ostatní')">Ostatní</button>
-                        </div>
-                        <div v-if="brandSuggestions.length" class="add-flow-brand-suggestions">
-                          <button
-                            v-for="brand in brandSuggestions"
-                            :key="brand"
-                            type="button"
-                            class="add-flow-brand-option"
-                            @mousedown.prevent="selectBrand(brand)"
-                          >
-                            {{ brand }}
-                          </button>
-                          <button type="button" class="add-flow-brand-option" @mousedown.prevent="selectBrand('Ostatní')">Ostatní</button>
-                        </div>
-                      </div>
-                      <div v-if="addListingProceedAttempt && addListingBrandError" class="add-flow-error">Vyber nebo zadej značku.</div>
-                    </div>
-                    <div class="add-flow-field">
-                      <span>Model</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.model" class="add-flow-native" type="text" placeholder="Přesné označení modelu" />
-                      </div>
-                    </div>
-                    <div class="add-flow-field add-flow-field-full">
-                      <span>Stav</span>
-                      <div ref="conditionDropdownEl" class="add-flow-dropdown" :class="{ 'is-open': conditionDropdownOpen }">
-                        <button
-                          type="button"
-                          class="add-flow-input add-flow-dropdown-trigger"
-                          aria-label="Stav vercajku"
-                          :aria-expanded="conditionDropdownOpen ? 'true' : 'false'"
-                          @click="toggleConditionDropdown"
-                        >
-                          <span class="add-flow-dropdown-value">{{ selectedConditionDisplay }}</span>
-                          <i class="pi pi-chevron-down" aria-hidden="true"></i>
-                        </button>
-                        <div v-if="conditionDropdownOpen" class="add-flow-condition-list" role="listbox">
-                          <button
-                            v-for="option in conditionOptions"
-                            :key="`condition-opt-${option.id}`"
-                            type="button"
-                            class="add-flow-condition-option"
-                            :class="{ 'is-active': addListingDraft.condition === option.id }"
-                            role="option"
-                            @click="selectCondition(option.id)"
-                          >
-                            <strong>{{ option.label }}</strong>
-                            <span> — {{ option.note }}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="add-flow-field add-flow-field-full">
-                      <span>Příslušenství</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." maxlength="150" />
-                      </div>
-                      <div class="add-flow-char-count" :class="{ 'is-near': addListingDraft.accessories.length > 120 }">
-                        {{ addListingDraft.accessories.length }} / 150
-                      </div>
-                    </div>
-                    <div class="add-flow-field-full add-flow-show-more-toggle">
-                      <button type="button" class="add-flow-show-more-btn" @click="addListingShowMore = !addListingShowMore">
-                        <span>{{ addListingShowMore ? 'Skrýt' : 'Zobrazit více' }}</span>
-                        <i :class="['pi', addListingShowMore ? 'pi-chevron-up' : 'pi-chevron-down']"></i>
-                      </button>
-                    </div>
-                    <template v-if="addListingShowMore">
+              <div v-else-if="addListingStep === 3" class="add-listing-body add-flow-step3 al-step3">
+
+                <!-- ── LEVÝ SLOUPEC: Doplňkové parametry (desktop vždy viditelné) ── -->
+                <div class="al-col al-step3-left">
+                  <div class="add-flow-section al-step3-section">
+                    <div class="add-flow-grid">
                       <div class="add-flow-field">
                         <span>Výkon</span>
                         <div class="add-flow-input">
@@ -5646,92 +5685,207 @@ if (typeof window !== "undefined") {
                       <div class="add-flow-field add-flow-field-full">
                         <span>Další parametry</span>
                         <div class="add-flow-input add-flow-input-textarea">
+                          <textarea v-model="addListingDraft.additionalParams" class="add-flow-native" rows="5" placeholder="Rozměry, výkon nebo jiné důležité specifikace..."></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="al-col-tip">
+                    <i class="pi pi-info-circle" aria-hidden="true"></i>
+                    <span>Čím více detailů zadáš, tím snáze si nájemce udělá představu o vercajku.</span>
+                  </div>
+                </div>
+
+                <!-- ── PRAVÝ SLOUPEC: Hlavní parametry ── -->
+                <div class="al-col al-col-right al-step3-right">
+                  <div class="add-flow-section al-right-section">
+                    <div class="add-flow-grid">
+                      <div class="add-flow-field">
+                        <span>Značka <span class="add-flow-required">*</span></span>
+                        <div class="add-flow-brand-wrap">
+                          <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingBrandError }">
+                            <input
+                              :value="addListingDraft.brand"
+                              class="add-flow-native"
+                              type="text"
+                              placeholder="Po 3 znacích nabídneme značky…"
+                              autocomplete="off"
+                              @input="onBrandInput(($event.target as HTMLInputElement).value)"
+                              @blur="clearBrandSuggestions()"
+                            />
+                          </div>
+                          <div v-if="!brandSuggestions.length && addListingDraft.brand.length < 3 && addListingDraft.brand !== 'Ostatní'" class="add-flow-brand-hint">
+                            zadej alespoň 3 znaky — nebo zvol
+                            <button type="button" class="add-flow-brand-other" @mousedown.prevent="selectBrand('Ostatní')">Ostatní</button>
+                          </div>
+                          <div v-if="brandSuggestions.length" class="add-flow-brand-suggestions">
+                            <button v-for="brand in brandSuggestions" :key="brand" type="button" class="add-flow-brand-option" @mousedown.prevent="selectBrand(brand)">{{ brand }}</button>
+                            <button type="button" class="add-flow-brand-option" @mousedown.prevent="selectBrand('Ostatní')">Ostatní</button>
+                          </div>
+                        </div>
+                        <div v-if="addListingProceedAttempt && addListingBrandError" class="add-flow-error">Vyber nebo zadej značku.</div>
+                      </div>
+                      <div class="add-flow-field">
+                        <span>Model</span>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.model" class="add-flow-native" type="text" placeholder="Přesné označení modelu" />
+                        </div>
+                      </div>
+                      <div class="add-flow-field add-flow-field-full">
+                        <span>Stav</span>
+                        <div ref="conditionDropdownEl" class="add-flow-dropdown" :class="{ 'is-open': conditionDropdownOpen }">
+                          <button type="button" class="add-flow-input add-flow-dropdown-trigger" aria-label="Stav vercajku" :aria-expanded="conditionDropdownOpen ? 'true' : 'false'" @click="toggleConditionDropdown">
+                            <span class="add-flow-dropdown-value">{{ selectedConditionDisplay }}</span>
+                            <i class="pi pi-chevron-down" aria-hidden="true"></i>
+                          </button>
+                          <div v-if="conditionDropdownOpen" class="add-flow-condition-list" role="listbox">
+                            <button v-for="option in conditionOptions" :key="`condition-opt-${option.id}`" type="button" class="add-flow-condition-option" :class="{ 'is-active': addListingDraft.condition === option.id }" role="option" @click="selectCondition(option.id)">
+                              <strong>{{ option.label }}</strong><span> — {{ option.note }}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="add-flow-field add-flow-field-full">
+                        <span>Příslušenství</span>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.accessories" class="add-flow-native" type="text" placeholder="Např. kufr, náhradní baterie..." maxlength="150" />
+                        </div>
+                        <div class="add-flow-char-count" :class="{ 'is-near': addListingDraft.accessories.length > 120 }">{{ addListingDraft.accessories.length }} / 150</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Toggle — viditelný jen na mobilu -->
+                  <div class="add-flow-section al-right-section al-step3-toggle-wrap">
+                    <div class="add-flow-field-full add-flow-show-more-toggle">
+                      <button type="button" class="add-flow-show-more-btn" @click="addListingShowMore = !addListingShowMore">
+                        <span>{{ addListingShowMore ? 'Skrýt' : 'Zobrazit více' }}</span>
+                        <i :class="['pi', addListingShowMore ? 'pi-chevron-up' : 'pi-chevron-down']"></i>
+                      </button>
+                    </div>
+                    <template v-if="addListingShowMore">
+                      <div class="add-flow-field">
+                        <span>Výkon</span>
+                        <div class="add-flow-input"><input v-model="addListingDraft.power" class="add-flow-native" type="text" placeholder="Např. 1500W, 18V..." /></div>
+                      </div>
+                      <div class="add-flow-field">
+                        <span>Hmotnost</span>
+                        <div class="add-flow-input"><input v-model="addListingDraft.weight" class="add-flow-native" type="text" placeholder="Např. 2.5 kg" /></div>
+                      </div>
+                      <div class="add-flow-field add-flow-field-full">
+                        <span>Další parametry</span>
+                        <div class="add-flow-input add-flow-input-textarea">
                           <textarea v-model="addListingDraft.additionalParams" class="add-flow-native" rows="4" placeholder="Výkon, rozměry, hmotnost nebo jiné důležité specifikace..."></textarea>
                         </div>
                       </div>
                     </template>
                   </div>
+
+                  <div class="al-right-actions">
+                    <button type="button" class="al-btn-cancel" @click="prevAddListingStep">Zpět</button>
+                    <button type="button" class="al-btn-proceed al-btn-proceed-3" @click="nextAddListingStep">
+                      Pokračovat <i class="pi pi-chevron-right" aria-hidden="true"></i>
+                    </button>
+                  </div>
                 </div>
 
               </div>
 
-              <div v-else-if="addListingStep === 4" class="add-listing-body add-flow-step3">
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Způsob vyzvednutí</h3>
-                  <div class="add-flow-checklist">
-                    <label class="add-flow-check">
-                      <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="personal" name="pickup-mode" />
-                      <span>Osobní vyzvednutí</span>
-                    </label>
-                    <label class="add-flow-check">
-                      <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="other" name="pickup-mode" />
-                      <span>Jiné</span>
-                    </label>
-                    <div v-if="addListingDraft.pickupMethods.mode === 'other'" class="add-flow-field" style="margin-top: 0.5rem;">
-                      <div class="add-flow-input add-flow-input-textarea" :class="{ 'is-invalid': addListingProceedAttempt && !addListingDraft.pickupMethods.otherPickupDescription.trim() }">
+              <div v-else-if="addListingStep === 4" class="add-listing-body add-flow-step3 al-step4">
+
+                <!-- ── LEVÝ SLOUPEC: Pravidla a omezení ── -->
+                <div class="al-col al-step4-left">
+                  <div class="add-flow-section al-step4-section">
+                    <h3 class="al-section-heading al-step2-heading">Pravidla a omezení</h3>
+                    <div class="add-flow-checklist">
+                      <label class="add-flow-check">
+                        <input v-model="addListingDraft.rules.noModifications" type="checkbox" />
+                        <span>Zákaz provádění jakýchkoliv úprav na vercajku.</span>
+                      </label>
+                      <label class="add-flow-check">
+                        <input v-model="addListingDraft.rules.purposeOnly" type="checkbox" />
+                        <span>Užívání pouze pro účely, ke kterým je vercajk určen.</span>
+                      </label>
+                      <label class="add-flow-check">
+                        <input v-model="addListingDraft.rules.noThirdParty" type="checkbox" />
+                        <span>Zákaz pronájmu třetím stranám.</span>
+                      </label>
+                      <label class="add-flow-check">
+                        <input v-model="addListingDraft.rules.depositForfeit" type="checkbox" />
+                        <span>Propadnutí kauce v případě jakéhokoliv poškození.</span>
+                      </label>
+                      <label class="add-flow-check">
+                        <input v-model="addListingDraft.rules.other" type="checkbox" />
+                        <span>Jiné</span>
+                      </label>
+                      <div v-if="addListingDraft.rules.other" class="add-flow-rules-other">
                         <textarea
-                          v-model="addListingDraft.pickupMethods.otherPickupDescription"
-                          class="add-flow-native"
-                          placeholder="Upřesněte způsob (např. dovoz, zásilkovna...)"
-                          rows="2"
+                          v-model="addListingDraft.rules.otherDescription"
+                          class="rules-other-textarea"
+                          :class="{ 'is-error': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }"
+                          placeholder="Popište vlastní pravidla (povinné)"
+                          rows="3"
                         ></textarea>
+                        <div v-if="addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim()" class="add-flow-error">
+                          Popiš vlastní pravidla — pole nesmí být prázdné.
+                        </div>
                       </div>
                     </div>
+                  </div>
+                  <div class="al-col-tip">
+                    <i class="pi pi-shield" aria-hidden="true"></i>
+                    <span>Pravidla tě chrání v případě poškození nebo zneužití vercajku.</span>
                   </div>
                 </div>
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Čas předání</h3>
-                  <div class="add-flow-grid">
-                    <div class="add-flow-field">
-                      <span>Vyzvednutí od</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.pickupTimeFrom" class="add-flow-native" type="time" />
-                      </div>
-                    </div>
-                    <div class="add-flow-field">
-                      <span>Vrácení do</span>
-                      <div class="add-flow-input">
-                        <input v-model="addListingDraft.pickupTimeTo" class="add-flow-native" type="time" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Pravidla a omezení</h3>
-                  <div class="add-flow-checklist">
-                    <label class="add-flow-check">
-                      <input v-model="addListingDraft.rules.noModifications" type="checkbox" />
-                      <span>Zákaz provádění jakýchkoliv úprav na vercajku.</span>
-                    </label>
-                    <label class="add-flow-check">
-                      <input v-model="addListingDraft.rules.purposeOnly" type="checkbox" />
-                      <span>Užívání pouze pro účely, ke kterým je vercajk určen.</span>
-                    </label>
-                    <label class="add-flow-check">
-                      <input v-model="addListingDraft.rules.noThirdParty" type="checkbox" />
-                      <span>Zákaz pronájmu třetím stranám.</span>
-                    </label>
-                    <label class="add-flow-check">
-                      <input v-model="addListingDraft.rules.depositForfeit" type="checkbox" />
-                      <span>Propadnutí kauce v případě jakéhokoliv poškození.</span>
-                    </label>
-                    <label class="add-flow-check">
-                      <input v-model="addListingDraft.rules.other" type="checkbox" />
-                      <span>Jiné</span>
-                    </label>
-                    <div v-if="addListingDraft.rules.other" class="add-flow-rules-other">
-                      <textarea
-                        v-model="addListingDraft.rules.otherDescription"
-                        class="rules-other-textarea"
-                        :class="{ 'is-error': addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim() }"
-                        placeholder="Popište vlastní pravidla (povinné)"
-                        rows="3"
-                      ></textarea>
-                      <div v-if="addListingProceedAttempt && !addListingDraft.rules.otherDescription.trim()" class="add-flow-error">
-                        Popiš vlastní pravidla — pole nesmí být prázdné.
+
+                <!-- ── PRAVÝ SLOUPEC: Způsob vyzvednutí + Čas předání ── -->
+                <div class="al-col al-col-right al-step4-right">
+
+                  <div class="add-flow-section al-right-section">
+                    <h3 class="al-section-heading al-step2-heading">Způsob vyzvednutí</h3>
+                    <div class="add-flow-checklist">
+                      <label class="add-flow-check">
+                        <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="personal" name="pickup-mode" />
+                        <span>Osobní vyzvednutí</span>
+                      </label>
+                      <label class="add-flow-check">
+                        <input type="radio" v-model="addListingDraft.pickupMethods.mode" value="other" name="pickup-mode" />
+                        <span>Jiné</span>
+                      </label>
+                      <div v-if="addListingDraft.pickupMethods.mode === 'other'" class="add-flow-field" style="margin-top: 0.5rem;">
+                        <div class="add-flow-input add-flow-input-textarea" :class="{ 'is-invalid': addListingProceedAttempt && !addListingDraft.pickupMethods.otherPickupDescription.trim() }">
+                          <textarea v-model="addListingDraft.pickupMethods.otherPickupDescription" class="add-flow-native" placeholder="Upřesněte způsob (např. dovoz, zásilkovna...)" rows="2"></textarea>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  <div class="add-flow-section al-right-section">
+                    <h3 class="al-section-heading al-step2-heading">Čas předání</h3>
+                    <div class="add-flow-grid">
+                      <div class="add-flow-field">
+                        <span>Vyzvednutí od</span>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.pickupTimeFrom" class="add-flow-native" type="time" />
+                        </div>
+                      </div>
+                      <div class="add-flow-field">
+                        <span>Vrácení do</span>
+                        <div class="add-flow-input">
+                          <input v-model="addListingDraft.pickupTimeTo" class="add-flow-native" type="time" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="al-right-actions">
+                    <button type="button" class="al-btn-cancel" @click="prevAddListingStep">Zpět</button>
+                    <button type="button" class="al-btn-proceed al-btn-proceed-4" @click="nextAddListingStep">
+                      {{ addListingMode === 'edit' ? 'Uložit změny' : 'Zveřejnit nabídku' }}
+                      <i class="pi pi-chevron-right" aria-hidden="true"></i>
+                    </button>
+                  </div>
+
                 </div>
               </div>
 
@@ -5745,7 +5899,7 @@ if (typeof window !== "undefined") {
           </PvCard>
         </div>
 
-        <div v-else-if="screen === 'add-listing-confirmation'" class="screen-inner">
+        <div v-else-if="screen === 'add-listing-confirmation'" class="screen-inner add-success-screen">
           <div class="add-success">
             <div class="add-success-icon">
               <i class="pi pi-check"></i>
@@ -5770,6 +5924,11 @@ if (typeof window !== "undefined") {
               >
                 Do profilu
               </button>
+            </div>
+          </div>
+          <div class="add-success-ad">
+            <div class="ad-placeholder ad-placeholder-horizontal">
+              <span>Reklama</span>
             </div>
           </div>
         </div>
@@ -5847,36 +6006,156 @@ if (typeof window !== "undefined") {
         </div>
 
         <!-- CHAT LIST -->
-        <div v-else-if="screen === 'chat'" class="screen-inner chat-page">
-          <div v-if="chatConversations.length" class="chat-list">
-            <button
-              v-for="conv in chatConversations"
-              :key="conv.id"
-              class="chat-list-item"
-              :class="{ 'is-unread': conv.unread > 0 }"
-              type="button"
-              @click="openChatDetail(conv.id)"
-            >
-              <div class="chat-list-avatar-wrap">
-                <div class="chat-list-avatar">{{ conv.contactName.charAt(0) }}</div>
-                <span v-if="conv.unread > 0" class="chat-list-badge">{{ conv.unread }}</span>
-              </div>
-              <div class="chat-list-copy">
-                <div class="chat-list-row">
-                  <strong class="chat-list-name">{{ conv.contactName }}</strong>
-                  <span class="chat-list-time">{{ conv.lastTime }}</span>
+        <div v-else-if="screen === 'chat'" class="screen-inner chat-page chat-desktop">
+
+          <!-- ── SLOUPEC 1: Seznam konverzací ── -->
+          <div class="chat-col chat-col-list">
+            <div class="chat-col-head">
+              <h2 class="chat-col-title">Zprávy</h2>
+            </div>
+            <div class="chat-filter-tabs">
+              <button type="button" class="chat-filter-tab" :class="{ 'is-active': chatFilter === 'all' }" @click="chatFilter = 'all'">Vše</button>
+              <button type="button" class="chat-filter-tab" :class="{ 'is-active': chatFilter === 'tenant' }" @click="chatFilter = 'tenant'">Poptávka</button>
+              <button type="button" class="chat-filter-tab" :class="{ 'is-active': chatFilter === 'owner' }" @click="chatFilter = 'owner'">Nabídka</button>
+            </div>
+            <div v-if="filteredChatConversations.length" class="chat-list">
+              <button
+                v-for="conv in filteredChatConversations"
+                :key="conv.id"
+                class="chat-list-item"
+                :class="{
+                  'is-unread': conv.unread > 0,
+                  'is-active': desktopActiveConversation?.id === conv.id
+                }"
+                type="button"
+                @click="isDesktop ? (activeChatId = conv.id, conv.unread = 0) : openChatDetail(conv.id)"
+              >
+                <div class="chat-list-avatar-wrap">
+                  <div class="chat-list-avatar">{{ conv.contactName.charAt(0) }}</div>
+                  <span v-if="conv.unread > 0" class="chat-list-badge">{{ conv.unread }}</span>
                 </div>
-                <span class="chat-list-listing">o „{{ conv.listingTitle }}"</span>
-                <span class="chat-list-preview" :class="{ 'is-unread': conv.unread > 0 }">{{ conv.lastMessage }}</span>
-              </div>
-            </button>
+                <div class="chat-list-copy">
+                  <div class="chat-list-row">
+                    <div class="chat-list-name-row">
+                      <strong class="chat-list-name">{{ conv.contactName }}</strong>
+                      <span class="chat-role-badge" :class="convRole(conv) === 'owner' ? 'is-owner' : 'is-tenant'">
+                        {{ convRole(conv) === 'owner' ? 'Nabídka' : 'Poptávka' }}
+                      </span>
+                    </div>
+                    <span class="chat-list-time">{{ conv.lastTime }}</span>
+                  </div>
+                  <span class="chat-list-listing">o „{{ conv.listingTitle }}"</span>
+                  <span class="chat-list-preview" :class="{ 'is-unread': conv.unread > 0 }">{{ conv.lastMessage }}</span>
+                </div>
+              </button>
+            </div>
+            <div v-else class="chat-empty">
+              <i class="pi pi-comments"></i>
+              <p>Zatím žádné zprávy.</p>
+            </div>
           </div>
 
-          <div v-else class="chat-empty">
-            <i class="pi pi-comments"></i>
-            <p>Zatím žádné zprávy.<br>Začni konverzaci u konkrétní nabídky.</p>
-            <button class="button-primary" type="button" @click="setScreen('market')">Prohlížet nabídky</button>
+          <!-- ── SLOUPEC 2: Aktivní chat (jen desktop) ── -->
+          <div v-if="isDesktop" class="chat-col chat-col-messages">
+            <template v-if="desktopActiveConversation">
+              <div class="chat-col-head chat-col-head-message">
+                <div class="chat-list-avatar chat-col-avatar">{{ desktopActiveConversation.contactName.charAt(0) }}</div>
+                <strong class="chat-col-contact">{{ desktopActiveConversation.contactName }}</strong>
+              </div>
+              <div class="chat-messages chat-messages-desktop" ref="chatMessagesEl">
+                <template v-for="msg in desktopActiveConversation.messages" :key="msg.id">
+                  <div v-if="msg.type === 'status'" class="chat-status-event" :class="`is-${chatStatusMeta[msg.statusType].tone}`">
+                    <span class="chat-status-icon"><i :class="`pi ${chatStatusMeta[msg.statusType].icon}`"></i></span>
+                    <span class="chat-status-body">
+                      <strong>{{ chatStatusMeta[msg.statusType].label }}</strong>
+                      <span>{{ msg.statusText }}</span>
+                    </span>
+                  </div>
+                  <div v-else class="chat-bubble-wrap" :class="msg.sender === 'me' ? 'is-me' : 'is-them'">
+                    <div class="chat-bubble">{{ msg.text }}</div>
+                    <span class="chat-bubble-time">{{ msg.time }}</span>
+                  </div>
+                </template>
+              </div>
+              <div class="chat-input-bar">
+                <input v-model="chatInput" class="chat-input" type="text" placeholder="Napište zprávu…" @keydown.enter.prevent="sendChatMessage" />
+                <button class="chat-send-btn" type="button" :disabled="!chatInput.trim()" @click="sendChatMessage" aria-label="Odeslat">
+                  <i class="pi pi-send"></i>
+                </button>
+              </div>
+            </template>
           </div>
+
+          <!-- ── SLOUPEC 3: Info o vercajku (jen desktop) ── -->
+          <div v-if="isDesktop" class="chat-col chat-col-info">
+            <template v-if="chatActiveListing && desktopActiveConversation">
+              <div class="chat-col-head">
+                <h3 class="chat-col-title">O vercajku</h3>
+              </div>
+              <div class="chat-info-listing">
+                <img v-if="chatActiveListing.photo" :src="chatActiveListing.photo" :alt="chatActiveListing.title" class="chat-info-photo" />
+                <div class="chat-info-no-photo" v-else><i class="pi pi-image"></i></div>
+                <h4 class="chat-info-title">{{ chatActiveListing.title }}</h4>
+                <span class="chat-info-location"><i class="pi pi-map-marker"></i> {{ chatActiveListing.location }}</span>
+              </div>
+              <div class="chat-info-rows">
+                <div class="chat-info-row">
+                  <span class="chat-info-label">Cena</span>
+                  <span class="chat-info-value">{{ chatActiveListing.price }}</span>
+                </div>
+                <div class="chat-info-row" v-if="chatActiveListing.depositRequired">
+                  <span class="chat-info-label">Kauce</span>
+                  <span class="chat-info-value">{{ chatActiveListing.depositAmount ?? '—' }} Kč</span>
+                </div>
+                <div class="chat-info-row" v-if="chatRentalInfo.period">
+                  <span class="chat-info-label">Termín půjčení</span>
+                  <span class="chat-info-value chat-info-value-sm">{{ chatRentalInfo.period }}</span>
+                </div>
+                <div class="chat-info-row" v-if="chatRentalInfo.returned">
+                  <span class="chat-info-label">Vrácení</span>
+                  <span class="chat-info-value chat-info-value-sm">{{ chatRentalInfo.returned }}</span>
+                </div>
+                <div class="chat-info-row" v-else-if="chatRentalInfo.handover">
+                  <span class="chat-info-label">Předáno</span>
+                  <span class="chat-info-value chat-info-value-sm">{{ chatRentalInfo.handover }}</span>
+                </div>
+                <div class="chat-info-row" v-if="chatActiveListing.pickupTimeFrom">
+                  <span class="chat-info-label">Vyzvednutí od</span>
+                  <span class="chat-info-value">{{ chatActiveListing.pickupTimeFrom }}</span>
+                </div>
+                <div class="chat-info-row" v-if="chatActiveListing.pickupTimeTo">
+                  <span class="chat-info-label">Vrácení do</span>
+                  <span class="chat-info-value">{{ chatActiveListing.pickupTimeTo }}</span>
+                </div>
+              </div>
+              <button type="button" class="chat-info-detail-btn" @click="openListing(chatActiveListing.id)">
+                Zobrazit nabídku <i class="pi pi-arrow-right"></i>
+              </button>
+
+              <!-- Podpora -->
+              <div class="chat-support">
+                <button type="button" class="chat-support-toggle" @click="chatSupportOpen = !chatSupportOpen">
+                  <span>Podpora</span>
+                  <i :class="['pi', chatSupportOpen ? 'pi-chevron-up' : 'pi-chevron-down']"></i>
+                </button>
+                <div v-if="chatSupportOpen" class="chat-support-items">
+                  <button type="button" class="chat-support-item" @click="openHelpContact">
+                    <i class="pi pi-comment"></i>
+                    <span>Kontaktovat Vercajkovnu</span>
+                  </button>
+                  <button type="button" class="chat-support-item" @click="setScreen('help')">
+                    <i class="pi pi-question-circle"></i>
+                    <span>Nápověda</span>
+                  </button>
+                  <button type="button" class="chat-support-item chat-support-item--danger" @click="openReportUser">
+                    <i class="pi pi-flag"></i>
+                    <span>Nahlásit uživatele</span>
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+
         </div>
 
         <!-- CHAT DETAIL -->
@@ -6776,6 +7055,7 @@ if (typeof window !== "undefined") {
                     <option>Průběh výpůjčky</option>
                     <option>Problém s platbou</option>
                     <option>Technická chyba</option>
+                    <option>Nahlášení uživatele</option>
                     <option>Jiný dotaz</option>
                   </select>
                 </div>
@@ -6845,20 +7125,26 @@ if (typeof window !== "undefined") {
         </div>
       </section>
     </main>
+      <aside class="ad-sidebar ad-sidebar-right" aria-label="Reklama">
+        <div class="ad-placeholder">
+          <span>Reklama</span>
+        </div>
+      </aside>
+    </div>
 
     <footer v-if="screen !== 'onboarding'" class="bottom-nav" aria-label="Spodní navigace">
-      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'market' }" type="button" @click="setScreen('market')">
+      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'market' }" type="button" @click="confirmAddListingCancel(() => setScreen('market'))">
         <i class="pi pi-home"></i>
         <span>Domů</span>
       </button>
-      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'favorites' }" type="button" @click="openFavorites">
+      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'favorites' }" type="button" @click="confirmAddListingCancel(openFavorites)">
         <i class="pi pi-heart"></i>
         <span>Oblíbené</span>
       </button>
       <button class="bottom-nav-center" type="button" @click="openAddListing" aria-label="Přidat nabídku">
         <i class="pi pi-plus"></i>
       </button>
-      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'chat' || screen === 'chat-detail' }" type="button" @click="openStatus">
+      <button class="bottom-nav-item" :class="{ 'is-active': screen === 'chat' || screen === 'chat-detail' }" type="button" @click="confirmAddListingCancel(openStatus)">
         <span v-if="unreadChatCount > 0" class="bottom-nav-badge">{{ unreadChatCount }}</span>
         <i class="pi pi-comment"></i>
         <span>Chat</span>
@@ -6867,7 +7153,7 @@ if (typeof window !== "undefined") {
         class="bottom-nav-item"
         :class="{ 'is-active': screen === 'profile' || screen === 'auth' }"
         type="button"
-        @click="openProfile"
+        @click="confirmAddListingCancel(openProfile)"
       >
         <span v-if="notificationCount > 0" class="bottom-nav-badge">{{ notificationCount }}</span>
         <i class="pi pi-user"></i>
@@ -6996,5 +7282,23 @@ if (typeof window !== "undefined") {
         </div>
       </div>
     </div>
+
+    <!-- ── Dialog: zrušit přidání nabídky ── -->
+    <Transition name="al-confirm-fade">
+      <div v-if="addListingCancelConfirmOpen" class="al-confirm-backdrop" @click.self="addListingCancelDismissed">
+        <div class="al-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="al-confirm-title">
+          <div class="al-confirm-icon" aria-hidden="true">
+            <i class="pi pi-exclamation-triangle"></i>
+          </div>
+          <h3 id="al-confirm-title" class="al-confirm-title">Zahodit nabídku?</h3>
+          <p class="al-confirm-body">Všechny vyplněné údaje budou ztraceny. Opravdu chceš přidání zrušit?</p>
+          <div class="al-confirm-actions">
+            <button type="button" class="al-confirm-btn-ghost" @click="addListingCancelDismissed">Pokračovat v přidání</button>
+            <button type="button" class="al-confirm-btn-danger" @click="addListingCancelConfirmed">Zahodit</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>

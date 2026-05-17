@@ -5094,10 +5094,13 @@ a {
   background: transparent;
   border-radius: 0;
 }
+.add-flow.p-card .p-card-body {
+  padding: 0;
+}
 .add-flow-header {
   display: grid;
   gap: 14px;
-  padding: 8px 2px 18px;
+  padding: 8px 0 18px;
   border-bottom: 1px solid rgba(58, 37, 25, 0.10);
   margin-bottom: 4px;
 }
@@ -5141,6 +5144,9 @@ a {
   gap: 14px;
   padding: 22px 0 4px;
 }
+.add-flow-dropzone + .al-thumb-scroll-wrap {
+  margin-top: 12px;
+}
 .add-flow-inline-cta {
   display: none;
 }
@@ -5166,7 +5172,10 @@ a {
   background: rgba(180, 77, 56, 0.06);
 }
 .add-flow-dropzone-inner {
-  min-height: 240px;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  max-width: 86%;
+  margin: 0 auto;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -9234,25 +9243,20 @@ a {
 }
 
 @media (min-width: 1200px) {
-  .add-flow-dropzone-inner {
-    min-height: 0;
-    aspect-ratio: 1 / 1;
-    width: 100%;
-  }
-
   /* Step 1: fotky vlevo, pole vpravo — jednoduché 2 sloupce */
-  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3) {
+  /* Starý dvousloupcový grid pro kroky 3/4 — krok 1 má vlastní flex layout */
+  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3):not(.al-step1) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: 32px;
     row-gap: 10px;
     align-items: start;
   }
-  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3) .add-flow-section:nth-child(1) {
+  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3):not(.al-step1) .add-flow-section:nth-child(1) {
     grid-column: 1;
     grid-row: 1 / span 4;
   }
-  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3) .add-flow-section:nth-child(n+2) {
+  .add-listing-body:not(.add-flow-step2):not(.add-flow-step3):not(.al-step1) .add-flow-section:nth-child(n+2) {
     grid-column: 2;
   }
 
@@ -9275,7 +9279,8 @@ a {
   }
 
   /* Na kroku 1 řídí tlačítko inline CTA — hlavní schovat */
-  .add-listing-step-1 .add-flow-cta {
+  .add-listing-step-1 .add-flow-cta,
+  .add-listing-step-2 .add-flow-cta {
     display: none;
   }
 
@@ -9301,8 +9306,17 @@ a {
 
 /* ── Základní (mobile-first) hodnoty nových tříd ─────────────── */
 
-.al-step1 {
+/* Přepsat globální display:grid z .add-listing-body */
+.al-step1.add-listing-body {
+  display: block !important;
+  grid-template-columns: unset !important;
+}
+
+/* Sloupce na mobilu = plná šířka, bez flex */
+.al-col-left,
+.al-col-right {
   display: block;
+  width: 100%;
 }
 
 /* Editorial copy — skryta na mobilu */
@@ -9316,8 +9330,75 @@ a {
 }
 
 /* Desktop header v pravém panelu — skryt na mobilu */
-.al-desktop-header {
+/* Kategorie scroll wrapper — skrytý na mobilu (tam jsou chips) */
+.al-cat-scroll-wrap {
   display: none;
+}
+
+/* Thumb scroll wrapper — viditelný i na mobilu, bez šipek */
+.al-thumb-scroll-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.al-thumb-scroll-wrap .al-cat-arrow {
+  display: grid;
+}
+
+.al-thumb-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+}
+
+.al-thumb-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.al-thumb-scroll .add-flow-thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  scroll-snap-align: start;
+}
+
+/* Mobilní thumb grid — skrytý (nahrazen scrollem) */
+.al-thumb-mobile {
+  display: none !important;
+}
+
+/* Krok 3 — mobilní reset */
+.al-step3.add-listing-body {
+  display: block !important;
+  grid-template-columns: unset !important;
+}
+
+/* Levý sloupec kroku 3 — skrytý na mobilu */
+.al-step3-left {
+  display: none;
+}
+
+/* Krok 4 — mobilní reset */
+.al-step4.add-listing-body {
+  display: block !important;
+  grid-template-columns: unset !important;
+}
+
+/* Levý sloupec kroku 4 — na mobilu dole (pravidla jsou méně důležitá) */
+.al-step4-left {
+  display: block;
+  width: 100%;
 }
 
 /* Dlaždice kategorií — skryty na mobilu (tam jsou chips) */
@@ -9366,20 +9447,75 @@ a {
   display: none;
 }
 
-/* ── Desktop od 1024px ───────────────────────────────────────── */
-@media (min-width: 1024px) {
+/* ── Desktop od 1200px ───────────────────────────────────────── */
+@media (min-width: 1200px) {
 
-  /* Zrušit starý grid z 1200px bloku pro krok 1 */
-  .al-step1.add-listing-body {
-    display: flex !important;
-    flex-direction: row;
-    align-items: stretch;
-    min-height: 620px;
+  /* Krok 1 — desktopový flex layout */
+  .al-step1.add-listing-body,
+  .al-step2.add-listing-body,
+  .al-step3.add-listing-body,
+  .al-step4.add-listing-body {
+    min-height: 780px;
   }
 
-  /* Mobilní header schovat pro krok 1 */
-  .add-flow-header--hide-desktop {
-    display: none !important;
+  .al-step1.add-listing-body {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    grid-template-columns: unset !important;
+    border-radius: var(--r-xl, 24px);
+    overflow: hidden;
+  }
+
+  /* Header kroků — výraznější na desktopu */
+  .add-listing-step-1 .add-flow-header,
+  .add-listing-step-2 .add-flow-header,
+  .add-listing-step-3 .add-flow-header,
+  .add-listing-step-4 .add-flow-header {
+    padding: 18px 0 22px;
+    margin-bottom: 8px;
+    border-bottom: none;
+  }
+
+  .add-listing-step-1 .add-flow-step-row,
+  .add-listing-step-2 .add-flow-step-row,
+  .add-listing-step-3 .add-flow-step-row,
+  .add-listing-step-4 .add-flow-step-row {
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+  }
+
+  .add-listing-step-1 .add-flow-step,
+  .add-listing-step-2 .add-flow-step,
+  .add-listing-step-3 .add-flow-step,
+  .add-listing-step-4 .add-flow-step {
+    font-size: 1rem;
+    color: var(--brand);
+    font-weight: 800;
+    margin: 0;
+    font-family: var(--font-body);
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+
+  .add-listing-step-1 .add-flow-step-label,
+  .add-listing-step-2 .add-flow-step-label,
+  .add-listing-step-3 .add-flow-step-label,
+  .add-listing-step-4 .add-flow-step-label {
+    font-size: 1rem;
+    color: var(--brand);
+    font-weight: 800;
+    margin: 0;
+    font-family: var(--font-body);
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+
+  .add-listing-step-1 .add-flow-progress,
+  .add-listing-step-2 .add-flow-progress,
+  .add-listing-step-3 .add-flow-progress,
+  .add-listing-step-4 .add-flow-progress {
+    height: 7px;
   }
 
   /* Mobilní CTA button schovat */
@@ -9389,8 +9525,8 @@ a {
 
   /* ── Levý panel ── */
   .al-col-left {
-    width: 420px;
-    flex-shrink: 0;
+    flex: 0 0 45%;
+    min-width: 0;
     background: #EDE4D9;
     padding: 36px 32px 28px;
     display: flex;
@@ -9398,6 +9534,7 @@ a {
     gap: 20px;
   }
 
+  /* Scroll wrapper pro thumbnaile — desktop only */
   /* Editorial */
   .al-editorial {
     display: flex;
@@ -9422,6 +9559,10 @@ a {
     letter-spacing: -0.02em;
     color: var(--brand, #3a2519);
     margin: 0;
+  }
+
+  .al-editorial-accent {
+    color: var(--brand-2, #1b5431);
   }
 
   .al-editorial-desc {
@@ -9471,17 +9612,13 @@ a {
   }
 
   /* Desktop header */
-  .al-desktop-header {
-    display: grid;
-    gap: 10px;
-    padding: 24px 32px 20px;
-    border-bottom: 1px solid rgba(58,37,25,.10);
-  }
-
   /* Sekce v pravém panelu */
   .al-right-section {
     padding: 20px 32px;
-    border-bottom: 1px solid rgba(58,37,25,.08);
+  }
+
+  .al-col-right .al-right-section:first-child {
+    padding-top: 36px;
   }
 
   /* Nadpis sekcí — větší a tmavší na desktopu */
@@ -9495,11 +9632,67 @@ a {
   }
 
   /* Dlaždice kategorií — desktop grid */
-  .al-cat-tiles {
+  /* Na desktopu zobrazit šipky u thumbů */
+  .al-thumb-scroll-wrap .al-cat-arrow {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+  }
+
+  /* Scroll wrapper kategorií */
+  .al-cat-scroll-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-top: 4px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Scroll kontejner dlaždic */
+  .al-cat-tiles {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+    padding-bottom: 2px;
+  }
+
+  .al-cat-tiles::-webkit-scrollbar {
+    display: none;
+  }
+
+  .al-cat-tile {
+    scroll-snap-align: start;
+  }
+
+  /* Šipky */
+  .al-cat-arrow {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(58,37,25,.18);
+    background: #fff;
+    color: var(--brand, #3a2519);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+
+  .al-cat-arrow:hover {
+    background: #EDE4D9;
+    border-color: rgba(58,37,25,.32);
+  }
+
+  .al-cat-arrow .pi {
+    font-size: 0.65rem;
   }
 
   /* Chips skrýt na desktopu */
@@ -9513,15 +9706,16 @@ a {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 16px 10px 14px;
-    border-radius: var(--r-lg, 18px);
+    gap: 6px;
+    width: 72px;
+    height: 72px;
+    border-radius: var(--r-md, 14px);
     border: 1.5px solid rgba(58,37,25,.14);
     background: #F5EDE0;
     color: var(--muted, #6d584a);
     cursor: pointer;
     transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
-    min-height: 86px;
+    flex-shrink: 0;
   }
 
   .al-cat-tile:hover {
@@ -9530,15 +9724,15 @@ a {
   }
 
   .al-cat-tile.is-active {
-    background: var(--brand, #3a2519);
-    border-color: var(--brand, #3a2519);
+    background: var(--brand-2, #1b5431);
+    border-color: var(--brand-2, #1b5431);
     color: #fff8f1;
   }
 
   .al-cat-tile-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: var(--r-md, 14px);
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
     background: rgba(58,37,25,.10);
     display: grid;
     place-items: center;
@@ -9551,15 +9745,16 @@ a {
   }
 
   .al-cat-tile-icon .pi {
-    font-size: 1.1rem;
+    font-size: 0.75rem;
   }
 
   .al-cat-tile-label {
     font-family: var(--font-raw);
     font-weight: 800;
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
     text-align: center;
+    line-height: 1.2;
   }
 
   /* Textarea ve formuláři */
@@ -9574,6 +9769,34 @@ a {
     line-height: 1.55;
   }
 
+  /* Thumb buttony na desktopu — menší, viditelné jen při hoveru */
+  .al-thumb-scroll .add-flow-thumb-main,
+  .al-thumb-scroll .add-flow-thumb-remove {
+    width: 22px;
+    height: 22px;
+    opacity: 0;
+    transition: opacity 140ms ease;
+  }
+  .al-thumb-scroll .add-flow-thumb-main {
+    top: 5px;
+    left: 5px;
+  }
+  .al-thumb-scroll .add-flow-thumb-remove {
+    top: 5px;
+    right: 5px;
+  }
+  .al-thumb-scroll .add-flow-thumb-main .pi,
+  .al-thumb-scroll .add-flow-thumb-remove .pi {
+    font-size: 0.6rem;
+  }
+  .al-thumb-scroll .add-flow-thumb:hover .add-flow-thumb-main,
+  .al-thumb-scroll .add-flow-thumb:hover .add-flow-thumb-remove {
+    opacity: 1;
+  }
+  .al-thumb-scroll .add-flow-thumb-main.is-active {
+    opacity: 1;
+  }
+
   /* Akční lišta dole */
   .al-right-actions {
     display: flex;
@@ -9581,7 +9804,7 @@ a {
     justify-content: space-between;
     padding: 20px 32px;
     margin-top: auto;
-    border-top: 1px solid rgba(58,37,25,.10);
+    border-top: none;
     gap: 12px;
   }
 
@@ -9607,7 +9830,7 @@ a {
     height: 48px;
     padding: 0 28px;
     border-radius: var(--r-pill, 999px);
-    background: var(--brand, #3a2519);
+    background: var(--brand-2, #1b5431);
     color: #fff8f1;
     border: 0;
     font-family: var(--font-raw);
@@ -9620,11 +9843,1045 @@ a {
   }
 
   .al-btn-proceed:hover {
-    background: var(--brand-dark, #24140d);
+    background: #143f25;
   }
 
   .al-btn-proceed .pi {
     font-size: 0.7rem;
   }
 
+  /* ── Krok 2 — desktop dvousloupcový layout ── */
+  .al-step2.add-listing-body {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    grid-template-columns: unset !important;
+    border-radius: var(--r-xl, 24px);
+    overflow: hidden;
+  }
+
+  /* Levý sloupec — dostupnost + kalendář */
+  .al-step2-left {
+    flex: 0 0 45%;
+    min-width: 0;
+    background: #fff;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(58,37,25,.10);
+  }
+
+  .al-step2-left .add-flow-section {
+    padding: 0;
+    border-top: none;
+    gap: 12px;
+  }
+
+  /* Kalendář — větší dny na desktopu */
+  .al-step2-left .add-flow-calendar {
+    margin-top: 16px;
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .al-step2-left .add-flow-calendar-day {
+    width: 44px;
+    height: 44px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  /* Pravý sloupec — cena, kauce, lokalita */
+  .al-step2-right {
+    flex: 1;
+    min-width: 0;
+    background: #f9f4ed;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .al-step2-right .al-right-section {
+    padding: 20px 28px;
+  }
+
+  .al-step2-right .al-right-section:first-child {
+    padding-top: 32px;
+  }
+
+  /* Nadpisy sekcí kroku 2 */
+  .al-step2-heading {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--brand, #3a2519);
+  }
+
+  /* Chips dostupnosti — zelená aktivní */
+  .add-listing-step-2 .add-flow-chip.is-active {
+    background: var(--brand-2, #1b5431);
+    border-color: var(--brand-2, #1b5431);
+  }
+
+  /* Pokračovat krok 2 — zelené */
+  .add-listing-step-2 .al-btn-proceed {
+    background: var(--brand-2, #1b5431);
+  }
+
+  .add-listing-step-2 .al-btn-proceed:hover {
+    background: #143f25;
+  }
+
+  /* ── Krok 3 — desktop dvousloupcový layout ── */
+  .al-step3.add-listing-body {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    grid-template-columns: unset !important;
+    border-radius: var(--r-xl, 24px);
+    overflow: hidden;
+  }
+
+  /* Levý sloupec — doplňkové parametry */
+  .al-step3-left {
+    display: flex;
+    flex: 0 0 45%;
+    min-width: 0;
+    background: #EDE4D9;
+    padding: 32px;
+    flex-direction: column;
+  }
+
+  .al-step3-left .add-flow-section {
+    padding: 0;
+    border-top: none;
+  }
+
+  .al-step3-left .add-flow-input-textarea {
+    align-items: flex-start;
+    padding: 14px 16px;
+  }
+
+  /* Pravý sloupec — hlavní parametry */
+  .al-step3-right {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(58,37,25,.10);
+  }
+
+  .al-step3-right .al-right-section {
+    padding: 20px 28px;
+  }
+
+  .al-step3-right .al-right-section:first-child {
+    padding-top: 32px;
+  }
+
+  /* Toggle + mobilní extra pole — schovat na desktopu */
+  .al-step3-toggle-wrap {
+    display: none !important;
+  }
+
+  /* Gap mezi fieldy v kroku 3 — větší jako v předchozích krocích */
+  .al-step3-left .add-flow-grid,
+  .al-step3-right .add-flow-grid {
+    gap: 48px;
+  }
+
+  .al-step3-left .add-flow-field,
+  .al-step3-right .add-flow-field {
+    gap: 14px;
+  }
+
+  /* Field labely v kroku 3 — stejný styl jako nadpisy sekcí v krocích 1/2 */
+  .al-step3-left .add-flow-field > span,
+  .al-step3-right .add-flow-field > span {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--brand, #3a2519);
+    margin-bottom: 10px;
+  }
+
+  /* Pokračovat krok 3 — zelené */
+  .al-btn-proceed-3 {
+    background: var(--brand-2, #1b5431) !important;
+  }
+
+  .al-btn-proceed-3:hover {
+    background: #143f25 !important;
+  }
+
+  /* Krok 3 — schovat globální CTA */
+  .add-listing-step-3 .add-flow-cta {
+    display: none;
+  }
+
+  /* ── Krok 4 — desktop dvousloupcový layout ── */
+  .al-step4.add-listing-body {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    grid-template-columns: unset !important;
+    border-radius: var(--r-xl, 24px);
+    overflow: hidden;
+  }
+
+  .al-step4-left {
+    flex: 0 0 45%;
+    min-width: 0;
+    background: #fff;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .al-step4-left .add-flow-section {
+    padding: 0;
+    border-top: none;
+  }
+
+  .al-step4-left .al-section-heading {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--brand, #3a2519);
+  }
+
+
+
+  .al-step4-right {
+    flex: 1;
+    min-width: 0;
+    background: #f9f4ed;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(58,37,25,.10);
+  }
+
+  .al-step4-right .al-right-section:first-child {
+    padding-top: 32px;
+  }
+
+  /* Skrýt globální CTA */
+  .add-listing-step-4 .add-flow-cta {
+    display: none;
+  }
+
+  /* Tlačítko Zveřejnit — zelené */
+  .al-btn-proceed-4 {
+    background: var(--brand-2, #1b5431) !important;
+  }
+
+  .al-btn-proceed-4:hover {
+    background: #143f25 !important;
+  }
+
+}
+
+/* ── Add-listing krok 1 — zelené prvky (platí pro všechny šířky) ── */
+.add-listing-step-1 .add-flow-dropzone-plus {
+  background: var(--brand-2, #1b5431);
+}
+.add-listing-step-1 .add-flow-chip.is-active {
+  background: var(--brand-2, #1b5431);
+  border-color: var(--brand-2, #1b5431);
+}
+.add-listing-step-1 .add-flow-cta-primary {
+  background: var(--brand-2, #1b5431);
+}
+.add-listing-step-1 .add-flow-input:focus-within {
+  border-color: rgba(27, 84, 49, 0.7);
+  box-shadow: 0 0 0 3px rgba(27, 84, 49, 0.09);
+}
+
+/* ── Confirm dialog — zrušit přidání nabídky ─────────────────── */
+.al-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(30, 18, 8, 0.45);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.al-confirm-modal {
+  background: #fff;
+  border-radius: 22px;
+  padding: 36px 32px 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 24px 64px rgba(30,18,8,.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.al-confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: #fef3f2;
+  display: grid;
+  place-items: center;
+  color: #c0392b;
+  margin-bottom: 4px;
+}
+
+.al-confirm-icon .pi {
+  font-size: 1.3rem;
+}
+
+.al-confirm-title {
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--brand, #3a2519);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.al-confirm-body {
+  font-size: 0.9rem;
+  color: var(--muted, #6d584a);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.al-confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.al-confirm-btn-ghost {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--r-pill, 999px);
+  border: 1.5px solid rgba(58,37,25,.18);
+  background: transparent;
+  color: var(--brand, #3a2519);
+  font-family: var(--font-raw);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.al-confirm-btn-ghost:hover {
+  background: #f5ede0;
+}
+
+.al-confirm-btn-danger {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--r-pill, 999px);
+  border: 0;
+  background: #c0392b;
+  color: #fff;
+  font-family: var(--font-raw);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.al-confirm-btn-danger:hover {
+  background: #a93226;
+}
+
+/* Transition */
+.al-confirm-fade-enter-active,
+.al-confirm-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+.al-confirm-fade-enter-active .al-confirm-modal,
+.al-confirm-fade-leave-active .al-confirm-modal {
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.al-confirm-fade-enter-from,
+.al-confirm-fade-leave-to {
+  opacity: 0;
+}
+.al-confirm-fade-enter-from .al-confirm-modal {
+  transform: scale(0.95) translateY(8px);
+}
+.al-confirm-fade-leave-to .al-confirm-modal {
+  transform: scale(0.95) translateY(8px);
+  opacity: 0;
+}
+
+/* ── Ad layout — placeholder reklamy po stranách ──────────────── */
+.ad-layout {
+  display: contents;
+}
+
+.ad-sidebar {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .ad-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ad-layout > .frame {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .ad-sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 160px;
+    flex-shrink: 0;
+    padding-top: 118px;
+    position: sticky;
+    top: 80px;
+    align-self: flex-start;
+  }
+
+  .ad-placeholder {
+    width: 160px;
+    height: 600px;
+    border-radius: var(--r-lg, 18px);
+    border: 2px dashed rgba(58,37,25,.15);
+    background: rgba(58,37,25,.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(58,37,25,.3);
+    font-family: var(--font-raw);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    user-select: none;
+  }
+}
+
+/* ── Tip blok v levém sloupci kroků 3 a 4 ── */
+.al-col-tip {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .al-col-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: auto;
+    padding: 16px 18px;
+    border-radius: var(--r-lg, 18px);
+    background: rgba(58,37,25,.07);
+    color: var(--muted, #6d584a);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .al-col-tip .pi {
+    font-size: 1rem;
+    flex-shrink: 0;
+    opacity: 0.7;
+    margin-top: 1px;
+  }
+}
+
+/* ── Add-listing potvrzení — desktop layout ── */
+@media (min-width: 1200px) {
+  .add-success-screen {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 120px);
+  }
+
+  .add-success {
+    background: #fff;
+    border-radius: var(--r-xl, 24px);
+    padding: 64px 72px;
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .add-success-icon {
+    width: 88px;
+    height: 88px;
+    margin-bottom: 32px;
+  }
+
+  .add-success-icon .pi {
+    font-size: 2.2rem;
+  }
+
+  .add-success-title {
+    font-size: 3.2rem;
+    margin-bottom: 16px;
+  }
+
+  .add-success-desc {
+    font-size: 1.05rem;
+    max-width: 38ch;
+    margin-bottom: 44px;
+  }
+
+  .add-success-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .add-success-actions .add-flow-cta-primary,
+  .add-success-actions .add-flow-cta-ghost {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+/* Reklama pod success kartou */
+.add-success-ad {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .add-success-screen {
+    flex-direction: column;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .add-success-ad {
+    display: block;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .ad-placeholder-horizontal {
+    width: 100%;
+    height: 90px;
+    writing-mode: horizontal-tb;
+    border-radius: var(--r-lg, 18px);
+  }
+}
+
+/* Postranní reklamy schovat na 4. kroku a potvrzení */
+@media (min-width: 1200px) {
+  .ad-layout--no-sides .ad-sidebar {
+    display: none !important;
+  }
+}
+
+/* ── Desktop 3-sloupcový chat — mobilní reset ── */
+.chat-col-messages,
+.chat-col-info {
+  display: none;
+}
+
+.chat-col-list {
+  width: 100%;
+}
+
+.chat-col-head {
+  display: none;
+}
+
+.chat-desktop.chat-page {
+  display: block;
+  padding: 0;
+}
+
+/* ── Desktop 3-sloupcový chat ── */
+@media (min-width: 1200px) {
+
+  .chat-col-messages,
+  .chat-col-info {
+    display: flex;
+  }
+
+  .chat-col-head {
+    display: block;
+  }
+
+  .chat-desktop.chat-page {
+    display: flex !important;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    height: calc(100vh - 140px);
+    overflow: hidden;
+  }
+
+  /* Sloupec 1 — seznam */
+  .chat-col-list {
+    width: 340px;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(58,37,25,.10);
+    padding-right: 24px;
+    display: flex;
+    flex-direction: column;
+    background: var(--dsn-bg, #fff9f0);
+    overflow: hidden;
+  }
+
+  /* Sloupec 2 — zprávy */
+  .chat-col-messages {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--dsn-bg, #fff9f0);
+    border-right: 1px solid rgba(58,37,25,.10);
+    overflow: hidden;
+  }
+
+  /* Sloupec 3 — info o vercajku */
+  .chat-col-info {
+    width: 320px;
+    flex-shrink: 0;
+    background: var(--dsn-bg, #fff9f0);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* Hlavičky sloupců */
+  .chat-col-head {
+    padding: 16px 20px;
+    border-bottom: none;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+    position: relative;
+  }
+
+  .chat-col-head::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background: rgba(58,37,25,.12);
+  }
+
+  .chat-col-head-message {
+    padding: 14px 20px;
+    min-height: unset;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .chat-col-head-message-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .chat-col-head-message-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .chat-col-title {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--brand, #3a2519);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .chat-col-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .chat-col-contact {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--brand, #3a2519);
+    letter-spacing: -0.01em;
+  }
+
+  .chat-col-listing-name {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted, #6d584a);
+    padding-left: 48px;
+  }
+
+  /* Seznam konverzací */
+  .chat-col-list .chat-list {
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .chat-list-item.is-active {
+    background: #f0ebe3;
+  }
+
+  /* Zprávy */
+  .chat-messages-desktop {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  /* Input bar */
+  .chat-col-messages .chat-input-bar {
+    flex-shrink: 0;
+    border-top: none;
+    box-shadow: inset 0 1px 0 0 rgba(58,37,25,.10);
+    padding: 12px 16px;
+    background: transparent;
+    position: static;
+    transform: none;
+    width: auto;
+  }
+
+  /* Info o vercajku */
+  .chat-info-listing {
+    padding: 20px;
+    border-bottom: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+
+  .chat-info-listing::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background: rgba(58,37,25,.12);
+  }
+
+  .chat-info-photo {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: var(--r-md, 14px);
+  }
+
+  .chat-info-no-photo {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #EDE4D9;
+    border-radius: var(--r-md, 14px);
+    display: grid;
+    place-items: center;
+    color: rgba(58,37,25,.3);
+    font-size: 1.8rem;
+  }
+
+  .chat-info-title {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--brand, #3a2519);
+    margin: 4px 0 0;
+    line-height: 1.3;
+  }
+
+  .chat-info-location {
+    font-size: 0.78rem;
+    color: var(--muted, #6d584a);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chat-info-rows {
+    padding: 16px 20px;
+    display: grid;
+    gap: 12px;
+    border-bottom: none;
+    position: relative;
+  }
+
+  .chat-info-rows::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background: rgba(58,37,25,.12);
+  }
+
+  .chat-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chat-info-label {
+    font-size: 0.78rem;
+    color: var(--muted, #6d584a);
+    font-weight: 600;
+  }
+
+  .chat-info-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--brand, #3a2519);
+    text-align: right;
+  }
+
+  .chat-info-detail-btn {
+    margin: 16px 20px;
+    height: 42px;
+    border-radius: var(--r-lg, 18px);
+    border: 0;
+    background: var(--brand-2, #1b5431);
+    color: #fff8f1;
+    font-family: var(--font-raw);
+    font-weight: 800;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 140ms ease;
+  }
+
+  .chat-info-detail-btn:hover {
+    background: #143f25;
+  }
+}
+
+@media (min-width: 1200px) {
+  .chat-info-value-sm {
+    font-size: 0.76rem;
+    text-align: right;
+    line-height: 1.3;
+  }
+}
+
+/* Chat — přes celou šířku bez karty */
+@media (min-width: 1200px) {
+  .frame:has(.chat-desktop) {
+    width: calc(100vw - 48px) !important;
+    max-width: 1600px;
+  }
+
+  .chat-desktop.chat-page {
+    margin: 0 !important;
+  }
+
+  .chat-col-list {
+    background: var(--dsn-bg, #fff9f0);
+  }
+}
+
+@media (min-width: 1200px) {
+  .chat-support {
+    margin: 8px 20px 20px;
+    border-radius: var(--r-md, 14px);
+    border: 1px solid rgba(58,37,25,.12);
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .chat-support-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-family: var(--font-raw);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand, #3a2519);
+    transition: background 140ms ease;
+  }
+
+  .chat-support-toggle:hover {
+    background: rgba(58,37,25,.06);
+  }
+
+  .chat-support-toggle .pi {
+    font-size: 0.65rem;
+  }
+
+  .chat-support-items {
+    border-top: 1px solid rgba(58,37,25,.10);
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+  }
+
+  .chat-support-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--brand, #3a2519);
+    text-align: left;
+    transition: background 140ms ease;
+  }
+
+  .chat-support-item:hover {
+    background: rgba(58,37,25,.04);
+  }
+
+  .chat-support-item .pi {
+    font-size: 0.9rem;
+    color: var(--muted, #6d584a);
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  .chat-support-item--danger {
+    color: #c0392b;
+  }
+
+  .chat-support-item--danger .pi {
+    color: #c0392b;
+  }
+
+  .chat-support-item + .chat-support-item {
+    border-top: 1px solid rgba(58,37,25,.07);
+  }
+}
+
+/* Nabídka / Poptávka badge v chat listu */
+.chat-list-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  min-width: 0;
+}
+
+.chat-list-meta-row .chat-list-listing {
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.chat-role-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-family: var(--font-raw);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.chat-role-badge.is-tenant {
+  background: rgba(27, 84, 49, 0.10);
+  color: var(--brand-2, #1b5431);
+}
+
+.chat-role-badge.is-owner {
+  background: rgba(58, 37, 25, 0.10);
+  color: var(--brand, #3a2519);
+}
+
+.chat-list-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-list-name-row .chat-list-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chat filter tabs */
+.chat-filter-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 8px;
+  flex-shrink: 0;
+}
+
+.chat-filter-tab {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(58,37,25,.14);
+  background: transparent;
+  color: var(--muted, #6d584a);
+  font-family: var(--font-raw);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+  white-space: nowrap;
+}
+
+.chat-filter-tab:hover {
+  background: rgba(58,37,25,.05);
+  border-color: rgba(58,37,25,.24);
+}
+
+.chat-filter-tab.is-active {
+  background: var(--brand, #3a2519);
+  border-color: var(--brand, #3a2519);
+  color: #fff8f1;
 }

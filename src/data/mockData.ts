@@ -46,6 +46,13 @@ export const categories = [
   { id: "dilna", label: "Dílna" },
   { id: "udrzba", label: "Údržba" },
   { id: "mereni", label: "Měření" },
+  { id: "zahrada", label: "Zahrada" },
+  { id: "elektro", label: "Elektro" },
+  { id: "malovani", label: "Malování" },
+  { id: "auto", label: "Auto" },
+  { id: "cisteni", label: "Čistění" },
+  { id: "svarovani", label: "Svařování" },
+  { id: "vyska", label: "Výška" },
   { id: "ostatni", label: "Ostatní" },
 ];
 

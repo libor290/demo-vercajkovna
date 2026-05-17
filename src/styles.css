@@ -10442,7 +10442,7 @@ a {
 
   /* Sloupec 1 — seznam */
   .chat-col-list {
-    width: 340px;
+    width: 320px;
     flex-shrink: 0;
     border-right: 1px solid rgba(58,37,25,.10);
     padding-right: 24px;
@@ -10669,10 +10669,12 @@ a {
   .chat-info-detail-btn {
     margin: 16px 20px;
     height: 42px;
-    border-radius: var(--r-lg, 18px);
+    border-radius: 14px;
     border: 0;
-    background: var(--brand-2, #1b5431);
+    background: var(--brand-2, #1b5431) !important;
     color: #fff8f1;
+    outline: none;
+    flex-shrink: 0;
     font-family: var(--font-raw);
     font-weight: 800;
     font-size: 0.72rem;
@@ -10718,9 +10720,8 @@ a {
 @media (min-width: 1200px) {
   .chat-support {
     margin: 8px 20px 20px;
-    border-radius: var(--r-md, 14px);
+    border-radius: 14px;
     border: 1px solid rgba(58,37,25,.12);
-    overflow: hidden;
     background: #fff;
   }
 
@@ -10769,6 +10770,7 @@ a {
     color: var(--brand, #3a2519);
     text-align: left;
     transition: background 140ms ease;
+    width: 100%;
   }
 
   .chat-support-item:hover {
@@ -10884,4 +10886,75 @@ a {
   background: var(--brand, #3a2519);
   border-color: var(--brand, #3a2519);
   color: #fff8f1;
+}
+
+@media (min-width: 1200px) {
+  .chat-col-head-message {
+    justify-content: space-between;
+  }
+
+  .chat-info-toggle-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--font-raw);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brand-2, #1b5431);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    flex-shrink: 0;
+    transition: opacity 140ms ease;
+  }
+
+  .chat-info-toggle-btn:hover {
+    opacity: 0.7;
+  }
+}
+
+@media (min-width: 1200px) {
+  .chat-col-messages .chat-input {
+    border-radius: 14px;
+    min-height: 88px;
+    padding: 14px 18px;
+    align-self: stretch;
+    resize: none;
+  }
+
+  .chat-col-messages .chat-input-bar {
+    align-items: flex-end;
+  }
+
+  .chat-col-messages .chat-send-btn {
+    align-self: flex-end;
+    margin-bottom: 2px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .chat-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chat-input-wrap .chat-input {
+    width: 100%;
+    padding-right: 56px;
+    box-sizing: border-box;
+  }
+
+  .chat-send-btn--inside {
+    position: absolute !important;
+    bottom: 10px !important;
+    right: 10px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+  }
 }

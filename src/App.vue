@@ -611,6 +611,7 @@ const chatConversations = ref<Conversation[]>(initialConversations.map(c => ({ .
 const activeChatId = ref<string | null>(null);
 const chatInput = ref("");
 const chatSupportOpen = ref(false);
+const chatInfoOpen = ref(true);
 const chatFilter = ref<'all' | 'owner' | 'tenant'>('all');
 const filteredChatConversations = computed(() =>
   chatFilter.value === 'all'
@@ -6044,7 +6045,7 @@ if (typeof window !== "undefined") {
                     </div>
                     <span class="chat-list-time">{{ conv.lastTime }}</span>
                   </div>
-                  <span class="chat-list-listing">o „{{ conv.listingTitle }}"</span>
+                  <span class="chat-list-listing">{{ conv.listingTitle }}</span>
                   <span class="chat-list-preview" :class="{ 'is-unread': conv.unread > 0 }">{{ conv.lastMessage }}</span>
                 </div>
               </button>
@@ -6061,6 +6062,9 @@ if (typeof window !== "undefined") {
               <div class="chat-col-head chat-col-head-message">
                 <div class="chat-list-avatar chat-col-avatar">{{ desktopActiveConversation.contactName.charAt(0) }}</div>
                 <strong class="chat-col-contact">{{ desktopActiveConversation.contactName }}</strong>
+                <button type="button" class="chat-info-toggle-btn" @click="chatInfoOpen = !chatInfoOpen">
+                  {{ chatInfoOpen ? 'Odlož vercajk' : 'Vybal vercajk' }}
+                </button>
               </div>
               <div class="chat-messages chat-messages-desktop" ref="chatMessagesEl">
                 <template v-for="msg in desktopActiveConversation.messages" :key="msg.id">
@@ -6078,16 +6082,18 @@ if (typeof window !== "undefined") {
                 </template>
               </div>
               <div class="chat-input-bar">
-                <input v-model="chatInput" class="chat-input" type="text" placeholder="Napište zprávu…" @keydown.enter.prevent="sendChatMessage" />
-                <button class="chat-send-btn" type="button" :disabled="!chatInput.trim()" @click="sendChatMessage" aria-label="Odeslat">
-                  <i class="pi pi-send"></i>
-                </button>
+                <div class="chat-input-wrap">
+                  <textarea v-model="chatInput" class="chat-input" placeholder="Napište zprávu…" rows="1" @keydown.enter.prevent="sendChatMessage"></textarea>
+                  <button class="chat-send-btn chat-send-btn--inside" type="button" :disabled="!chatInput.trim()" @click="sendChatMessage" aria-label="Odeslat">
+                    <i class="pi pi-send"></i>
+                  </button>
+                </div>
               </div>
             </template>
           </div>
 
           <!-- ── SLOUPEC 3: Info o vercajku (jen desktop) ── -->
-          <div v-if="isDesktop" class="chat-col chat-col-info">
+          <div v-if="isDesktop && chatInfoOpen" class="chat-col chat-col-info">
             <template v-if="chatActiveListing && desktopActiveConversation">
               <div class="chat-col-head">
                 <h3 class="chat-col-title">O vercajku</h3>

@@ -9293,3 +9293,338 @@ a {
     border-top: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADD LISTING — KROK 1 — DESKTOPOVÝ DVOUPANELOVÝ LAYOUT
+   Platí od 1024px. Mobilní vzhled zůstává beze změn.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Základní (mobile-first) hodnoty nových tříd ─────────────── */
+
+.al-step1 {
+  display: block;
+}
+
+/* Editorial copy — skryta na mobilu */
+.al-editorial {
+  display: none;
+}
+
+/* Poznámka u fotek — skryta na mobilu */
+.al-photo-note {
+  display: none;
+}
+
+/* Desktop header v pravém panelu — skryt na mobilu */
+.al-desktop-header {
+  display: none;
+}
+
+/* Dlaždice kategorií — skryty na mobilu (tam jsou chips) */
+.al-cat-tiles {
+  display: none;
+}
+
+/* Chips jsou viditelné na mobilu */
+.al-chips-mobile {
+  display: flex;
+}
+
+/* Nadpis sekce — mobilní verze = stávající styl */
+.al-section-heading {
+  font-family: var(--font-raw);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.al-section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.al-badge-required {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #E9E0D1;
+  color: var(--brand);
+  font-family: var(--font-raw);
+  font-weight: 900;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+
+/* Akční lišta — na mobilu skryta (tam funguje add-flow-inline-cta) */
+.al-right-actions {
+  display: none;
+}
+
+/* ── Desktop od 1024px ───────────────────────────────────────── */
+@media (min-width: 1024px) {
+
+  /* Zrušit starý grid z 1200px bloku pro krok 1 */
+  .al-step1.add-listing-body {
+    display: flex !important;
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 620px;
+  }
+
+  /* Mobilní header schovat pro krok 1 */
+  .add-flow-header--hide-desktop {
+    display: none !important;
+  }
+
+  /* Mobilní CTA button schovat */
+  .al-step1 .add-flow-inline-cta {
+    display: none !important;
+  }
+
+  /* ── Levý panel ── */
+  .al-col-left {
+    width: 420px;
+    flex-shrink: 0;
+    background: #EDE4D9;
+    padding: 36px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Editorial */
+  .al-editorial {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .al-editorial-label {
+    font-family: var(--font-raw);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted, #6d584a);
+  }
+
+  .al-editorial-title {
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 1.85rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--brand, #3a2519);
+    margin: 0;
+  }
+
+  .al-editorial-desc {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--muted, #6d584a);
+    margin: 0;
+  }
+
+  /* Dropzone v levém panelu */
+  .al-col-left .add-flow-dropzone {
+    background: #fff;
+    border-color: rgba(58,37,25,.22);
+    flex-shrink: 0;
+  }
+
+  .al-col-left .add-flow-dropzone-inner {
+    min-height: 200px;
+  }
+
+  /* Poznámka pod fotkami */
+  .al-photo-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--muted, #6d584a);
+    font-style: italic;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  .al-photo-note .pi {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  /* ── Pravý panel ── */
+  .al-col-right {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(58,37,25,.10);
+  }
+
+  /* Desktop header */
+  .al-desktop-header {
+    display: grid;
+    gap: 10px;
+    padding: 24px 32px 20px;
+    border-bottom: 1px solid rgba(58,37,25,.10);
+  }
+
+  /* Sekce v pravém panelu */
+  .al-right-section {
+    padding: 20px 32px;
+    border-bottom: 1px solid rgba(58,37,25,.08);
+  }
+
+  /* Nadpis sekcí — větší a tmavší na desktopu */
+  .al-right-section .al-section-heading {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--brand, #3a2519);
+  }
+
+  /* Dlaždice kategorií — desktop grid */
+  .al-cat-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  /* Chips skrýt na desktopu */
+  .al-chips-mobile {
+    display: none !important;
+  }
+
+  /* Jednotlivá dlaždice */
+  .al-cat-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 10px 14px;
+    border-radius: var(--r-lg, 18px);
+    border: 1.5px solid rgba(58,37,25,.14);
+    background: #F5EDE0;
+    color: var(--muted, #6d584a);
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    min-height: 86px;
+  }
+
+  .al-cat-tile:hover {
+    border-color: rgba(58,37,25,.28);
+    background: #EDE4D9;
+  }
+
+  .al-cat-tile.is-active {
+    background: var(--brand, #3a2519);
+    border-color: var(--brand, #3a2519);
+    color: #fff8f1;
+  }
+
+  .al-cat-tile-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--r-md, 14px);
+    background: rgba(58,37,25,.10);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition: background 150ms ease;
+  }
+
+  .al-cat-tile.is-active .al-cat-tile-icon {
+    background: rgba(255,248,241,.15);
+  }
+
+  .al-cat-tile-icon .pi {
+    font-size: 1.1rem;
+  }
+
+  .al-cat-tile-label {
+    font-family: var(--font-raw);
+    font-weight: 800;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  /* Textarea ve formuláři */
+  .al-col-right .add-flow-input-textarea {
+    align-items: flex-start;
+    padding: 14px 16px;
+    min-height: 110px;
+  }
+
+  .al-col-right .add-flow-native {
+    resize: none;
+    line-height: 1.55;
+  }
+
+  /* Akční lišta dole */
+  .al-right-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    margin-top: auto;
+    border-top: 1px solid rgba(58,37,25,.10);
+    gap: 12px;
+  }
+
+  .al-btn-cancel {
+    background: transparent;
+    border: 0;
+    color: var(--muted, #6d584a);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+    transition: color 140ms ease;
+  }
+
+  .al-btn-cancel:hover {
+    color: var(--brand, #3a2519);
+  }
+
+  .al-btn-proceed {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 28px;
+    border-radius: var(--r-pill, 999px);
+    background: var(--brand, #3a2519);
+    color: #fff8f1;
+    border: 0;
+    font-family: var(--font-raw);
+    font-weight: 900;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 150ms ease;
+  }
+
+  .al-btn-proceed:hover {
+    background: var(--brand-dark, #24140d);
+  }
+
+  .al-btn-proceed .pi {
+    font-size: 0.7rem;
+  }
+
+}

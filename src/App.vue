@@ -5198,7 +5198,8 @@ if (typeof window !== "undefined") {
         <div v-else-if="screen === 'add-listing'" class="screen-inner" :class="`add-listing-step-${addListingStep}`">
           <PvCard class="add-flow">
             <template #content>
-              <div class="add-flow-header">
+              <!-- Mobilní header (skryt na desktopu pro krok 1) -->
+              <div class="add-flow-header" :class="{ 'add-flow-header--hide-desktop': addListingStep === 1 }">
                 <div class="add-flow-step-row">
                   <span class="add-flow-step">Krok {{ addListingStep }} z 4</span>
                   <span class="add-flow-step-label">
@@ -5220,9 +5221,15 @@ if (typeof window !== "undefined") {
                   />                </div>
               </div>
 
-              <div v-if="addListingStep === 1" class="add-listing-body">
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Fotografie vercajku</h3>
+              <div v-if="addListingStep === 1" class="add-listing-body al-step1">
+
+                <!-- ── LEVÝ PANEL: Fotografie ── -->
+                <div class="al-col al-col-left">
+                  <div class="al-editorial">
+                    <span class="al-editorial-label">01 / Fotografie</span>
+                    <h2 class="al-editorial-title">Ukažte svůj vercajk&nbsp;v&nbsp;akci</h2>
+                    <p class="al-editorial-desc">Kvalitní fotky zvyšují šanci na zapůjčení až o&nbsp;40&nbsp;%. Nahrajte ideálně fotku celého setu a detail značky.</p>
+                  </div>
 
                   <input
                     ref="addListingPhotoInput"
@@ -5259,8 +5266,8 @@ if (typeof window !== "undefined") {
                           <i class="pi pi-plus"></i>
                         </span>
                         <div class="add-flow-dropzone-copy">
-                          <strong>Přidat fotky</strong>
-                          <span>Nahrát alespoň 1 fotografii</span>
+                          <strong>Přetáhněte fotky sem</strong>
+                          <span>Podporujeme JPG, PNG (max&nbsp;10MB)</span>
                         </div>
                       </template>
                     </button>
@@ -5311,56 +5318,112 @@ if (typeof window !== "undefined") {
                       </template>
                     </div>
                   </div>
-                </div>
 
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Název vercajku</h3>
-                  <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingTitleError }">
-                    <input
-                      v-model="addListingDraft.title"
-                      class="add-flow-native"
-                      type="text"
-                      placeholder="Co dnes pronajímáte?"
-                    />
-                  </div>
-                  <div v-if="addListingProceedAttempt && addListingTitleError" class="add-flow-error">
-                    Vyplň název vercajku.
+                  <div class="al-photo-note">
+                    <i class="pi pi-info-circle" aria-hidden="true"></i>
+                    <span>Všechny fotky budou automaticky optimalizovány</span>
                   </div>
                 </div>
 
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Kategorie</h3>
-                  <div class="add-flow-chips" :class="{ 'is-error': addListingProceedAttempt && addListingCategoryError }">
-                    <button
-                      v-for="item in categories.filter((cat) => cat.id !== 'all')"
-                      :key="`add-flow-cat-${item.id}`"
-                      type="button"
-                      class="add-flow-chip"
-                      :class="{ 'is-active': addListingDraft.categoryId === item.id }"
-                      @click="addListingDraft.categoryId = item.id"
-                    >
-                      {{ item.label }}
+                <!-- ── PRAVÝ PANEL: Formulář ── -->
+                <div class="al-col al-col-right">
+
+                  <!-- Desktopový header (progress bar) -->
+                  <div class="al-desktop-header">
+                    <div class="add-flow-step-row">
+                      <span class="add-flow-step">Krok 1 z 4</span>
+                      <span class="add-flow-step-label">Základní info</span>
+                    </div>
+                    <div class="add-flow-progress" aria-hidden="true">
+                      <div class="add-flow-progress-bar" style="width: 25%" />
+                    </div>
+                  </div>
+
+                  <!-- Název -->
+                  <div class="add-flow-section al-right-section">
+                    <h3 class="add-flow-section-title">Název vercajku</h3>
+                    <div class="add-flow-input" :class="{ 'is-error': addListingProceedAttempt && addListingTitleError }">
+                      <input
+                        v-model="addListingDraft.title"
+                        class="add-flow-native"
+                        type="text"
+                        placeholder="Co dnes pronajímáte?"
+                      />
+                    </div>
+                    <div v-if="addListingProceedAttempt && addListingTitleError" class="add-flow-error">
+                      Vyplň název vercajku.
+                    </div>
+                  </div>
+
+                  <!-- Kategorie -->
+                  <div class="add-flow-section al-right-section" :class="{ 'is-error': addListingProceedAttempt && addListingCategoryError }">
+                    <h3 class="al-section-heading">Vyberte kategorii</h3>
+                    <!-- Desktop: dlaždice s ikonami -->
+                    <div class="al-cat-tiles">
+                      <button
+                        v-for="item in categories.filter((cat) => cat.id !== 'all')"
+                        :key="`al-tile-${item.id}`"
+                        type="button"
+                        class="al-cat-tile"
+                        :class="{ 'is-active': addListingDraft.categoryId === item.id }"
+                        @click="addListingDraft.categoryId = item.id"
+                      >
+                        <span class="al-cat-tile-icon" aria-hidden="true">
+                          <i :class="['pi', item.id === 'stavba' ? 'pi-home' : item.id === 'dilna' ? 'pi-wrench' : item.id === 'udrzba' ? 'pi-cog' : item.id === 'mereni' ? 'pi-sliders-h' : 'pi-ellipsis-h']"></i>
+                        </span>
+                        <span class="al-cat-tile-label">{{ item.label.toUpperCase() }}</span>
+                      </button>
+                    </div>
+                    <!-- Mobilní: chips -->
+                    <div class="add-flow-chips al-chips-mobile" :class="{ 'is-error': addListingProceedAttempt && addListingCategoryError }">
+                      <button
+                        v-for="item in categories.filter((cat) => cat.id !== 'all')"
+                        :key="`add-flow-cat-${item.id}`"
+                        type="button"
+                        class="add-flow-chip"
+                        :class="{ 'is-active': addListingDraft.categoryId === item.id }"
+                        @click="addListingDraft.categoryId = item.id"
+                      >
+                        {{ item.label }}
+                      </button>
+                    </div>
+                    <div v-if="addListingProceedAttempt && addListingCategoryError" class="add-flow-error">
+                      Vyber kategorii.
+                    </div>
+                  </div>
+
+                  <!-- Popis / Podrobnosti -->
+                  <div class="add-flow-section al-right-section">
+                    <div class="al-section-heading-row">
+                      <h3 class="al-section-heading">Podrobnosti</h3>
+                      <span class="al-badge-required">POVINNÉ</span>
+                    </div>
+                    <div class="add-flow-input add-flow-input-textarea">
+                      <textarea
+                        v-model="addListingDraft.description"
+                        class="add-flow-native"
+                        rows="5"
+                        placeholder="V jakém stavu je nářadí? Co všechno nájemce dostane? (kufr, baterie, vrtáky...)"
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <!-- Akce (desktop spodní lišta) -->
+                  <div class="al-right-actions">
+                    <button type="button" class="al-btn-cancel" @click="prevAddListingStep">Zrušit</button>
+                    <button type="button" class="al-btn-proceed" @click="nextAddListingStep">
+                      Pokračovat
+                      <i class="pi pi-chevron-right" aria-hidden="true"></i>
                     </button>
                   </div>
-                  <div v-if="addListingProceedAttempt && addListingCategoryError" class="add-flow-error">
-                    Vyber kategorii.
-                  </div>
+
                 </div>
 
-                <div class="add-flow-section">
-                  <h3 class="add-flow-section-title">Popis vercajku</h3>
-                  <div class="add-flow-input add-flow-input-textarea">
-                    <textarea
-                      v-model="addListingDraft.description"
-                      class="add-flow-native"
-                      rows="4"
-                      placeholder="Popiš vercajk — stav, příslušenství, na co se hodí..."
-                    ></textarea>
-                  </div>
-                </div>
+                <!-- Mobilní CTA (skryto na desktopu) -->
                 <div class="add-flow-section add-flow-inline-cta">
                   <button type="button" class="add-flow-cta-primary" @click="nextAddListingStep">Pokračovat</button>
                 </div>
+
               </div>
 
               <div v-else-if="addListingStep === 2" class="add-listing-body add-flow-step2">

@@ -246,6 +246,7 @@ const personalPhotoOpen = ref(false);
 
 const helpQuery = ref("");
 const helpSelectedId = ref<string | null>(null);
+const helpFullExpandedId = ref<string | null>(null);
 
 const notifCenterOpen = ref(false);
 const appNotifications = ref([
@@ -599,6 +600,7 @@ const descriptionExpanded = ref(false);
 const profileListTab = ref<"offers" | "requests">("offers");
 const publicProfileListTab = ref<"offers" | "requests">("offers");
 const publicProfileReviewsTab = ref<"owners" | "renters">("owners");
+const profileDesktopSection = ref<string>('personal');
 const onboardingStep = ref(0);
 const onboardingRole = ref<"majitel" | "najemce" | null>("majitel");
 const onboardingCategories = ref<string[]>([]);
@@ -611,6 +613,7 @@ const chatConversations = ref<Conversation[]>(initialConversations.map(c => ({ .
 const activeChatId = ref<string | null>(null);
 const chatInput = ref("");
 const chatSupportOpen = ref(false);
+const chatSupportMobileOpen = ref(false);
 const chatInfoOpen = ref(true);
 const chatFilter = ref<'all' | 'owner' | 'tenant'>('all');
 const filteredChatConversations = computed(() =>
@@ -2053,6 +2056,8 @@ function toggleConditionDropdown() {
 
 onMounted(() => {
   document.addEventListener("pointerdown", onDocPointerDown);
+  const handleResize = () => { isDesktop.value = window.innerWidth >= 1200; };
+  window.addEventListener('resize', handleResize);
 });
 
 watch(screen, (val) => {
@@ -2078,16 +2083,27 @@ function openProfile() {
 }
 
 function openProfilePersonal() {
-  if (!requireAuth("profile-personal")) return;
+  if (!isAuthenticated.value) { openAuth('profile-personal'); return; }
   const currentParts = user.name.trim().split(/\s+/);
   personal.firstName = personal.firstName || currentParts[0] || "";
   personal.lastName = personal.lastName || currentParts.slice(1).join(" ");
   personal.email = user.email;
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'personal';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    setScreen('profile-personal');
+  }
 }
 
 function openProfilePayments() {
-  if (!requireAuth("profile-payments")) return;
-  setScreen("profile-payments");
+  if (!isAuthenticated.value) { openAuth('profile-payments'); return; }
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'payments';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    setScreen('profile-payments');
+  }
 }
 
 const cardToDelete = ref<string | null>(null);
@@ -2148,8 +2164,13 @@ function addNewCard() {
 }
 
 function openProfileSecurity() {
-  if (!requireAuth("profile-security")) return;
-  setScreen("profile-security");
+  if (!isAuthenticated.value) { openAuth('profile-security'); return; }
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'security';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    setScreen('profile-security');
+  }
 }
 
 const securityForm = reactive({
@@ -2234,13 +2255,23 @@ function disable2FA() {
 }
 
 function openProfileLanguage() {
-  if (!requireAuth("profile-language")) return;
-  setScreen("profile-language");
+  if (!isAuthenticated.value) { openAuth('profile-language'); return; }
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'language';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    setScreen('profile-language');
+  }
 }
 
 function openProfileNotifications() {
-  if (!requireAuth("profile-notifications")) return;
-  setScreen("profile-notifications");
+  if (!isAuthenticated.value) { openAuth('profile-notifications'); return; }
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'notifications';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    setScreen('profile-notifications');
+  }
 }
 
 const privacy = reactive({
@@ -2254,9 +2285,14 @@ const privacy = reactive({
 });
 
 function openProfilePrivacy() {
-  if (!requireAuth("profile-privacy")) return;
+  if (!isAuthenticated.value) { openAuth('profile-privacy'); return; }
   if (!privacy.emailValue) privacy.emailValue = personal.email ?? "";
-  setScreen("profile-privacy");
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'privacy';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    setScreen('profile-privacy');
+  }
 }
 
 function togglePrivacyPhone() {
@@ -2434,9 +2470,13 @@ function submitContact() {
 }
 
 function openHelpDetail(id: string) {
-  helpSelectedId.value = id;
-  helpFeedback.value = null;
-  setScreen("help-detail");
+  if (isDesktop.value) {
+    helpFullExpandedId.value = helpFullExpandedId.value === id ? null : id;
+  } else {
+    helpSelectedId.value = id;
+    helpFeedback.value = null;
+    setScreen("help-detail");
+  }
 }
 
 function confirmRegisterName() {
@@ -2813,8 +2853,17 @@ if (typeof window !== "undefined") {
           <strong>Vercajkovna</strong>
         </div>
 
-        <!-- Pravá strana — placeholder pro symetrii (mobil) -->
-        <div style="width: 44px; flex-shrink: 0;"></div>
+        <!-- Pravá strana — podpora v chatu (mobil), jinak placeholder -->
+        <button
+          v-if="screen === 'chat-detail'"
+          class="icon-button topbar-chat-support-btn"
+          type="button"
+          aria-label="Podpora"
+          @click="chatSupportMobileOpen = true"
+        >
+          <i class="pi pi-ellipsis-v"></i>
+        </button>
+        <div v-else style="width: 44px; flex-shrink: 0;"></div>
 
         <!-- DESKTOP only: profil vpravo -->
         <button class="icon-button topbar-desktop-profile" type="button" aria-label="Profil" @click="openProfile()">
@@ -2823,6 +2872,33 @@ if (typeof window !== "undefined") {
       </div>
     </header>
 
+    <!-- Mobile chat podpora — bottom sheet -->
+    <Teleport to="body">
+      <div v-if="chatSupportMobileOpen" class="chat-support-sheet">
+        <button
+          class="chat-support-sheet-backdrop"
+          type="button"
+          aria-label="Zavřít"
+          @click="chatSupportMobileOpen = false"
+        ></button>
+        <div class="chat-support-sheet-card">
+          <div class="chat-support-sheet-handle"></div>
+          <p class="chat-support-sheet-title">Podpora</p>
+          <button type="button" class="chat-support-sheet-item" @click="chatSupportMobileOpen = false; openHelpContact()">
+            <i class="pi pi-comment"></i>
+            <span>Kontaktovat Vercajkovnu</span>
+          </button>
+          <button type="button" class="chat-support-sheet-item" @click="chatSupportMobileOpen = false; setScreen('help')">
+            <i class="pi pi-question-circle"></i>
+            <span>Nápověda</span>
+          </button>
+          <button type="button" class="chat-support-sheet-item chat-support-sheet-item--danger" @click="chatSupportMobileOpen = false; openReportUser()">
+            <i class="pi pi-flag"></i>
+            <span>Nahlásit uživatele</span>
+          </button>
+        </div>
+      </div>
+    </Teleport>
 
     <header v-if="screen === 'auth' || screen === 'help-contact'" class="auth-topbar">
       <button class="auth-back-button" type="button" aria-label="Zpět" @click="goBack">
@@ -6216,7 +6292,7 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'profile'" class="screen-inner profile-page">
+        <div v-else-if="screen === 'profile'" class="screen-inner profile-page" :class="{'profile-desktop-layout': isDesktop}">
 
           <!-- Notifikační panel -->
           <div v-if="notifCenterOpen" class="notif-center-overlay" @click.self="closeNotifCenter">
@@ -6257,6 +6333,8 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
+          <!-- Sidebar col: always visible (full page on mobile, left column on desktop) -->
+          <div class="profile-sidebar-col">
           <div class="profile-hero" style="grid-template-columns: auto 1fr auto; align-items: start;">
             <div class="profile-avatar" style="align-self: center;">{{ user.name.charAt(0).toUpperCase() }}</div>
             <div class="profile-hero-copy" style="min-width: 0; align-self: center;">
@@ -6287,7 +6365,7 @@ if (typeof window !== "undefined") {
           </div>
 
           <div class="profile-card-menu">
-            <button class="profile-list-item" type="button" @click="openProfilePersonal">
+            <button class="profile-list-item" type="button" @click="openProfilePersonal" :class="{'is-active-section': isDesktop && profileDesktopSection === 'personal'}">
               <div class="profile-list-item-icon"><i class="pi pi-user"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Osobní údaje</span>
@@ -6295,7 +6373,7 @@ if (typeof window !== "undefined") {
               </div>
               <i class="pi pi-chevron-right"></i>
             </button>
-            <button class="profile-list-item" type="button" @click="openProfilePayments">
+            <button class="profile-list-item" type="button" @click="openProfilePayments" :class="{'is-active-section': isDesktop && profileDesktopSection === 'payments'}">
               <div class="profile-list-item-icon"><i class="pi pi-credit-card"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Platby</span>
@@ -6303,7 +6381,7 @@ if (typeof window !== "undefined") {
               </div>
               <i class="pi pi-chevron-right"></i>
             </button>
-            <button class="profile-list-item" type="button" @click="openProfileSecurity">
+            <button class="profile-list-item" type="button" @click="openProfileSecurity" :class="{'is-active-section': isDesktop && profileDesktopSection === 'security'}">
               <div class="profile-list-item-icon"><i class="pi pi-shield"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Zabezpečení</span>
@@ -6311,7 +6389,7 @@ if (typeof window !== "undefined") {
               </div>
               <i class="pi pi-chevron-right"></i>
             </button>
-            <button class="profile-list-item" type="button" @click="openProfileLanguage">
+            <button class="profile-list-item" type="button" @click="openProfileLanguage" :class="{'is-active-section': isDesktop && profileDesktopSection === 'language'}">
               <div class="profile-list-item-icon"><i class="pi pi-globe"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Jazyk a měna</span>
@@ -6319,7 +6397,7 @@ if (typeof window !== "undefined") {
               </div>
               <i class="pi pi-chevron-right"></i>
             </button>
-            <button class="profile-list-item" type="button" @click="openProfilePrivacy">
+            <button class="profile-list-item" type="button" @click="openProfilePrivacy" :class="{'is-active-section': isDesktop && profileDesktopSection === 'privacy'}">
               <div class="profile-list-item-icon"><i class="pi pi-eye-slash"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Soukromí</span>
@@ -6327,7 +6405,7 @@ if (typeof window !== "undefined") {
               </div>
               <i class="pi pi-chevron-right"></i>
             </button>
-            <button class="profile-list-item" type="button" @click="openProfileNotifications">
+            <button class="profile-list-item" type="button" @click="openProfileNotifications" :class="{'is-active-section': isDesktop && profileDesktopSection === 'notifications'}">
               <div class="profile-list-item-icon"><i class="pi pi-bell"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Oznámení</span>
@@ -6352,6 +6430,332 @@ if (typeof window !== "undefined") {
             <i class="pi pi-sign-out"></i>
             Odhlásit se
           </button>
+          </div><!-- /profile-sidebar-col -->
+
+          <!-- Content panel — only on desktop -->
+          <div v-if="isDesktop" class="profile-content-col">
+
+            <!-- Osobní údaje -->
+            <template v-if="profileDesktopSection === 'personal'">
+              <h3 class="profile-content-heading">Osobní údaje</h3>
+              <div class="profile-section">
+                <div class="personal-photo-wrap" @click="openPersonalPhotoEditor">
+                  <div class="personal-photo-circle">
+                    <span>{{ (personal.firstName || personal.email || 'T').charAt(0).toUpperCase() }}</span>
+                    <div class="personal-photo-edit-badge"><i class="pi pi-pencil"></i></div>
+                  </div>
+                </div>
+                <div class="personal-section">
+                  <div class="personal-name-grid">
+                    <div class="personal-field">
+                      <span class="personal-field-label">Jméno</span>
+                      <div class="personal-input-box" style="cursor: default;">
+                        <i class="pi pi-user personal-input-icon"></i>
+                        <span class="personal-field-value" style="color: var(--muted); font-weight: 400;">{{ personal.firstName || '—' }}</span>
+                        <span class="personal-locked-badge"><i class="pi pi-lock" style="font-size: 10px;"></i></span>
+                      </div>
+                    </div>
+                    <div class="personal-field">
+                      <span class="personal-field-label">Příjmení</span>
+                      <div class="personal-input-box" style="cursor: default;">
+                        <i class="pi pi-user personal-input-icon"></i>
+                        <span class="personal-field-value" style="color: var(--muted); font-weight: 400;">{{ personal.lastName || '—' }}</span>
+                        <span class="personal-locked-badge"><i class="pi pi-lock" style="font-size: 10px;"></i></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="personal-section">
+                  <div class="personal-field">
+                    <span class="personal-field-label">E-mail</span>
+                    <div class="personal-input-box" @click="openPersonalEdit('email')">
+                      <i class="pi pi-envelope personal-input-icon"></i>
+                      <span class="personal-field-value">{{ personal.email || '—' }}</span>
+                      <span v-if="personal.emailVerified" class="personal-verified-badge">✓ Ověřen</span>
+                      <button v-else type="button" class="personal-verify-link" @click.stop="verifyEmail">Ověřit</button>
+                    </div>
+                  </div>
+                  <div class="personal-field">
+                    <span class="personal-field-label">Telefon</span>
+                    <div class="personal-input-box" @click="openPersonalEdit('phone')">
+                      <i class="pi pi-phone personal-input-icon"></i>
+                      <span class="personal-field-value">{{ personal.phone || '—' }}</span>
+                      <span v-if="personal.phoneVerified" class="personal-verified-badge">✓ Ověřen</span>
+                      <button v-else type="button" class="personal-verify-link personal-verify-link-danger" @click.stop="verifyPhone">Ověřit</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="personal-section">
+                  <div class="personal-field">
+                    <span class="personal-field-label">Adresa</span>
+                    <div class="personal-input-box" @click="openPersonalEdit('address')">
+                      <i class="pi pi-map-marker personal-input-icon"></i>
+                      <span class="personal-field-value">{{ personal.address || '—' }}</span>
+                    </div>
+                  </div>
+                  <p class="personal-note">Ukazujeme jen čtvrť — přesná adresa zůstane skrytá.</p>
+                </div>
+                <div class="personal-section">
+                  <div class="personal-field">
+                    <span class="personal-field-label">Bio</span>
+                    <div class="personal-input-box" style="height: auto; align-items: flex-start; padding: 10px 12px;">
+                      <i class="pi pi-align-left personal-input-icon" style="margin-top: 2px;"></i>
+                      <textarea v-model="personal.bio" class="payments-native-input" rows="3" placeholder="Pár slov o sobě — co rád/a půjčuješ, kde jsi..." style="resize: vertical; background: transparent; border: none; outline: none; width: 100%; font: inherit;"></textarea>
+                    </div>
+                  </div>
+                  <p class="personal-note">Zobrazuje se na tvém veřejném profilu.</p>
+                </div>
+                <div style="margin-top: 16px;">
+                  <button type="button" class="add-flow-cta-primary" :disabled="!personalDirty" :style="!personalDirty ? { opacity: '0.45', cursor: 'not-allowed' } : {}" @click="savePersonalChanges">Uložit změny</button>
+                  <div v-if="personal.saved" class="profile-personal-saved" style="text-align: center; margin-top: 8px;">Uloženo ✓</div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Platby -->
+            <template v-else-if="profileDesktopSection === 'payments'">
+              <h3 class="profile-content-heading">Platby</h3>
+              <div class="profile-section">
+                <div v-if="cardForm.savedCards.length" class="payments-card-list">
+                  <div v-for="card in cardForm.savedCards" :key="card.id" class="payments-card-row">
+                    <div class="payments-card-icon"><i class="pi pi-credit-card"></i></div>
+                    <div class="payments-card-info">
+                      <div class="payments-card-name-row">
+                        <strong>{{ card.brand }} •••• {{ card.last4 }}</strong>
+                        <span v-if="card.isDefault" class="payments-default-badge">Výchozí</span>
+                      </div>
+                      <span>Platnost {{ card.expiry }}</span>
+                    </div>
+                    <div class="payments-card-actions">
+                      <button v-if="!card.isDefault" type="button" class="payments-set-default" @click="cardForm.savedCards.forEach(c => c.isDefault = c.id === card.id)" title="Nastavit jako výchozí"><i class="pi pi-star"></i></button>
+                      <button type="button" class="payments-card-remove" @click="requestRemoveCard(card.id)" aria-label="Odstranit kartu"><i class="pi pi-trash"></i></button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="payments-empty">
+                  <i class="pi pi-credit-card"></i>
+                  <span>Zatím žádné uložené karty</span>
+                </div>
+                <div v-if="!isAddingCard" class="payments-add-btn-wrap">
+                  <button class="payments-add-btn" type="button" @click="isAddingCard = true"><i class="pi pi-plus"></i> Přidat platební kartu</button>
+                </div>
+                <div class="payments-history">
+                  <span class="personal-section-label">Historie transakcí</span>
+                  <div class="payments-card-list">
+                    <div class="payments-tx-row">
+                      <div class="payments-tx-icon is-income"><i class="pi pi-angle-right"></i></div>
+                      <div class="payments-card-info"><strong>Ponorná pila Festool TS 55</strong><span>15. 4. 2026</span></div>
+                      <span class="payments-tx-amount is-income">+1 350 Kč</span>
+                    </div>
+                    <div class="payments-tx-row">
+                      <div class="payments-tx-icon"><i class="pi pi-angle-left"></i></div>
+                      <div class="payments-card-info"><strong>Aku vrtačka Makita 18V</strong><span>10. 4. 2026</span></div>
+                      <span class="payments-tx-amount">−540 Kč</span>
+                    </div>
+                    <div class="payments-tx-row">
+                      <div class="payments-tx-icon is-income"><i class="pi pi-angle-right"></i></div>
+                      <div class="payments-card-info"><strong>Vysokotlaký čistič Kärcher</strong><span>3. 4. 2026</span></div>
+                      <span class="payments-tx-amount is-income">+870 Kč</span>
+                    </div>
+                    <div class="payments-tx-row">
+                      <div class="payments-tx-icon"><i class="pi pi-angle-left"></i></div>
+                      <div class="payments-card-info"><strong>Křížový laser Bosch GLL</strong><span>22. 3. 2026</span></div>
+                      <span class="payments-tx-amount">−660 Kč</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="isAddingCard" class="payments-new-card">
+                  <div class="personal-field">
+                    <span class="personal-field-label">Číslo karty</span>
+                    <div class="personal-input-box"><i class="pi pi-credit-card personal-input-icon"></i><input v-model="newCardData.number" class="payments-native-input" placeholder="0000 0000 0000 0000" maxlength="19" /></div>
+                  </div>
+                  <div class="payments-row-2">
+                    <div class="personal-field">
+                      <span class="personal-field-label">Platnost</span>
+                      <div class="personal-input-box"><input v-model="newCardData.expiry" class="payments-native-input" placeholder="MM/RR" maxlength="5" /></div>
+                    </div>
+                    <div class="personal-field">
+                      <span class="personal-field-label">CVC</span>
+                      <div class="personal-input-box"><input v-model="newCardData.cvc" class="payments-native-input" placeholder="000" maxlength="3" /></div>
+                    </div>
+                  </div>
+                  <button type="button" class="add-flow-cta-primary" @click="addNewCard">Uložit kartu</button>
+                  <button type="button" class="add-flow-cta-ghost" @click="isAddingCard = false">Zrušit</button>
+                </div>
+              </div>
+            </template>
+
+            <!-- Zabezpečení -->
+            <template v-else-if="profileDesktopSection === 'security'">
+              <h3 class="profile-content-heading">Zabezpečení</h3>
+              <div class="profile-section">
+                <span class="personal-section-label">Změna hesla</span>
+                <div class="security-card">
+                  <div class="personal-field">
+                    <span class="personal-field-label">Současné heslo</span>
+                    <div class="personal-input-box">
+                      <i class="pi pi-lock personal-input-icon"></i>
+                      <input v-model="securityForm.currentPassword" :type="showCurrentPassword ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
+                      <button class="security-eye-btn" type="button" @click="showCurrentPassword = !showCurrentPassword"><i :class="['pi', showCurrentPassword ? 'pi-eye-slash' : 'pi-eye']"></i></button>
+                    </div>
+                  </div>
+                  <div class="personal-field">
+                    <span class="personal-field-label">Nové heslo</span>
+                    <div class="personal-input-box">
+                      <i class="pi pi-lock personal-input-icon"></i>
+                      <input v-model="securityForm.newPassword" :type="showNewPassword ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
+                      <button class="security-eye-btn" type="button" @click="showNewPassword = !showNewPassword"><i :class="['pi', showNewPassword ? 'pi-eye-slash' : 'pi-eye']"></i></button>
+                    </div>
+                    <div class="password-rules">
+                      <div v-for="rule in securityPasswordRules" :key="rule.label" class="password-rule" :class="{ 'is-ok': rule.ok }">
+                        <span class="password-rule-dot" /><span>{{ rule.label }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="personal-field">
+                    <span class="personal-field-label">Potvrzení nového hesla</span>
+                    <div class="personal-input-box">
+                      <i class="pi pi-lock personal-input-icon"></i>
+                      <input v-model="securityForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="payments-native-input" placeholder="••••••••" />
+                      <button class="security-eye-btn" type="button" @click="showConfirmPassword = !showConfirmPassword"><i :class="['pi', showConfirmPassword ? 'pi-eye-slash' : 'pi-eye']"></i></button>
+                    </div>
+                  </div>
+                  <button class="add-flow-cta-primary" :disabled="securityForm.isChangingPassword || !securityForm.newPassword" @click="changePassword">
+                    <i v-if="securityForm.isChangingPassword" class="pi pi-spin pi-spinner"></i>
+                    {{ securityForm.isChangingPassword ? 'Ukládám...' : 'Aktualizovat heslo' }}
+                  </button>
+                </div>
+              </div>
+              <div class="profile-section">
+                <span class="personal-section-label">Extra zabezpečení</span>
+                <div class="add-flow-toggle-card" @click="!securityForm.twoFactorEnabled ? start2FASetup() : disable2FA()">
+                  <div class="add-flow-toggle-card-copy">
+                    <strong>Dvoufázové ověření (2FA)</strong>
+                    <span>{{ securityForm.twoFactorEnabled ? 'Aktivní — účet je lépe chráněn' : 'Zvýší ochranu tvého účtu' }}</span>
+                  </div>
+                  <div class="add-flow-toggle" role="presentation">
+                    <input type="checkbox" :checked="securityForm.twoFactorEnabled" readonly />
+                    <span aria-hidden="true"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="profile-section">
+                <span class="personal-section-label">Přístup</span>
+                <button class="security-danger-row" type="button" @click="requestLogoutAll">
+                  <div class="security-danger-icon"><i class="pi pi-sign-out"></i></div>
+                  <span>Odhlásit se ze všech zařízení</span>
+                  <i class="pi pi-chevron-right"></i>
+                </button>
+              </div>
+            </template>
+
+            <!-- Jazyk a měna -->
+            <template v-else-if="profileDesktopSection === 'language'">
+              <h3 class="profile-content-heading">Jazyk a měna</h3>
+              <div class="profile-section">
+                <span class="personal-section-label">Jazyk aplikace</span>
+                <div class="lang-currency-list">
+                  <button v-for="lang in [{id:'cz', label:'Čeština', flag:'🇨🇿'}, {id:'sk', label:'Slovenčina', flag:'🇸🇰', soon:true}, {id:'en', label:'English', flag:'🇬🇧', soon:true}]" :key="lang.id" type="button" class="lang-currency-row" :class="{ 'is-active': settings.language === lang.id, 'is-disabled': lang.soon }" :disabled="lang.soon" @click="!lang.soon && (settings.language = lang.id)">
+                    <div class="lang-currency-icon">{{ lang.flag }}</div>
+                    <span class="lang-currency-label">{{ lang.label }}</span>
+                    <span v-if="lang.soon" class="lang-soon-badge">Brzy</span>
+                    <i v-else-if="settings.language === lang.id" class="pi pi-check lang-currency-check"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="profile-section">
+                <span class="personal-section-label">Preferovaná měna</span>
+                <div class="lang-currency-list">
+                  <button v-for="curr in [{id:'CZK', label:'Koruna česká', symbol:'Kč'}, {id:'EUR', label:'Euro', symbol:'€'}]" :key="curr.id" type="button" class="lang-currency-row" :class="{ 'is-active': settings.currency === curr.id }" @click="settings.currency = curr.id">
+                    <div class="lang-currency-icon lang-currency-symbol">{{ curr.symbol }}</div>
+                    <span class="lang-currency-label">{{ curr.label }}</span>
+                    <i v-if="settings.currency === curr.id" class="pi pi-check lang-currency-check"></i>
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <!-- Soukromí -->
+            <template v-else-if="profileDesktopSection === 'privacy'">
+              <h3 class="profile-content-heading">Soukromí</h3>
+              <div class="privacy-info-banner">
+                <i class="pi pi-shield"></i>
+                <span>Tvůj kontakt <strong>zůstane skrytý</strong> až do potvrzení rezervace. Teprve pak ho druhá strana uvidí.</span>
+              </div>
+              <div class="profile-section">
+                <span class="personal-section-label">Jak mě kontaktovat</span>
+                <div class="add-flow-toggle-card" @click="togglePrivacyPhone">
+                  <div class="add-flow-toggle-card-copy"><strong>Telefon</strong><span>{{ personal.phone || 'Není vyplněno' }}</span></div>
+                  <div class="add-flow-toggle" role="presentation"><input type="checkbox" :checked="privacy.contactPhone" readonly /><span aria-hidden="true"></span></div>
+                </div>
+                <div class="add-flow-toggle-card" @click="togglePrivacyEmail">
+                  <div class="add-flow-toggle-card-copy"><strong>E-mail</strong><span>{{ privacy.emailValue || personal.email || 'Není vyplněno' }}</span></div>
+                  <button v-if="privacy.contactEmail" type="button" class="privacy-edit-link" @click.stop="openEmailModal">Změnit</button>
+                  <div class="add-flow-toggle" role="presentation"><input type="checkbox" :checked="privacy.contactEmail" readonly /><span aria-hidden="true"></span></div>
+                </div>
+                <div class="add-flow-toggle-card" @click="togglePrivacySms">
+                  <div class="add-flow-toggle-card-copy"><strong>SMS</strong><span>{{ personal.phone || 'Není vyplněno' }}</span></div>
+                  <div class="add-flow-toggle" role="presentation"><input type="checkbox" :checked="privacy.contactSms" readonly /><span aria-hidden="true"></span></div>
+                </div>
+              </div>
+              <div v-if="privacy.contactError" class="privacy-error" style="margin: 0 0 8px;">
+                <i class="pi pi-exclamation-circle"></i> Musíš mít zapnutý alespoň Telefon nebo SMS.
+              </div>
+            </template>
+
+            <!-- Oznámení -->
+            <template v-else-if="profileDesktopSection === 'notifications'">
+              <h3 class="profile-content-heading">Oznámení</h3>
+              <div class="profile-section">
+                <span class="personal-section-label">Obecná nastavení</span>
+                <div class="add-flow-toggle-card" @click="notifications.pushEnabled = !notifications.pushEnabled">
+                  <div class="add-flow-toggle-card-copy"><strong>Push notifikace</strong><span>{{ notifications.pushEnabled ? 'Zapnuto' : 'Vypnuto' }}</span></div>
+                  <div class="add-flow-toggle" role="presentation"><input type="checkbox" :checked="notifications.pushEnabled" readonly /><span aria-hidden="true"></span></div>
+                </div>
+                <div class="add-flow-toggle-card" @click="notifications.emailEnabled = !notifications.emailEnabled">
+                  <div class="add-flow-toggle-card-copy"><strong>E-mailová oznámení</strong><span>{{ notifications.emailEnabled ? 'Zapnuto' : 'Vypnuto' }}</span></div>
+                  <div class="add-flow-toggle" role="presentation"><input type="checkbox" :checked="notifications.emailEnabled" readonly /><span aria-hidden="true"></span></div>
+                </div>
+              </div>
+              <template v-for="section in [
+                { label: 'Komunikace', items: [{ icon: 'pi-comment', title: 'Nová zpráva v chatu', desc: null, key: 'chat' }]},
+                { label: 'Rezervace', items: [
+                  { icon: 'pi-inbox', title: 'Nová žádost', desc: 'Někdo chce půjčit tvoje nářadí', key: 'reservationNew' },
+                  { icon: 'pi-check-circle', title: 'Přijata nebo zamítnuta', desc: 'Stav tvé žádosti se změnil', key: 'reservationStatus' },
+                  { icon: 'pi-clock', title: 'Připomínka předání', desc: 'Den před začátkem výpůjčky', key: 'reservationReminder' },
+                ]},
+                { label: 'Platby', items: [{ icon: 'pi-credit-card', title: 'Stav platby', desc: 'Přijata nebo potvrzena', key: 'payment' }]},
+                { label: 'Průběh výpůjčky', items: [{ icon: 'pi-box', title: 'Stav zařízení', desc: 'Předání a vrácení potvrzeno', key: 'deviceStatus' }]},
+                { label: 'Hodnocení', items: [
+                  { icon: 'pi-star', title: 'Nové hodnocení', desc: null, key: 'ratingReceived' },
+                  { icon: 'pi-star-fill', title: 'Výzva k hodnocení', desc: 'Po skončení výpůjčky', key: 'ratingReminder' },
+                ]},
+                { label: 'Novinky', items: [
+                  { icon: 'pi-map-marker', title: 'Nové nabídky v okolí', desc: 'Nářadí blízko tebe', key: 'nearbyListings' },
+                  { icon: 'pi-megaphone', title: 'Novinky platformy', desc: 'Akce a tipy od Vercajkovny', key: 'platformNews' },
+                ]},
+              ]" :key="section.label">
+                <div class="profile-section" :class="{ 'notif-section--muted': !notifications.pushEnabled && !notifications.emailEnabled }">
+                  <span class="personal-section-label">{{ section.label }}</span>
+                  <div class="notif-card">
+                    <div v-for="item in section.items" :key="item.key" class="notif-row-new">
+                      <div class="notif-row-icon"><i :class="['pi', item.icon]"></i></div>
+                      <div class="notif-row-text">
+                        <strong>{{ item.title }}</strong>
+                        <span v-if="item.desc">{{ item.desc }}</span>
+                      </div>
+                      <div class="add-flow-toggle" role="presentation">
+                        <input type="checkbox" :checked="(notifications as any)[item.key]" readonly />
+                        <span aria-hidden="true" @click="(notifications as any)[item.key] = !(notifications as any)[item.key]"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </template>
+
+          </div><!-- /profile-content-col -->
+
         </div>
 
         <div v-else-if="screen === 'profile-notifications'" class="screen-inner profile-page">
@@ -6973,6 +7377,8 @@ if (typeof window !== "undefined") {
 
         <div v-else-if="screen === 'help'" class="screen-inner profile-page help-page">
 
+          <h1 v-if="isDesktop" class="help-page-title">Potřebuješ poradit?</h1>
+
           <!-- Hledání -->
           <div class="help-search-new">
             <i class="pi pi-search help-search-icon"></i>
@@ -6992,16 +7398,33 @@ if (typeof window !== "undefined") {
                 <button
                   type="button"
                   class="help-faq-card-head"
-                  @click="helpExpandedId = helpExpandedId === item.id ? null : item.id"
+                  @click="() => { if (helpExpandedId === item.id) { helpExpandedId = null; helpFullExpandedId = null; helpFeedback = null; } else { helpExpandedId = item.id; } }"
                 >
                   <span>{{ item.title }}</span>
                   <i :class="['pi', helpExpandedId === item.id ? 'pi-chevron-up' : 'pi-chevron-down']" class="help-faq-arrow"></i>
                 </button>
                 <div v-if="helpExpandedId === item.id" class="help-faq-answer">
-                  <p>{{ item.body[0] }}</p>
-                  <button v-if="item.body.length > 1" type="button" class="help-faq-more" @click="openHelpDetail(item.id)">
-                    Číst celou odpověď
-                  </button>
+                  <template v-if="isDesktop && helpFullExpandedId === item.id">
+                    <p v-for="(para, idx) in item.body" :key="idx">{{ para }}</p>
+                    <div class="help-detail-feedback">
+                      <span>Pomohla ti tato odpověď?</span>
+                      <div class="help-detail-actions">
+                        <button type="button" class="help-detail-button" :class="{ 'is-active': helpFeedback === 'yes' }" @click="helpFeedback = 'yes'">
+                          <i class="pi pi-thumbs-up"></i> Ano
+                        </button>
+                        <button type="button" class="help-detail-button" :class="{ 'is-active': helpFeedback === 'no' }" @click="helpFeedback = 'no'">
+                          <i class="pi pi-thumbs-down"></i> Ne
+                        </button>
+                      </div>
+                      <button type="button" class="help-detail-link" @click="openHelpContact">Kontaktovat podporu</button>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <p>{{ item.body[0] }}</p>
+                    <button v-if="item.body.length > 1" type="button" class="help-faq-more" @click="openHelpDetail(item.id)">
+                      Číst celou odpověď
+                    </button>
+                  </template>
                 </div>
               </div>
               <div v-if="filteredHelpFaq.length === 0 && helpQuery.trim()" class="help-faq-empty">

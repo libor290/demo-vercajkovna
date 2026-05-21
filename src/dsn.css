@@ -260,6 +260,15 @@ button:active { transform: none !important; }
   margin: 0 auto;
 }
 
+/* Na desktopu (≥1200 px) profil přepneme do dvousloupcového roztaženého layoutu */
+@media (min-width: 1200px) {
+  .screen-inner.profile-page.profile-desktop-layout {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
 /* ── AUTH — BRAND ROW ────────────────────────────────────────── */
 
 .auth-brand-mark.auth-brand-mark-inline {

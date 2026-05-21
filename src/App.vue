@@ -625,6 +625,7 @@ const isDesktop = ref(typeof window !== 'undefined' && window.innerWidth >= 1200
 if (typeof window !== 'undefined') {
   window.addEventListener('resize', () => { isDesktop.value = window.innerWidth >= 1200; });
 }
+const isProfileDesktop = computed(() => isDesktop.value && screen.value === 'profile');
 const activeConversation = computed(() => chatConversations.value.find(c => c.id === activeChatId.value) ?? null);
 const unreadChatCount = computed(() => chatConversations.value.reduce((sum, c) => sum + c.unread, 0));
 
@@ -1045,6 +1046,7 @@ const profileOffers = computed(() => {
       return {
         id,
         title: listing.title,
+        photo: listing.photo,
         priceValue: listing.priceValue,
         location: listing.location,
         statusLabel: status.label,
@@ -1068,6 +1070,7 @@ const profileRequests = computed(() => {
         return {
           id,
           title: listing.title,
+          photo: listing.photo,
           priceValue: listing.priceValue,
           location: listing.location,
           statusLabel: ratingSubmitted.value ? "Pronájem ukončen" : "Čeká na hodnocení",
@@ -1079,6 +1082,7 @@ const profileRequests = computed(() => {
         return {
           id,
           title: listing.title,
+          photo: listing.photo,
           priceValue: listing.priceValue,
           location: listing.location,
           statusLabel: "Problém nahlášen",
@@ -1089,6 +1093,7 @@ const profileRequests = computed(() => {
       return {
         id,
         title: listing.title,
+        photo: listing.photo,
         priceValue: listing.priceValue,
         location: listing.location,
         statusLabel: status.label,
@@ -1547,6 +1552,15 @@ function openProfileListPage(tab: "offers" | "requests") {
   profileListTab.value = tab;
   lastListScreen.value = "profile-list";
   setScreen("profile-list");
+}
+
+function openProfileVercajk() {
+  if (isDesktop.value) {
+    profileDesktopSection.value = 'listings';
+    if (screen.value !== 'profile') setScreen('profile');
+  } else {
+    openProfileListPage('offers');
+  }
 }
 
 function openPublicProfileListPage(tab: "offers" | "requests") {
@@ -2865,6 +2879,12 @@ if (typeof window !== "undefined") {
         </button>
         <div v-else style="width: 44px; flex-shrink: 0;"></div>
 
+        <!-- DESKTOP only: zvoneček vpravo -->
+        <button v-if="isDesktop && user" class="icon-button topbar-desktop-bell" type="button" aria-label="Oznámení" @click="openNotifCenter" style="position: relative;">
+          <i class="pi pi-bell"></i>
+          <span v-if="unreadNotifCount > 0" class="notif-bell-badge">{{ unreadNotifCount }}</span>
+        </button>
+
         <!-- DESKTOP only: profil vpravo -->
         <button class="icon-button topbar-desktop-profile" type="button" aria-label="Profil" @click="openProfile()">
           <i class="pi pi-user"></i>
@@ -2928,7 +2948,7 @@ if (typeof window !== "undefined") {
           <span>Reklama</span>
         </div>
       </aside>
-    <main class="frame">
+    <main class="frame" :class="{'frame--profile-desktop': isProfileDesktop}" :style="isProfileDesktop ? {width: 'min(100vw - 48px, 1400px)', maxWidth: '1400px'} : {}">
       <section v-if="screen === 'auth'" class="auth-shell">
         <div class="auth-page" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
 
@@ -6292,7 +6312,7 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'profile'" class="screen-inner profile-page" :class="{'profile-desktop-layout': isDesktop}">
+        <div v-else-if="screen === 'profile'" class="screen-inner profile-page" :class="{'profile-desktop-layout': isProfileDesktop}">
 
           <!-- Notifikační panel -->
           <div v-if="notifCenterOpen" class="notif-center-overlay" @click.self="closeNotifCenter">
@@ -6354,7 +6374,7 @@ if (typeof window !== "undefined") {
           </div>
 
           <div class="profile-card-menu">
-            <button class="profile-list-item" type="button" @click="openProfileListPage('offers')">
+            <button class="profile-list-item" type="button" @click="openProfileVercajk" :class="{'is-active-section': isDesktop && profileDesktopSection === 'listings'}">
               <div class="profile-list-item-icon"><i class="pi pi-wrench"></i></div>
               <div class="profile-list-item-content">
                 <span class="profile-list-item-title">Vercajk</span>
@@ -6433,7 +6453,7 @@ if (typeof window !== "undefined") {
           </div><!-- /profile-sidebar-col -->
 
           <!-- Content panel — only on desktop -->
-          <div v-if="isDesktop" class="profile-content-col">
+          <div v-if="isProfileDesktop" class="profile-content-col">
 
             <!-- Osobní údaje -->
             <template v-if="profileDesktopSection === 'personal'">
@@ -6752,6 +6772,48 @@ if (typeof window !== "undefined") {
                   </div>
                 </div>
               </template>
+            </template>
+
+            <!-- Vercajk — nabídky a poptávky -->
+            <template v-else-if="profileDesktopSection === 'listings'">
+              <h3 class="profile-content-heading">Vercajk</h3>
+              <div class="profile-list-tabs" style="border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+                <button class="profile-list-tab" :class="{ 'is-active': profileListTab === 'offers' }" type="button" @click="profileListTab = 'offers'">Nabídky</button>
+                <button class="profile-list-tab" :class="{ 'is-active': profileListTab === 'requests' }" type="button" @click="profileListTab = 'requests'">Poptávky</button>
+              </div>
+              <div v-if="profileListTab === 'offers'" class="profile-panel-list">
+                <div class="profile-list-controls">
+                  <button v-for="option in requestStatusOptions" :key="`dt-offer-filter-${option.value}`" type="button" class="profile-list-pill" :class="{ 'is-active': offerStatusFilter === option.value }" @click="setOfferStatusFilter(option.value)">{{ option.label }}</button>
+                </div>
+                <div v-for="offer in filteredProfileOffers" :key="`dt-offer-${offer.id}`" class="profile-item" :class="{ 'is-dimmed': offer.statusLabel === 'Pronájem ukončen' || offer.statusLabel === 'Zamítnutí' || offer.statusLabel === 'Zrušeno' }">
+                  <button type="button" class="profile-item-main" @click="offer.statusLabel === 'Čeká na hodnocení' ? openRatingFlow('owner') : openPendingOffer(offer)">
+                    <img v-if="offer.photo" :src="offer.photo" class="profile-item-photo" alt="" />
+                    <div class="profile-item-copy">
+                      <span class="profile-item-title">{{ offer.title }}</span>
+                      <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
+                    </div>
+                    <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
+                  </button>
+                  <button type="button" class="profile-item-edit-icon" :class="{ 'is-active': offer.canEdit }" aria-label="Upravit nabídku" :disabled="!offer.canEdit" @click="offer.canEdit && openEditListing(offer.id)"><i class="pi pi-pencil"></i></button>
+                </div>
+                <div v-if="!filteredProfileOffers.length" class="profile-empty">Zatím nic nenabízíš.</div>
+              </div>
+              <div v-else class="profile-panel-list">
+                <div class="profile-list-controls">
+                  <button v-for="option in requestStatusOptions" :key="`dt-req-filter-${option.value}`" type="button" class="profile-list-pill" :class="{ 'is-active': requestStatusFilter === option.value }" @click="setRequestStatusFilter(option.value)">{{ option.label }}</button>
+                </div>
+                <div v-for="request in filteredProfileRequests" :key="`dt-request-${request.id}`" class="profile-item" :class="{ 'is-dimmed': request.statusLabel === 'Pronájem ukončen' || request.statusLabel === 'Zamítnutí' || request.statusLabel === 'Zrušeno' }">
+                  <button type="button" class="profile-item-main" @click="request.statusLabel === 'Čeká na hodnocení' ? openRatingFlow('tenant') : isRequestReservationStatus(request.statusLabel) ? openPendingRequest(request) : openListing(request.id)">
+                    <img v-if="request.photo" :src="request.photo" class="profile-item-photo" alt="" />
+                    <div class="profile-item-copy">
+                      <span class="profile-item-title">{{ request.title }}</span>
+                      <span class="profile-item-meta">{{ request.location }} · {{ request.dateRange }}</span>
+                    </div>
+                    <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
+                  </button>
+                </div>
+                <div v-if="!filteredProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
+              </div>
             </template>
 
           </div><!-- /profile-content-col -->
@@ -7263,96 +7325,7 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <div v-if="personalEditOpen" class="confirm-modal">
-            <button
-              class="confirm-modal-backdrop"
-              type="button"
-              @click="closePersonalEdit"
-              aria-label="Zavřít úpravu"
-            ></button>
-            <div class="confirm-modal-card">
-              <p class="confirm-modal-title">Upravit {{ personalEditMeta.label.toLowerCase() }}</p>
-              <div class="confirm-modal-field">
-                <label :for="`personal-edit-${personalEditField ?? 'field'}`">{{ personalEditMeta.label }}</label>
-                <div class="confirm-modal-input-wrap">
-                  <textarea
-                    v-if="personalEditMeta.textarea"
-                    :id="`personal-edit-${personalEditField ?? 'field'}`"
-                    :value="personalEditValue"
-                    class="native-input"
-                    rows="4"
-                    :placeholder="personalEditMeta.placeholder"
-                    @input="personalEditValue = ($event.target as HTMLTextAreaElement).value"
-                  ></textarea>
-                  <input
-                    v-else
-                    :id="`personal-edit-${personalEditField ?? 'field'}`"
-                    :value="personalEditValue"
-                    class="native-input"
-                    :type="personalEditMeta.type"
-                    :placeholder="personalEditMeta.placeholder"
-                    autocomplete="off"
-                    @input="personalEditField === 'address'
-                      ? onAddressInput(($event.target as HTMLInputElement).value)
-                      : (personalEditValue = ($event.target as HTMLInputElement).value)"
-                    @blur="personalEditField === 'address' && clearAddressSuggestions()"
-                  />
-                  <div v-if="personalEditField === 'address' && addressSuggestions.length" class="address-suggestions">
-                    <button
-                      v-for="addr in addressSuggestions"
-                      :key="addr"
-                      type="button"
-                      class="address-suggestion-item"
-                      @mousedown.prevent="selectAddress(addr)"
-                    >
-                      <i class="pi pi-map-marker"></i>
-                      {{ addr }}
-                    </button>
-                  </div>
-                </div>
-                <p
-                  v-if="personalEditField === 'email' || personalEditField === 'phone'"
-                  class="confirm-modal-copy"
-                >
-                  Při změně
-                  {{ personalEditField === "email" ? "e-mailu" : "telefonu" }},
-                  proběhne nové ověření.
-                </p>
-              </div>
-              <div class="confirm-modal-actions">
-                <button type="button" class="confirm-modal-primary" @click="savePersonalEdit">
-                  Uložit
-                </button>
-                <button type="button" class="confirm-modal-ghost" @click="closePersonalEdit">
-                  Zpět
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div v-if="personalPhotoOpen" class="confirm-modal">
-            <button
-              class="confirm-modal-backdrop"
-              type="button"
-              @click="closePersonalPhotoEditor"
-              aria-label="Zavřít úpravu fotky"
-            ></button>
-            <div class="confirm-modal-card">
-              <p class="confirm-modal-title">Upravit foto</p>
-              <p class="confirm-modal-copy">Pro demo můžeš použít iniciálu nebo foto vyčistit.</p>
-              <div class="confirm-modal-actions">
-                <button type="button" class="confirm-modal-primary" @click="setPhotoFromInitial">
-                  Použít iniciálu
-                </button>
-                <button type="button" class="confirm-modal-ghost" @click="clearPhoto">
-                  Odstranit foto
-                </button>
-                <button type="button" class="confirm-modal-ghost" @click="closePersonalPhotoEditor">
-                  Zpět
-                </button>
-              </div>
-            </div>
-          </div>
 
           <!-- Neuložené změny dialog -->
           <div v-if="personalUnsavedOpen" class="confirm-modal">
@@ -7554,6 +7527,74 @@ if (typeof window !== "undefined") {
         </div>
       </section>
     </main>
+
+    <!-- Globální modal pro úpravu foto -->
+    <div v-if="personalPhotoOpen" class="confirm-modal">
+      <button class="confirm-modal-backdrop" type="button" @click="closePersonalPhotoEditor" aria-label="Zavřít úpravu fotky"></button>
+      <div class="confirm-modal-card">
+        <p class="confirm-modal-title">Upravit foto</p>
+        <p class="confirm-modal-copy">Pro demo můžeš použít iniciálu nebo foto vyčistit.</p>
+        <div class="confirm-modal-actions">
+          <button type="button" class="confirm-modal-primary" @click="setPhotoFromInitial">Použít iniciálu</button>
+          <button type="button" class="confirm-modal-ghost" @click="clearPhoto">Odstranit foto</button>
+          <button type="button" class="confirm-modal-ghost" @click="closePersonalPhotoEditor">Zpět</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Globální modal pro editaci osobních údajů (email, telefon, adresa) -->
+    <div v-if="personalEditOpen" class="confirm-modal">
+      <button class="confirm-modal-backdrop" type="button" @click="closePersonalEdit" aria-label="Zavřít úpravu"></button>
+      <div class="confirm-modal-card">
+        <p class="confirm-modal-title">Upravit {{ personalEditMeta.label.toLowerCase() }}</p>
+        <div class="confirm-modal-field">
+          <label :for="`personal-edit-${personalEditField ?? 'field'}`">{{ personalEditMeta.label }}</label>
+          <div class="confirm-modal-input-wrap">
+            <textarea
+              v-if="personalEditMeta.textarea"
+              :id="`personal-edit-${personalEditField ?? 'field'}`"
+              :value="personalEditValue"
+              class="native-input"
+              rows="4"
+              :placeholder="personalEditMeta.placeholder"
+              @input="personalEditValue = ($event.target as HTMLTextAreaElement).value"
+            ></textarea>
+            <input
+              v-else
+              :id="`personal-edit-${personalEditField ?? 'field'}`"
+              :value="personalEditValue"
+              class="native-input"
+              :type="personalEditMeta.type"
+              :placeholder="personalEditMeta.placeholder"
+              autocomplete="off"
+              @input="personalEditField === 'address'
+                ? onAddressInput(($event.target as HTMLInputElement).value)
+                : (personalEditValue = ($event.target as HTMLInputElement).value)"
+              @blur="personalEditField === 'address' && clearAddressSuggestions()"
+            />
+            <div v-if="personalEditField === 'address' && addressSuggestions.length" class="address-suggestions">
+              <button
+                v-for="addr in addressSuggestions"
+                :key="addr"
+                type="button"
+                class="address-suggestion-item"
+                @mousedown.prevent="selectAddress(addr)"
+              >
+                <i class="pi pi-map-marker"></i>
+                {{ addr }}
+              </button>
+            </div>
+          </div>
+          <p v-if="personalEditField === 'email' || personalEditField === 'phone'" class="confirm-modal-copy">
+            Při změně {{ personalEditField === "email" ? "e-mailu" : "telefonu" }}, proběhne nové ověření.
+          </p>
+        </div>
+        <div class="confirm-modal-actions">
+          <button type="button" class="confirm-modal-primary" @click="savePersonalEdit">Uložit</button>
+          <button type="button" class="confirm-modal-ghost" @click="closePersonalEdit">Zpět</button>
+        </div>
+      </div>
+    </div>
       <aside class="ad-sidebar ad-sidebar-right" aria-label="Reklama">
         <div class="ad-placeholder">
           <span>Reklama</span>

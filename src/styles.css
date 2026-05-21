@@ -112,6 +112,9 @@ a {
 .topbar-desktop-profile {
   display: none !important;
 }
+.topbar-desktop-bell {
+  display: none !important;
+}
 .topbar-title strong {
   font-size: 1rem;
   line-height: 1.05;
@@ -1112,6 +1115,13 @@ a {
   gap: 0;
   text-align: left;
   transition: background 120ms ease;
+}
+.profile-item-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 .profile-item-main {
   width: 100%;
@@ -8488,10 +8498,15 @@ a {
     color: var(--brand);
     letter-spacing: -0.01em;
   }
+  .topbar-desktop-bell {
+    display: grid !important;
+    place-items: center;
+    margin-left: auto;
+  }
   .topbar-desktop-profile {
     display: grid;
     place-items: center;
-    margin-left: auto;
+    margin-left: 0;
   }
 
   /* Remove bottom padding (no bottom nav) */
@@ -11072,11 +11087,20 @@ a {
 
 /* ===== Profile desktop two-column layout ===== */
 @media (min-width: 1200px) {
-  .profile-desktop-layout {
+  /* Rozšíř frame na stejnou šířku jako market / topbar (max 1400 px) */
+  .frame--profile-desktop {
+    width: min(100vw - 48px, 1400px) !important;
+    max-width: 1400px !important;
+  }
+
+  .screen-inner.profile-page.profile-desktop-layout {
     display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 28px;
+    grid-template-columns: 360px 1fr;
+    gap: 32px;
     align-items: start;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
   }
 
   .profile-sidebar-col {
@@ -11087,10 +11111,10 @@ a {
   }
 
   .profile-content-col {
-    background: #ffffff;
-    border-radius: 20px;
-    border: 1px solid rgba(58, 37, 25, 0.10);
-    padding: 28px 28px 32px;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    padding: 0 0 36px;
     display: grid;
     gap: 20px;
   }
@@ -11122,5 +11146,33 @@ a {
   .profile-list-item.is-active-section .pi-chevron-right {
     display: none;
   }
+
+  /* Na desktopu odstraníme subtitle popisky v nastavení — Vercajk (první menu) zůstane */
+  .profile-desktop-layout .profile-card-menu + .profile-card-menu .profile-list-item-subtitle {
+    display: none;
+  }
+
+  /* Vercajk — foto + text v jednom řádku */
+  .profile-desktop-layout .profile-content-col .profile-item-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-right: 48px;
+  }
+  .profile-desktop-layout .profile-content-col .profile-item-copy {
+    display: grid;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-desktop-layout .profile-content-col .profile-item-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-desktop-layout .profile-content-col .profile-item-status {
+    flex-shrink: 0;
+  }
+
 }
 

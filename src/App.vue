@@ -569,6 +569,14 @@ const confirmPaymentOpen = ref(false);
 const confirmApprovalOpen = ref(false);
 const confirmRejectOpen = ref(false);
 const rejectReason = ref("");
+const rejectReasonSelected = ref("");
+const rejectReasonOther = ref("");
+const rejectReasons = [
+  "Vercajk není v tento termín dostupný",
+  "Nevyhovující profil nájemce",
+  "Změna podmínek půjčování",
+  "Jiný důvod",
+];
 const confirmPickupOpen = ref(false);
 const confirmReturnOpen = ref(false);
 const ratingSubmitted = ref(false);
@@ -579,6 +587,10 @@ const problemReportType = ref("Nepředáno");
 const problemReportNote = ref("");
 const problemReported = ref(false);
 const pendingRole = ref<"tenant" | "owner">("tenant");
+const pendingActionsRef = ref<HTMLElement | null>(null);
+const scrollToPendingActions = () => {
+  pendingActionsRef.value?.scrollIntoView({ behavior: "smooth", block: "center" });
+};
 const requestStatusOptions = [
   { label: "Aktivní", value: "active" },
   { label: "Neaktivní", value: "inactive" },
@@ -687,17 +699,27 @@ const pendingRequest = reactive({
   pickupNote:
     "Osobní předání, Praha 4 - Chodov. Konkrétní místo bude upřesněno po schválení.",
 });
-const pendingStatusOptions = [
-  "Čeká na schválení",
-  "Schváleno - čeká na platbu",
-  "Platba odeslána – čeká na potvrzení",
-  "Platba potvrzena - od majitele",
-  "Vyzvednutí – čeká na potvrzení",
-  "Vrácení – čeká na potvrzení",
-  "Vrácení potvrzeno",
-  "Zamítnuto",
-  "Zrušeno",
+const pendingStatusOptions: { key: string; statusLabel: string; label: string; role: "owner" | "tenant" }[] = [
+  { key: "ceka-majitel",     statusLabel: "Čeká na schválení",                    label: "Čeká na schválení (majitel)",                    role: "owner"  },
+  { key: "ceka-najemce",     statusLabel: "Čeká na schválení",                    label: "Čeká na schválení (nájemce)",                    role: "tenant" },
+  { key: "schvaleno-najemce", statusLabel: "Schváleno - čeká na platbu",          label: "Schváleno - čeká na platbu (nájemce)",           role: "tenant" },
+  { key: "schvaleno-majitel", statusLabel: "Schváleno - čeká na platbu",          label: "Schváleno - čeká na platbu (majitel)",           role: "owner"  },
+  { key: "platba-odesl-najemce", statusLabel: "Platba odeslána – čeká na potvrzení", label: "Platba odeslána – čeká na potvrzení (nájemce)", role: "tenant" },
+  { key: "platba-odesl-majitel", statusLabel: "Platba odeslána – čeká na potvrzení", label: "Platba odeslána – čeká na potvrzení (majitel)", role: "owner"  },
+  { key: "platba-potvr",     statusLabel: "Platba potvrzena - od majitele",       label: "Platba potvrzena - od majitele (nájemce)",       role: "tenant" },
+  { key: "vyzvednutí",       statusLabel: "Vyzvednutí – čeká na potvrzení",       label: "Vyzvednutí – čeká na potvrzení (majitel)",       role: "owner"  },
+  { key: "vraceni-ceka",     statusLabel: "Vrácení – čeká na potvrzení",          label: "Vrácení – čeká na potvrzení (majitel)",          role: "owner"  },
+  { key: "vraceni-potvr",    statusLabel: "Vrácení potvrzeno",                    label: "Vrácení potvrzeno (majitel)",                    role: "owner"  },
+  { key: "zamitnuto",        statusLabel: "Zamítnuto",                            label: "Zamítnuto (majitel)",                            role: "owner"  },
+  { key: "zruseno",          statusLabel: "Zrušeno",                              label: "Zrušeno (nájemce)",                              role: "tenant" },
 ];
+const pendingStatusKey = ref("ceka-najemce");
+watch(pendingStatusKey, (key) => {
+  const option = pendingStatusOptions.find(o => o.key === key);
+  if (!option) return;
+  pendingRequest.statusLabel = option.statusLabel;
+  pendingRole.value = option.role;
+});
 const screenLabels = computed<Record<Screen, string>>(() => ({
   auth: "Přihlášení",
   market: "Marketplace",
@@ -836,10 +858,15 @@ const rejectPendingRequest = () => {
 const closeConfirmRejectModal = () => {
   confirmRejectOpen.value = false;
   rejectReason.value = "";
+  rejectReasonSelected.value = "";
+  rejectReasonOther.value = "";
 };
 const confirmReject = () => {
+  if (!rejectReasonSelected.value) return;
   confirmRejectOpen.value = false;
-  rejectReason.value = "";
+  rejectReason.value = rejectReasonSelected.value === "Jiný důvod" ? rejectReasonOther.value : rejectReasonSelected.value;
+  rejectReasonSelected.value = "";
+  rejectReasonOther.value = "";
   pendingRequest.statusLabel = "Zamítnuto";
 };
 const closeConfirmPickupModal = () => {
@@ -5068,9 +5095,27 @@ if (typeof window !== "undefined") {
                 'is-canceled': pendingRequest.statusLabel === 'Zrušeno',
               }"
             >
-              <select v-model="pendingRequest.statusLabel" class="pending-request-select">
-                <option v-for="option in pendingStatusOptions" :key="option" :value="option">{{ option }}</option>
+              <select v-model="pendingStatusKey" class="pending-request-select">
+                <option v-for="option in pendingStatusOptions" :key="option.key" :value="option.key">{{ option.label }}</option>
               </select>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-payment-wait">
+              <div class="pending-payment-wait-icon"><i class="pi pi-hourglass"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong v-if="pendingRole === 'owner'">Nová žádost o rezervaci</strong>
+                <strong v-else>Čeká na schválení majitele</strong>
+                <span v-if="pendingRole === 'owner'">Nájemce čeká na tvoje rozhodnutí. Máš 24 hodin.</span>
+                <span v-else>Majitel má 24 hodin na schválení nebo zamítnutí žádosti.</span>
+              </div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Schváleno - čeká na platbu'" class="pending-payment-wait">
+              <div class="pending-payment-wait-icon"><i class="pi pi-credit-card"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong v-if="pendingRole === 'owner'">Čeká na platbu nájemce</strong>
+                <strong v-else>Rezervace schválena — proveďte platbu</strong>
+                <span v-if="pendingRole === 'owner'">Žádost byla schválena. Nájemce nyní provádí platbu.</span>
+                <span v-else>Majitel schválil žádost. Proveďte platbu dle platebních údajů.</span>
+              </div>
             </div>
             <div v-if="pendingRequest.statusLabel === 'Zamítnuto'" class="pending-rejected-banner">
               <div class="pending-rejected-icon"><i class="pi pi-times-circle"></i></div>
@@ -5130,13 +5175,14 @@ if (typeof window !== "undefined") {
 
             <!-- Nástroj -->
             <div class="request-desktop-card pending-tool-card-desktop">
-              <div class="request-tool-row">
-                <div class="request-tool-icon"><i class="pi pi-wrench"></i></div>
-                <div class="request-tool-copy">
-                  <span class="request-tool-category">{{ pendingListing.category }}</span>
-                  <strong class="request-tool-title">{{ pendingListing.title }}</strong>
-                  <span class="request-tool-price">{{ fmt(pendingListing.priceValue) }} Kč / den</span>
-                </div>
+              <div class="pending-tool-photo-wrap">
+                <img v-if="pendingListing.photo" :src="pendingListing.photo" :alt="pendingListing.title" class="pending-tool-photo" />
+                <div v-else class="pending-tool-photo-placeholder"><i class="pi pi-wrench"></i></div>
+              </div>
+              <div class="request-tool-copy">
+                <span class="request-tool-category">{{ pendingListing.category }}</span>
+                <strong class="request-tool-title">{{ pendingListing.title }}</strong>
+                <span class="request-tool-price">{{ fmt(pendingListing.priceValue) }} Kč / den</span>
               </div>
             </div>
 
@@ -5202,6 +5248,10 @@ if (typeof window !== "undefined") {
                 <span>Celkem</span>
                 <strong>{{ fmt(pendingSummary.total) }} Kč</strong>
               </div>
+              <button v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-payment-submit" type="button" @click="approvePendingRequest">Schválit rezervaci</button>
+            </div>
+            <div v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-approval-actions">
+              <button class="pending-request-cancel" type="button" @click="rejectPendingRequest">Zamítnout</button>
             </div>
 
             <!-- Platební údaje -->
@@ -5249,7 +5299,9 @@ if (typeof window !== "undefined") {
             <!-- Akční tlačítka -->
             <button v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Schváleno - čeká na platbu'" class="pending-payment-submit" type="button" @click="confirmPaymentOpen = true">Potvrdit odeslání platby</button>
             <button v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení'" class="pending-payment-submit" type="button" @click="confirmPaymentOpen = true">Potvrdit přijetí platby</button>
-            <button v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-request-cancel" type="button" @click="cancelPendingRequestOpen = true">Zrušit žádost</button>
+            <div v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-approval-actions">
+              <button class="pending-request-cancel" type="button" @click="cancelPendingRequestOpen = true">Zrušit žádost</button>
+            </div>
 
           </div><!-- /pending-desktop-right -->
 
@@ -5270,14 +5322,36 @@ if (typeof window !== "undefined") {
               'is-canceled': pendingRequest.statusLabel === 'Zrušeno',
             }"
           >
-            <select v-model="pendingRequest.statusLabel" class="pending-request-select">
-              <option v-for="option in pendingStatusOptions" :key="option" :value="option">
-                {{ option }}
+            <select v-model="pendingStatusKey" class="pending-request-select">
+              <option v-for="option in pendingStatusOptions" :key="option.key" :value="option.key">
+                {{ option.label }}
               </option>
             </select>
           </div>
 
           <!-- ── Banery stavu ── -->
+
+          <!-- Čeká na schválení -->
+          <div v-if="pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-payment-wait">
+            <div class="pending-payment-wait-icon"><i class="pi pi-hourglass"></i></div>
+            <div class="pending-payment-wait-copy">
+              <strong v-if="pendingRole === 'owner'">Nová žádost o rezervaci</strong>
+              <strong v-else>Čeká na schválení majitele</strong>
+              <span v-if="pendingRole === 'owner'">Nájemce čeká na tvoje rozhodnutí. Máš 24 hodin.</span>
+              <span v-else>Majitel má 24 hodin na schválení nebo zamítnutí žádosti.</span>
+            </div>
+          </div>
+
+          <!-- Schváleno - čeká na platbu -->
+          <div v-if="pendingRequest.statusLabel === 'Schváleno - čeká na platbu'" class="pending-payment-wait">
+            <div class="pending-payment-wait-icon"><i class="pi pi-credit-card"></i></div>
+            <div class="pending-payment-wait-copy">
+              <strong v-if="pendingRole === 'owner'">Čeká na platbu nájemce</strong>
+              <strong v-else>Rezervace schválena — proveďte platbu</strong>
+              <span v-if="pendingRole === 'owner'">Žádost byla schválena. Nájemce nyní provádí platbu.</span>
+              <span v-else>Majitel schválil žádost. Proveďte platbu dle platebních údajů.</span>
+            </div>
+          </div>
 
           <!-- Zamítnuto -->
           <div v-if="pendingRequest.statusLabel === 'Zamítnuto'" class="pending-rejected-banner">
@@ -5632,14 +5706,13 @@ if (typeof window !== "undefined") {
           >
             Potvrdit přijetí platby
           </button>
-          <button
-            v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'"
-            class="pending-request-cancel"
-            type="button"
-            @click="cancelPendingRequestOpen = true"
-          >
-            Zrušit žádost
-          </button>
+          <div v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-approval-actions">
+            <button class="pending-request-cancel" type="button" @click="cancelPendingRequestOpen = true">Zrušit žádost</button>
+          </div>
+          <div v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Čeká na schválení'" ref="pendingActionsRef" class="pending-approval-actions">
+            <button class="pending-payment-submit" type="button" @click="approvePendingRequest">Schválit rezervaci</button>
+            <button class="pending-request-cancel" type="button" @click="rejectPendingRequest">Zamítnout</button>
+          </div>
           <div v-if="cancelPendingRequestOpen" class="confirm-modal">
             <button
               class="confirm-modal-backdrop"
@@ -5694,6 +5767,63 @@ if (typeof window !== "undefined") {
             </div>
           </div>
         </div>
+
+        <!-- Modaly rezervace — mimo pending-request-page, aby nebyly schované na desktopu -->
+        <div v-if="screen === 'pending-request' && confirmRejectOpen" class="confirm-modal">
+          <button class="confirm-modal-backdrop" type="button" @click="closeConfirmRejectModal" aria-label="Zavřít"></button>
+          <div class="confirm-modal-card">
+            <p class="confirm-modal-title">Zamítnout rezervaci?</p>
+            <p class="confirm-modal-copy">Nájemce bude informován. Termín <strong>{{ pendingRequest.dateRange }}</strong> bude pro ostatní zájemce zablokovaný — nebudete jej moci znovu vystavit.</p>
+            <div class="confirm-modal-field">
+              <label>Důvod zamítnutí</label>
+              <div class="reject-reason-list">
+                <label v-for="reason in rejectReasons" :key="reason" class="reject-reason-option" :class="{ 'is-selected': rejectReasonSelected === reason }">
+                  <input type="radio" :value="reason" v-model="rejectReasonSelected" />
+                  {{ reason }}
+                </label>
+              </div>
+              <textarea
+                v-if="rejectReasonSelected === 'Jiný důvod'"
+                v-model="rejectReasonOther"
+                class="confirm-modal-textarea"
+                placeholder="Napište důvod..."
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="confirm-modal-actions">
+              <button
+                type="button"
+                class="confirm-modal-primary"
+                :disabled="!rejectReasonSelected || (rejectReasonSelected === 'Jiný důvod' && !rejectReasonOther.trim())"
+                :class="{ 'is-disabled': !rejectReasonSelected || (rejectReasonSelected === 'Jiný důvod' && !rejectReasonOther.trim()) }"
+                @click="confirmReject"
+              >Ano, zamítnout</button>
+              <button type="button" class="confirm-modal-ghost" @click="closeConfirmRejectModal">Zpět</button>
+            </div>
+          </div>
+        </div>
+        <div v-if="screen === 'pending-request' && confirmApprovalOpen" class="confirm-modal">
+          <button class="confirm-modal-backdrop" type="button" @click="closeConfirmApprovalModal" aria-label="Zavřít"></button>
+          <div class="confirm-modal-card">
+            <p class="confirm-modal-title">Schválit rezervaci?</p>
+            <p class="confirm-modal-copy">Nájemce dostane pokyn k platbě. Po potvrzení platby bude pronájem zahájen.</p>
+            <div class="confirm-modal-actions">
+              <button type="button" class="confirm-modal-primary" @click="confirmApproval">Ano, schválit</button>
+              <button type="button" class="confirm-modal-ghost" @click="closeConfirmApprovalModal">Zpět</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plovoucí šipka dolů — jen mobil, jen majitel čekající na schválení -->
+        <button
+          v-if="!isDesktop && screen === 'pending-request' && pendingRole === 'owner' && pendingRequest.statusLabel === 'Čeká na schválení'"
+          class="pending-scroll-fab"
+          type="button"
+          aria-label="Přejít na akce"
+          @click="scrollToPendingActions"
+        >
+          <i class="pi pi-arrow-down"></i>
+        </button>
 
         <div v-else-if="screen === 'profile-list'" class="screen-inner profile-page profile-list-page">
           <div class="profile-list-tabs">
@@ -5753,7 +5883,7 @@ if (typeof window !== "undefined") {
                     <span class="profile-item-title">{{ offer.title }}</span>
                     <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
                   </div>
-                  <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
+                  <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }} (majitel)</span>
                 </button>
                 <button
                   type="button"
@@ -5809,7 +5939,7 @@ if (typeof window !== "undefined") {
                       {{ request.location }} · {{ request.dateRange }}
                     </span>
                   </div>
-                  <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
+                  <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }} (nájemce)</span>
                 </button>
               </div>
               <div v-if="!filteredProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>
@@ -7340,7 +7470,7 @@ if (typeof window !== "undefined") {
                       <span class="profile-item-title">{{ offer.title }}</span>
                       <span class="profile-item-meta">{{ offer.location }} · {{ offer.dateRange }}</span>
                     </div>
-                    <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }}</span>
+                    <span class="profile-item-status" :class="offer.statusTone">{{ offer.statusLabel }} (majitel)</span>
                   </button>
                   <button type="button" class="profile-item-edit-icon" :class="{ 'is-active': offer.canEdit }" aria-label="Upravit nabídku" :disabled="!offer.canEdit" @click="offer.canEdit && openEditListing(offer.id)"><i class="pi pi-pencil"></i></button>
                 </div>
@@ -7357,7 +7487,7 @@ if (typeof window !== "undefined") {
                       <span class="profile-item-title">{{ request.title }}</span>
                       <span class="profile-item-meta">{{ request.location }} · {{ request.dateRange }}</span>
                     </div>
-                    <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }}</span>
+                    <span class="profile-item-status" :class="request.statusTone">{{ request.statusLabel }} (nájemce)</span>
                   </button>
                 </div>
                 <div v-if="!filteredProfileRequests.length" class="profile-empty">Zatím nic nepoptáváš.</div>

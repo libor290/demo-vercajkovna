@@ -3240,17 +3240,6 @@ if (typeof window !== "undefined") {
               </div>
             </div>
 
-            <div class="market-page-header">
-              <div class="market-page-header-copy">
-                <span class="market-page-kicker">Marketplace</span>
-                <h1>
-                  <span>Co si dnes</span>
-                  <span>chceš půjčit?</span>
-                </h1>
-                <p>Nejbližší věci, které si můžeš dnes půjčit nebo rezervovat.</p>
-              </div>
-            </div>
-
             <div class="market-page-controls">
               <div class="market-search-shell market-search-shell-hero" @mousedown.capture="openSearchFilters" @click.capture="openSearchFilters">
                 <i class="pi pi-search"></i>
@@ -3288,6 +3277,16 @@ if (typeof window !== "undefined") {
               </button>
             </div>
           </header>
+
+          <div class="market-page-header">
+            <div class="market-page-header-copy">
+              <h1>
+                <span>Prohlídni si</span>
+                <span style="color: var(--success);">kůlnu.</span>
+              </h1>
+              <p>Nejbližší věci, které si můžeš dnes půjčit nebo rezervovat.</p>
+            </div>
+          </div>
 
           <div class="market-icons">
             <button
@@ -6355,7 +6354,7 @@ if (typeof window !== "undefined") {
 
           <!-- Sidebar col: always visible (full page on mobile, left column on desktop) -->
           <div class="profile-sidebar-col">
-          <div class="profile-hero" style="grid-template-columns: auto 1fr auto; align-items: start;">
+          <div class="profile-hero" :style="isDesktop ? 'grid-template-columns: auto 1fr; align-items: start;' : 'grid-template-columns: auto 1fr auto; align-items: start;'">
             <div class="profile-avatar" style="align-self: center;">{{ user.name.charAt(0).toUpperCase() }}</div>
             <div class="profile-hero-copy" style="min-width: 0; align-self: center;">
               <strong style="white-space: normal; word-break: break-word; display: block; line-height: 1.25;">{{ personal.firstName || user.name.split(' ')[0] }}</strong>
@@ -6367,7 +6366,7 @@ if (typeof window !== "undefined") {
                 Zobrazit veřejný profil
               </button>
             </div>
-            <button type="button" class="notif-bell-btn" style="align-self: start; margin-left: 0; flex-shrink: 0;" @click="openNotifCenter" aria-label="Oznámení">
+            <button v-if="!isDesktop" type="button" class="notif-bell-btn" style="align-self: start; margin-left: 0; flex-shrink: 0;" @click="openNotifCenter" aria-label="Oznámení">
               <i class="pi pi-bell"></i>
               <span v-if="unreadNotifCount > 0" class="notif-bell-badge">{{ unreadNotifCount }}</span>
             </button>

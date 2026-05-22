@@ -11280,5 +11280,400 @@ a {
     flex-shrink: 0;
   }
 
+  /* ─────────────────────────────────────────
+     PENDING REQUEST — desktop 2 sloupce
+     ───────────────────────────────────────── */
+  .pending-desktop-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto;
+    column-gap: 48px;
+    align-items: start;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 0 64px;
+  }
+
+  .pending-desktop-hero {
+    grid-column: 1 / -1;
+    margin-bottom: 8px;
+  }
+
+  .pending-desktop-status-row {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .pending-desktop-left,
+  .pending-desktop-right {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .pending-desktop-right {
+    position: sticky;
+    top: 100px;
+  }
+
+  /* Karty — větší padding */
+  .pending-desktop-layout .request-desktop-card {
+    padding: 28px;
+    gap: 18px;
+  }
+
+  /* Info řádky v levém sloupci */
+  .pending-desktop-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(58, 37, 25, 0.08);
+    font-size: 0.9rem;
+  }
+  .pending-desktop-info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .pending-desktop-info-row:first-child {
+    padding-top: 0;
+  }
+  .pending-desktop-info-row span {
+    color: var(--muted);
+  }
+  .pending-desktop-info-row strong {
+    font-weight: 600;
+    color: var(--brand);
+  }
+
+  .pending-desktop-delivery-note {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .pending-owner-desktop {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .pending-owner-desktop-copy {
+    display: grid;
+    gap: 3px;
+    flex: 1;
+  }
+  .pending-owner-desktop-copy strong {
+    font-size: 0.97rem;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .pending-owner-desktop-copy span {
+    font-size: 0.81rem;
+    color: var(--muted);
+  }
+
+  /* Bannery stavu v status řádku — vzdušnější */
+  .pending-desktop-status-row .pending-rejected-banner,
+  .pending-desktop-status-row .pending-payment-wait,
+  .pending-desktop-status-row .pending-confirmed-banner {
+    border-radius: 16px;
+    padding: 16px 20px;
+    width: calc(100% - 340px - 48px);
+    min-width: 0;
+  }
+
+  /* Pravý sloupec — větší mezery v kalkulaci */
+  .pending-desktop-right .request-calc-card {
+    gap: 20px;
+  }
+  .pending-desktop-right .request-calc-rows {
+    gap: 14px;
+  }
+
+  /* Skrýt mobilní prvky na desktopu (přímé děti layoutu) */
+  .pending-desktop-layout > .pending-request-header,
+  .pending-desktop-layout > .pending-request-status,
+  .pending-desktop-layout > .pending-rejected-banner,
+  .pending-desktop-layout > .pending-payment-wait,
+  .pending-desktop-layout > .pending-confirmed-banner,
+  .pending-desktop-layout > .pending-request-card,
+  .pending-desktop-layout > .pending-request-info,
+  .pending-desktop-layout > .pending-request-summary,
+  .pending-desktop-layout > .pending-payment-card,
+  .pending-desktop-layout > .pending-request-owner,
+  .pending-desktop-layout > .pending-request-delivery,
+  .pending-desktop-layout > .pending-handover-card,
+  .pending-desktop-layout > .pending-return-card,
+  .pending-desktop-layout > .pending-payment-submit,
+  .pending-desktop-layout > .pending-request-cancel {
+    display: none !important;
+  }
+
+  /* ─────────────────────────────────────────
+     REQUEST / REZERVACE — desktop 2 sloupce
+     (sdíleno pro request-desktop-layout i checkout-desktop-layout)
+     ───────────────────────────────────────── */
+  .request-desktop-layout,
+  .checkout-desktop-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    grid-template-rows: auto 1fr;
+    column-gap: 40px;
+    row-gap: 0;
+    align-items: start;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 0 48px;
+  }
+
+  .request-desktop-header,
+  .checkout-desktop-header {
+    grid-column: 1 / -1;
+    margin-bottom: 32px;
+  }
+  .request-desktop-header h1,
+  .checkout-desktop-header h1 {
+    font-size: clamp(1.9rem, 5.8vw, 2.85rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    margin: 0 0 8px;
+    color: var(--brand);
+  }
+  .request-desktop-header p,
+  .checkout-desktop-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .request-desktop-left,
+  .checkout-desktop-left {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .request-desktop-right,
+  .checkout-desktop-right {
+    position: sticky;
+    top: 100px;
+  }
+
+  /* Karty v levém sloupci */
+  .request-desktop-card {
+    background: #ffffff;
+    border: 1px solid rgba(58, 37, 25, 0.12);
+    border-radius: 18px;
+    padding: 24px;
+    display: grid;
+    gap: 20px;
+  }
+
+  /* Nástroj row */
+  .request-tool-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .request-tool-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(58, 37, 25, 0.07);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 1.3rem;
+    color: var(--muted);
+  }
+  .request-tool-copy {
+    display: grid;
+    gap: 2px;
+  }
+  .request-tool-category {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .request-tool-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--brand);
+  }
+  .request-tool-price {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* Datum sekce */
+  .request-date-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .request-date-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  .request-date-range {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .request-date-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .request-date-field {
+    display: grid;
+    gap: 6px;
+  }
+  .request-date-field > span {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .request-date-field .native-input {
+    min-height: 52px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+  }
+  .request-cancel-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(58, 37, 25, 0.05);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.83rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .request-cancel-note .pi {
+    margin-top: 2px;
+    flex-shrink: 0;
+    color: var(--muted);
+  }
+
+  /* Podmínky */
+  .request-terms-card {
+    gap: 0;
+  }
+  .request-terms-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: pointer;
+  }
+  .request-terms-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--success);
+    cursor: pointer;
+  }
+  .request-terms-copy {
+    display: grid;
+    gap: 4px;
+  }
+  .request-terms-copy strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--brand);
+    line-height: 1.4;
+  }
+  .request-terms-copy span {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Kalkulace — pravý sloupec */
+  .request-calc-card {
+    background: #ffffff;
+    border: 1px solid rgba(58, 37, 25, 0.14);
+    border-radius: 20px;
+    padding: 28px 24px;
+    display: grid;
+    gap: 20px;
+  }
+  .request-calc-heading {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  .request-calc-rows {
+    display: grid;
+    gap: 12px;
+  }
+  .request-calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--brand);
+  }
+  .request-calc-row span:first-child {
+    color: var(--muted);
+  }
+  .request-calc-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid rgba(58, 37, 25, 0.1);
+  }
+  .request-calc-total span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .request-calc-total strong {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand);
+  }
+  .request-send-btn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.15s ease;
+  }
+  .request-send-btn.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .request-calc-note {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
 }
 

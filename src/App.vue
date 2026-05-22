@@ -382,6 +382,7 @@ const requestDuration = ref("7");
 const requestNote = ref("Potřebuji ji na víkendový projekt.");
 const requestStatus = ref("Čeká na schválení");
 const requestStep = ref<1 | 2 | 3>(1);
+const requestTermsAccepted = ref(false);
 
 type AddListingPhoto = { file: File | null; url: string };
 type AddListingDraft = {
@@ -1187,6 +1188,20 @@ const priceSummary = computed(() => {
   const total = daily * days + serviceFee + deposit;
   return { days, daily, serviceFee, deposit, total };
 });
+
+const requestEndDate = computed(() => {
+  if (!requestDate.value) return "";
+  const start = new Date(requestDate.value);
+  const end = new Date(start);
+  end.setDate(end.getDate() + Math.max(1, Number(requestDuration.value) || 1));
+  return end.toISOString().split("T")[0];
+});
+
+function formatDateCZ(dateStr: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return `${d.getDate()}. ${d.getMonth() + 1}. ${d.getFullYear()}`;
+}
 
 const filteredListings = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -2828,7 +2843,6 @@ if (typeof window !== "undefined") {
         screen !== 'help-contact' &&
         screen !== 'onboarding' &&
         screen !== 'public-profile' &&
-        screen !== 'pending-request' &&
         screen !== 'rules' &&
         screen !== 'payment' &&
         screen !== 'confirmation'
@@ -3967,240 +3981,450 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'payment-card'" class="screen-inner payment-page">
-          <!-- Identický přehled jako u převodu -->
-          <div class="reservation-card">
-            <div class="reservation-thumb" aria-hidden="true"></div>
-            <div>
-              <strong>{{ selectedListing.title }}</strong>
-              <span>{{ selectedListing.priceValue }} Kč / den</span>
-            </div>
-          </div>
+        <div v-else-if="screen === 'payment-card'" class="screen-inner payment-page" :class="{ 'checkout-desktop-layout': isDesktop }">
 
-          <div class="reservation-section">
-            <strong>Vybrané datum</strong>
-            <div class="calendar-summary">
-              <div class="calendar-summary-row">
-                <span>{{ requestDate || "Nevybráno" }}</span>
+          <!-- ══ DESKTOP: dvousloupcový layout ══ -->
+          <template v-if="isDesktop">
+            <div class="checkout-desktop-header">
+              <h1>Platba za <span style="color: var(--success);">vercajk</span></h1>
+              <p>Vaše platba bude po schválení žádosti stržena z karty.</p>
+            </div>
+
+            <!-- Levý sloupec -->
+            <div class="checkout-desktop-left">
+
+              <!-- Karta nástroje -->
+              <div class="request-desktop-card">
+                <div class="request-tool-row">
+                  <div class="request-tool-icon">
+                    <i class="pi pi-wrench"></i>
+                  </div>
+                  <div class="request-tool-copy">
+                    <span class="request-tool-category">{{ selectedListing.category }}</span>
+                    <strong class="request-tool-title">{{ selectedListing.title }}</strong>
+                    <span class="request-tool-price">{{ selectedListing.price }}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div class="reservation-summary">
-            <div>
-              <span>Cena za den</span>
-              <strong>{{ priceSummary.daily }} Kč</strong>
-            </div>
-            <div>
-              <span>Počet dní</span>
-              <strong>{{ priceSummary.days }} dny</strong>
-            </div>
-            <div>
-              <span>Servisní poplatek</span>
-              <strong>{{ priceSummary.serviceFee }} Kč</strong>
-            </div>
-            <div>
-              <span>Vratná kauce</span>
-              <strong>{{ priceSummary.deposit }} Kč</strong>
-            </div>
-            <div class="reservation-total">
-              <span>Celkem</span>
-              <strong>{{ priceSummary.total }} Kč</strong>
-            </div>
-          </div>
+              <!-- Datum -->
+              <div class="request-desktop-card">
+                <div class="request-date-header">
+                  <span class="request-date-label">VYBRANÉ DATUM</span>
+                  <span class="request-date-range" v-if="requestDate">Od {{ formatDateCZ(requestDate) }} do {{ formatDateCZ(requestEndDate) }}</span>
+                </div>
+                <div class="request-date-fields">
+                  <label class="request-date-field">
+                    <span>ZAČÁTEK ZÁPŮJČKY</span>
+                    <input v-model="requestDate" class="native-input" type="date" @input="handleDateInput" />
+                  </label>
+                  <label class="request-date-field">
+                    <span>KONEC ZÁPŮJČKY</span>
+                    <input :value="requestEndDate" class="native-input" type="date" readonly />
+                  </label>
+                </div>
+              </div>
 
-          <!-- Volba konkrétní metody -->
-          <div class="reservation-section" style="margin-top: 24px;">
-            <strong>Způsob platby kartou</strong>
-            <div class="payment-method-selector" style="margin-top: 12px;">
-              <button 
-                type="button" 
-                class="method-pill" 
-                :class="{ 'is-active': cardForm.subMethod === 'card' }"
-                @click="cardForm.subMethod = 'card'"
-              >
-                <i class="pi pi-credit-card"></i>
-                Karta
-              </button>
-              <button 
-                type="button" 
-                class="method-pill" 
-                :class="{ 'is-active': cardForm.subMethod === 'apple' }"
-                @click="cardForm.subMethod = 'apple'"
-              >
-                <i class="pi pi-apple"></i>
-                Apple Pay
-              </button>
-              <button 
-                type="button" 
-                class="method-pill" 
-                :class="{ 'is-active': cardForm.subMethod === 'google' }"
-                @click="cardForm.subMethod = 'google'"
-              >
-                <i class="pi pi-google"></i>
-                Google Pay
-              </button>
-            </div>
-          </div>
+              <!-- Způsob platby -->
+              <div class="request-desktop-card">
+                <span class="request-date-label">ZPŮSOB PLATBY</span>
+                <div class="payment-method-selector">
+                  <button type="button" class="method-pill" :class="{ 'is-active': cardForm.subMethod === 'card' }" @click="cardForm.subMethod = 'card'">
+                    <i class="pi pi-credit-card"></i>
+                    Karta
+                  </button>
+                  <button type="button" class="method-pill" :class="{ 'is-active': cardForm.subMethod === 'apple' }" @click="cardForm.subMethod = 'apple'">
+                    <i class="pi pi-apple"></i>
+                    Apple Pay
+                  </button>
+                  <button type="button" class="method-pill" :class="{ 'is-active': cardForm.subMethod === 'google' }" @click="cardForm.subMethod = 'google'">
+                    <i class="pi pi-google"></i>
+                    Google Pay
+                  </button>
+                </div>
 
-          <!-- Dynamický formulář podle volby -->
-          <div class="card-checkout-form" style="margin-top: 10px;">
-            <template v-if="cardForm.subMethod === 'card'">
-              <div class="saved-card-selector">
-                <!-- Selected Card (Trigger) -->
-                <button 
-                  type="button" 
-                  class="selected-card-display" 
-                  @click="cardForm.isSelectorOpen = !cardForm.isSelectorOpen"
-                >
-                  <div class="card-info-main">
-                    <i :class="['pi', cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.brand === 'Visa' ? 'pi-credit-card' : 'pi-credit-card']" style="font-size: 1.2rem;"></i>
-                    <div class="card-text">
-                      <strong>{{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.brand }} •••• {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.last4 }}</strong>
-                      <span>Platnost {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.expiry }}</span>
+                <!-- Karta selector -->
+                <template v-if="cardForm.subMethod === 'card'">
+                  <div class="saved-card-selector">
+                    <button type="button" class="selected-card-display" @click="cardForm.isSelectorOpen = !cardForm.isSelectorOpen">
+                      <div class="card-info-main">
+                        <i class="pi pi-credit-card" style="font-size: 1.2rem;"></i>
+                        <div class="card-text">
+                          <strong>{{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.brand }} •••• {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.last4 }}</strong>
+                          <span>Platnost {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.expiry }}</span>
+                        </div>
+                      </div>
+                      <i class="pi" :class="cardForm.isSelectorOpen ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+                    </button>
+                    <div v-if="cardForm.isSelectorOpen" class="card-options-list">
+                      <button v-for="card in cardForm.savedCards" :key="card.id" type="button" class="card-option-item" :class="{ 'is-selected': cardForm.selectedCardId === card.id }" @click="cardForm.selectedCardId = card.id; cardForm.isSelectorOpen = false;">
+                        <div class="card-option-info">
+                          <i class="pi pi-credit-card"></i>
+                          <span>{{ card.brand }} •••• {{ card.last4 }}</span>
+                        </div>
+                        <i v-if="cardForm.selectedCardId === card.id" class="pi pi-check" style="color: var(--brand-2);"></i>
+                      </button>
+                      <button type="button" class="add-new-card-link" @click="openProfilePersonal">
+                        <i class="pi pi-plus-circle"></i>
+                        <span>Spravovat karty v profilu</span>
+                      </button>
                     </div>
                   </div>
-                  <i class="pi" :class="cardForm.isSelectorOpen ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
-                </button>
-
-                <!-- Expanded List -->
-                <div v-if="cardForm.isSelectorOpen" class="card-options-list">
-                  <button 
-                    v-for="card in cardForm.savedCards" 
-                    :key="card.id"
-                    type="button"
-                    class="card-option-item"
-                    :class="{ 'is-selected': cardForm.selectedCardId === card.id }"
-                    @click="cardForm.selectedCardId = card.id; cardForm.isSelectorOpen = false;"
-                  >
-                    <div class="card-option-info">
-                       <i class="pi pi-credit-card"></i>
-                       <span>{{ card.brand }} •••• {{ card.last4 }}</span>
+                </template>
+                <template v-else>
+                  <div class="express-payment-placeholder">
+                    <div class="express-icon">
+                      <i :class="['pi', cardForm.subMethod === 'apple' ? 'pi-apple' : 'pi-google']"></i>
                     </div>
-                    <i v-if="cardForm.selectedCardId === card.id" class="pi pi-check" style="color: var(--brand-2);"></i>
-                  </button>
-                  
-                  <button type="button" class="add-new-card-link" @click="openProfilePersonal">
-                    <i class="pi pi-plus-circle"></i>
-                    <span>Spravovat karty v profilu</span>
-                  </button>
+                    <p>Platba bude potvrzena pomocí {{ cardForm.subMethod === 'apple' ? 'FaceID' : 'Google Pay' }}</p>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Podmínky -->
+              <div class="request-desktop-card request-terms-card">
+                <label class="request-terms-row">
+                  <input v-model="agreeTerms" type="checkbox" class="request-terms-checkbox" />
+                  <div class="request-terms-copy">
+                    <strong>Souhlasím s pravidly užívání a platbou.</strong>
+                    <span>Odesláním berete na vědomí povinnost vrátit nářadí v čistém a nepoškozeném stavu.</span>
+                  </div>
+                </label>
+              </div>
+
+            </div><!-- /checkout-desktop-left -->
+
+            <!-- Pravý sloupec -->
+            <div class="checkout-desktop-right">
+              <div class="request-calc-card">
+                <span class="request-calc-heading">PŘEHLED KALKULACE</span>
+                <div class="request-calc-rows">
+                  <div class="request-calc-row">
+                    <span>Cena za den</span>
+                    <span>{{ priceSummary.daily.toLocaleString('cs-CZ') }} Kč</span>
+                  </div>
+                  <div class="request-calc-row">
+                    <span>Počet dní</span>
+                    <span>{{ priceSummary.days }} dní</span>
+                  </div>
+                  <div class="request-calc-row">
+                    <span>Servisní poplatek</span>
+                    <span>{{ priceSummary.serviceFee }} Kč</span>
+                  </div>
+                  <div v-if="priceSummary.deposit" class="request-calc-row">
+                    <span>Vratná kauce</span>
+                    <span>{{ priceSummary.deposit.toLocaleString('cs-CZ') }} Kč</span>
+                  </div>
                 </div>
-              </div>
-            </template>
-            <template v-else>
-              <div class="express-payment-placeholder" style="padding: 24px;">
-                <div class="express-icon">
-                  <i :class="['pi', cardForm.subMethod === 'apple' ? 'pi-apple' : 'pi-google']"></i>
+                <div class="request-calc-total">
+                  <span>Celkem</span>
+                  <strong>{{ priceSummary.total.toLocaleString('cs-CZ') }} Kč</strong>
                 </div>
-                <p>Platba bude potvrzena pomocí {{ cardForm.subMethod === 'apple' ? 'FaceID' : 'Google Pay' }}</p>
-              </div>
-            </template>
-          </div>
-
-          <label class="reservation-terms" style="margin-top: 20px;">
-            <PvCheckbox v-model="agreeTerms" binary />
-            <span>Souhlasím s pravidly užívání a platbou.</span>
-          </label>
-
-          <button
-            class="reservation-submit"
-            style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 16px;"
-            :disabled="!agreeTerms || cardForm.isProcessing"
-            @click="submitCardPayment"
-          >
-            <i v-if="cardForm.isProcessing" class="pi pi-spin pi-spinner"></i>
-            <span>{{ cardForm.isProcessing ? 'Platba probíhá...' : 'Zaplatit ' + priceSummary.total + ' Kč' }}</span>
-          </button>
-        </div>
-
-        <div v-else-if="screen === 'payment-bank'" class="screen-inner payment-page">
-          <div class="reservation-card">
-            <div class="reservation-thumb" aria-hidden="true"></div>
-            <div>
-              <strong>{{ selectedListing.title }}</strong>
-              <span>{{ selectedListing.priceValue }} Kč / den</span>
-            </div>
-          </div>
-
-          <div class="reservation-section">
-            <strong>Vybrané datum</strong>
-            <div class="calendar-summary" v-if="!showCalendar">
-              <div class="calendar-summary-row">
-                <span>{{ requestDate || "Nevybráno" }}</span>
-                <button class="calendar-change" type="button" @click="showCalendar = true">Změnit</button>
-              </div>
-            </div>
-            <div v-else class="calendar-shell">
-              <div class="calendar-head">
-                <span>{{ calendarInfo.label.toUpperCase() }}</span>
-              </div>
-              <div class="calendar-weekdays">
-                <span>Po</span>
-                <span>Út</span>
-                <span>St</span>
-                <span>Čt</span>
-                <span>Pá</span>
-                <span>So</span>
-                <span>Ne</span>
-              </div>
-              <div class="calendar-grid">
                 <button
-                  v-for="(day, idx) in calendarInfo.cells"
-                  :key="`day-${idx}`"
-                  class="calendar-day"
-                  :class="{ 'is-selected': day && selectedDay === day, 'is-empty': !day }"
+                  class="button-primary request-send-btn"
+                  :class="{ 'is-disabled': !agreeTerms || cardForm.isProcessing }"
+                  :disabled="!agreeTerms || cardForm.isProcessing"
                   type="button"
-                  :disabled="!day"
-                  @click="day && selectCalendarDay(day)"
+                  @click="submitCardPayment"
                 >
-                  {{ day || "" }}
+                  <i v-if="cardForm.isProcessing" class="pi pi-spin pi-spinner"></i>
+                  <i v-else class="pi pi-lock"></i>
+                  {{ cardForm.isProcessing ? 'Platba probíhá...' : 'Zaplatit ' + priceSummary.total.toLocaleString('cs-CZ') + ' Kč' }}
                 </button>
+                <p class="request-calc-note">Bezpečná platba. Peníze budou strženy až po potvrzení žádosti majitelem.</p>
+              </div>
+            </div><!-- /checkout-desktop-right -->
+          </template>
+
+          <!-- ══ MOBILE: původní layout (beze změny) ══ -->
+          <template v-else>
+            <div class="reservation-card">
+              <div class="reservation-thumb" aria-hidden="true"></div>
+              <div>
+                <strong>{{ selectedListing.title }}</strong>
+                <span>{{ selectedListing.priceValue }} Kč / den</span>
               </div>
             </div>
-          </div>
 
-          <div class="reservation-summary">
-            <div>
-              <span>Cena za den</span>
-              <strong>{{ priceSummary.daily }} Kč</strong>
+            <div class="reservation-section">
+              <strong>Vybrané datum</strong>
+              <div class="calendar-summary">
+                <div class="calendar-summary-row">
+                  <span>{{ requestDate || "Nevybráno" }}</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <span>Počet dní</span>
-              <strong>{{ priceSummary.days }} dny</strong>
-            </div>
-            <div>
-              <span>Servisní poplatek</span>
-              <strong>{{ priceSummary.serviceFee }} Kč</strong>
-            </div>
-            <div>
-              <span>Vratná kauce</span>
-              <strong>{{ priceSummary.deposit }} Kč</strong>
-            </div>
-            <div class="reservation-total">
-              <span>Celkem</span>
-              <strong>{{ priceSummary.total }} Kč</strong>
-            </div>
-          </div>
 
-          <label class="reservation-terms">
-            <PvCheckbox v-model="agreeTerms" binary />
-            <span>Souhlasím s pravidly užívání a obchodními podmínkami.</span>
-          </label>
+            <div class="reservation-summary">
+              <div><span>Cena za den</span><strong>{{ priceSummary.daily }} Kč</strong></div>
+              <div><span>Počet dní</span><strong>{{ priceSummary.days }} dny</strong></div>
+              <div><span>Servisní poplatek</span><strong>{{ priceSummary.serviceFee }} Kč</strong></div>
+              <div><span>Vratná kauce</span><strong>{{ priceSummary.deposit }} Kč</strong></div>
+              <div class="reservation-total"><span>Celkem</span><strong>{{ priceSummary.total }} Kč</strong></div>
+            </div>
 
-          <button class="reservation-submit" type="button" :disabled="!agreeTerms" @click="submitReservation">
-            Odeslat žádost
-          </button>
+            <div class="reservation-section" style="margin-top: 24px;">
+              <strong>Způsob platby kartou</strong>
+              <div class="payment-method-selector" style="margin-top: 12px;">
+                <button type="button" class="method-pill" :class="{ 'is-active': cardForm.subMethod === 'card' }" @click="cardForm.subMethod = 'card'"><i class="pi pi-credit-card"></i>Karta</button>
+                <button type="button" class="method-pill" :class="{ 'is-active': cardForm.subMethod === 'apple' }" @click="cardForm.subMethod = 'apple'"><i class="pi pi-apple"></i>Apple Pay</button>
+                <button type="button" class="method-pill" :class="{ 'is-active': cardForm.subMethod === 'google' }" @click="cardForm.subMethod = 'google'"><i class="pi pi-google"></i>Google Pay</button>
+              </div>
+            </div>
+
+            <div class="card-checkout-form" style="margin-top: 10px;">
+              <template v-if="cardForm.subMethod === 'card'">
+                <div class="saved-card-selector">
+                  <button type="button" class="selected-card-display" @click="cardForm.isSelectorOpen = !cardForm.isSelectorOpen">
+                    <div class="card-info-main">
+                      <i class="pi pi-credit-card" style="font-size: 1.2rem;"></i>
+                      <div class="card-text">
+                        <strong>{{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.brand }} •••• {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.last4 }}</strong>
+                        <span>Platnost {{ cardForm.savedCards.find(c => c.id === cardForm.selectedCardId)?.expiry }}</span>
+                      </div>
+                    </div>
+                    <i class="pi" :class="cardForm.isSelectorOpen ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+                  </button>
+                  <div v-if="cardForm.isSelectorOpen" class="card-options-list">
+                    <button v-for="card in cardForm.savedCards" :key="card.id" type="button" class="card-option-item" :class="{ 'is-selected': cardForm.selectedCardId === card.id }" @click="cardForm.selectedCardId = card.id; cardForm.isSelectorOpen = false;">
+                      <div class="card-option-info"><i class="pi pi-credit-card"></i><span>{{ card.brand }} •••• {{ card.last4 }}</span></div>
+                      <i v-if="cardForm.selectedCardId === card.id" class="pi pi-check" style="color: var(--brand-2);"></i>
+                    </button>
+                    <button type="button" class="add-new-card-link" @click="openProfilePersonal"><i class="pi pi-plus-circle"></i><span>Spravovat karty v profilu</span></button>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="express-payment-placeholder" style="padding: 24px;">
+                  <div class="express-icon"><i :class="['pi', cardForm.subMethod === 'apple' ? 'pi-apple' : 'pi-google']"></i></div>
+                  <p>Platba bude potvrzena pomocí {{ cardForm.subMethod === 'apple' ? 'FaceID' : 'Google Pay' }}</p>
+                </div>
+              </template>
+            </div>
+
+            <label class="reservation-terms" style="margin-top: 20px;">
+              <PvCheckbox v-model="agreeTerms" binary />
+              <span>Souhlasím s pravidly užívání a platbou.</span>
+            </label>
+
+            <button class="reservation-submit" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 16px;" :disabled="!agreeTerms || cardForm.isProcessing" @click="submitCardPayment">
+              <i v-if="cardForm.isProcessing" class="pi pi-spin pi-spinner"></i>
+              <span>{{ cardForm.isProcessing ? 'Platba probíhá...' : 'Zaplatit ' + priceSummary.total + ' Kč' }}</span>
+            </button>
+          </template>
         </div>
 
-        <div v-else-if="screen === 'confirmation'" class="screen-inner confirmation-page">
-          <div class="confirmation-icon">
-            <i class="pi pi-check"></i>
+        <div v-else-if="screen === 'payment-bank'" class="screen-inner payment-page" :class="{ 'checkout-desktop-layout': isDesktop }">
+
+          <!-- ══ DESKTOP: dvousloupcový checkout ══ -->
+          <template v-if="isDesktop">
+            <!-- Nadpis -->
+            <div class="checkout-desktop-header">
+              <h1>Odeslání žádosti o <span style="color: var(--success);">vercajk</span></h1>
+              <p>Majitel má 24 hodin na potvrzení vaší poptávky.</p>
+            </div>
+
+            <!-- Levý sloupec -->
+            <div class="checkout-desktop-left">
+
+              <!-- Karta nástroje -->
+              <div class="request-desktop-card">
+                <div class="request-tool-row">
+                  <div class="request-tool-icon">
+                    <i class="pi pi-wrench"></i>
+                  </div>
+                  <div class="request-tool-copy">
+                    <span class="request-tool-category">{{ selectedListing.category }}</span>
+                    <strong class="request-tool-title">{{ selectedListing.title }}</strong>
+                    <span class="request-tool-price">{{ selectedListing.price }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Datum -->
+              <div class="request-desktop-card">
+                <div class="request-date-header">
+                  <span class="request-date-label">VYBRANÉ DATUM</span>
+                  <span class="request-date-range" v-if="requestDate">Od {{ formatDateCZ(requestDate) }} do {{ formatDateCZ(requestEndDate) }}</span>
+                </div>
+                <div class="request-date-fields">
+                  <label class="request-date-field">
+                    <span>ZAČÁTEK ZÁPŮJČKY</span>
+                    <input v-model="requestDate" class="native-input" type="date" @input="handleDateInput" />
+                  </label>
+                  <label class="request-date-field">
+                    <span>KONEC ZÁPŮJČKY</span>
+                    <input :value="requestEndDate" class="native-input" type="date" readonly />
+                  </label>
+                </div>
+                <div class="request-cancel-note">
+                  <i class="pi pi-info-circle"></i>
+                  <span>Flexibilní storno: Žádost můžete bezplatně zrušit, dokud ji majitel nepotvrdí.</span>
+                </div>
+              </div>
+
+              <!-- Podmínky -->
+              <div class="request-desktop-card request-terms-card">
+                <label class="request-terms-row">
+                  <input v-model="agreeTerms" type="checkbox" class="request-terms-checkbox" />
+                  <div class="request-terms-copy">
+                    <strong>Souhlasím s pravidly užívání a obchodními podmínkami.</strong>
+                    <span>Odesláním berete na vědomí povinnost vrátit nářadí v čistém a nepoškozeném stavu.</span>
+                  </div>
+                </label>
+              </div>
+
+            </div><!-- /checkout-desktop-left -->
+
+            <!-- Pravý sloupec (sticky kalkulace) -->
+            <div class="checkout-desktop-right">
+              <div class="request-calc-card">
+                <span class="request-calc-heading">PŘEHLED KALKULACE</span>
+                <div class="request-calc-rows">
+                  <div class="request-calc-row">
+                    <span>Cena za den</span>
+                    <span>{{ priceSummary.daily.toLocaleString('cs-CZ') }} Kč</span>
+                  </div>
+                  <div class="request-calc-row">
+                    <span>Počet dní</span>
+                    <span>{{ priceSummary.days }} dní</span>
+                  </div>
+                  <div class="request-calc-row">
+                    <span>Servisní poplatek</span>
+                    <span>{{ priceSummary.serviceFee }} Kč</span>
+                  </div>
+                  <div v-if="priceSummary.deposit" class="request-calc-row">
+                    <span>Vratná kauce</span>
+                    <span>{{ priceSummary.deposit.toLocaleString('cs-CZ') }} Kč</span>
+                  </div>
+                </div>
+                <div class="request-calc-total">
+                  <span>Celkem</span>
+                  <strong>{{ priceSummary.total.toLocaleString('cs-CZ') }} Kč</strong>
+                </div>
+                <button
+                  class="button-primary request-send-btn"
+                  :class="{ 'is-disabled': !agreeTerms }"
+                  :disabled="!agreeTerms"
+                  type="button"
+                  @click="submitReservation"
+                >
+                  <i class="pi pi-send"></i>
+                  Odeslat žádost
+                </button>
+                <p class="request-calc-note">Peníze budou na vaší kartě pouze zablokovány, dokud majitel žádost neschválí.</p>
+              </div>
+            </div><!-- /checkout-desktop-right -->
+          </template>
+
+          <!-- ══ MOBILE: původní layout (beze změny) ══ -->
+          <template v-else>
+            <div class="reservation-card">
+              <div class="reservation-thumb" aria-hidden="true"></div>
+              <div>
+                <strong>{{ selectedListing.title }}</strong>
+                <span>{{ selectedListing.priceValue }} Kč / den</span>
+              </div>
+            </div>
+
+            <div class="reservation-section">
+              <strong>Vybrané datum</strong>
+              <div class="calendar-summary" v-if="!showCalendar">
+                <div class="calendar-summary-row">
+                  <span>{{ requestDate || "Nevybráno" }}</span>
+                  <button class="calendar-change" type="button" @click="showCalendar = true">Změnit</button>
+                </div>
+              </div>
+              <div v-else class="calendar-shell">
+                <div class="calendar-head">
+                  <span>{{ calendarInfo.label.toUpperCase() }}</span>
+                </div>
+                <div class="calendar-weekdays">
+                  <span>Po</span>
+                  <span>Út</span>
+                  <span>St</span>
+                  <span>Čt</span>
+                  <span>Pá</span>
+                  <span>So</span>
+                  <span>Ne</span>
+                </div>
+                <div class="calendar-grid">
+                  <button
+                    v-for="(day, idx) in calendarInfo.cells"
+                    :key="`day-${idx}`"
+                    class="calendar-day"
+                    :class="{ 'is-selected': day && selectedDay === day, 'is-empty': !day }"
+                    type="button"
+                    :disabled="!day"
+                    @click="day && selectCalendarDay(day)"
+                  >
+                    {{ day || "" }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="reservation-summary">
+              <div>
+                <span>Cena za den</span>
+                <strong>{{ priceSummary.daily }} Kč</strong>
+              </div>
+              <div>
+                <span>Počet dní</span>
+                <strong>{{ priceSummary.days }} dny</strong>
+              </div>
+              <div>
+                <span>Servisní poplatek</span>
+                <strong>{{ priceSummary.serviceFee }} Kč</strong>
+              </div>
+              <div>
+                <span>Vratná kauce</span>
+                <strong>{{ priceSummary.deposit }} Kč</strong>
+              </div>
+              <div class="reservation-total">
+                <span>Celkem</span>
+                <strong>{{ priceSummary.total }} Kč</strong>
+              </div>
+            </div>
+
+            <label class="reservation-terms">
+              <PvCheckbox v-model="agreeTerms" binary />
+              <span>Souhlasím s pravidly užívání a obchodními podmínkami.</span>
+            </label>
+
+            <button class="reservation-submit" type="button" :disabled="!agreeTerms" @click="submitReservation">
+              Odeslat žádost
+            </button>
+          </template>
+        </div>
+
+        <div v-else-if="screen === 'confirmation'" class="screen-inner add-success-screen">
+          <div class="add-success">
+            <div class="add-success-icon">
+              <i class="pi pi-check"></i>
+            </div>
+            <span class="add-success-kicker">Žádost odeslána</span>
+            <h1 class="add-success-title">Hotovo!</h1>
+            <p class="add-success-desc">
+              Majitel má nyní 24 hodin na potvrzení vaší žádosti. O výsledku vás budeme informovat v notifikacích.
+            </p>
+            <div class="add-success-actions">
+              <button
+                type="button"
+                class="add-flow-cta-primary"
+                @click="setScreen('market')"
+              >
+                Zpět na hlavní stránku
+              </button>
+              <button
+                type="button"
+                class="add-flow-cta-ghost"
+                @click="openProfileRequestsList"
+              >
+                Moje poptávky
+              </button>
+            </div>
           </div>
-          <h1>Žádost odeslána!</h1>
-          <p>Majitel má nyní 24 hodin na potvrzení vaší žádosti. O výsledku vás budeme informovat v notifikacích.</p>
-          <button class="confirmation-button" type="button" @click="setScreen('market')">
-            Zpět na hlavní stránku
-          </button>
         </div>
 
         <div v-else-if="screen === 'cancel-confirmation'" class="screen-inner confirmation-page">
@@ -4214,28 +4438,38 @@ if (typeof window !== "undefined") {
           </button>
         </div>
 
-        <div v-else-if="screen === 'payment-confirmation'" class="screen-inner confirmation-page">
-          <div class="confirmation-icon is-payment">
-            <i class="pi pi-check"></i>
+        <div v-else-if="screen === 'payment-confirmation'" class="screen-inner add-success-screen">
+          <div class="add-success">
+            <div class="add-success-icon">
+              <i class="pi pi-check"></i>
+            </div>
+            <span class="add-success-kicker" v-if="pendingRole === 'tenant'">Platba odeslána</span>
+            <span class="add-success-kicker" v-else>Platba potvrzena</span>
+            <h1 class="add-success-title">Hotovo!</h1>
+            <p class="add-success-desc" v-if="pendingRole === 'tenant'">
+              Majitel má 24 hodin na potvrzení platby. Pokud do té doby nepotvrdí, peníze se automaticky vrátí zpět na váš účet.
+            </p>
+            <p class="add-success-desc" v-else>
+              Platbu jste potvrdili. Nájemce byl informován a může si vercajk vyzvednout.
+            </p>
+            <div class="add-success-actions">
+              <button
+                type="button"
+                class="add-flow-cta-primary"
+                @click="pendingRole === 'tenant' ? openProfileRequestsList() : openProfileOffersList()"
+              >
+                <span v-if="pendingRole === 'tenant'">Moje poptávky</span>
+                <span v-else>Moje nabídky</span>
+              </button>
+              <button
+                type="button"
+                class="add-flow-cta-ghost"
+                @click="setScreen('market')"
+              >
+                Na hlavní stránku
+              </button>
+            </div>
           </div>
-          <h1>
-            <span v-if="pendingRole === 'tenant'">Platba odeslána</span>
-            <span v-else>Platba potvrzena</span>
-          </h1>
-          <p v-if="pendingRole === 'tenant'">
-            Majitel dostal informaci o úhradě a potvrdí ji co nejdříve.
-          </p>
-          <p v-else>
-            Platbu jste potvrdili. Nájemce byl informován a může si vercajk vyzvednout.
-          </p>
-          <button
-            class="confirmation-button"
-            type="button"
-            @click="pendingRole === 'tenant' ? openProfileRequestsList() : openProfileOffersList()"
-          >
-            <span v-if="pendingRole === 'tenant'">Zpět na moje poptávky</span>
-            <span v-else>Zpět na moje nabídky</span>
-          </button>
         </div>
 
         <div v-else-if="screen === 'return-confirmation'" class="screen-inner confirmation-page">
@@ -4808,14 +5042,218 @@ if (typeof window !== "undefined") {
           </template>
         </div>
 
-        <div v-else-if="screen === 'pending-request'" class="screen-inner pending-request-page">
-          <div class="pending-request-header">
-            <button class="pending-request-back" type="button" aria-label="Zpět" @click="goBack">
-              <i class="pi pi-arrow-left"></i>
-            </button>
-            <strong>Rezervace</strong>
+        <div v-else-if="screen === 'pending-request'" class="screen-inner pending-request-page" :class="{ 'pending-desktop-layout': isDesktop }">
+
+          <!-- Desktop header -->
+          <div v-if="isDesktop" class="detail-hero pending-desktop-hero">
+            <div class="detail-hero-copy">
+              <h1>Rezervace <span style="color: var(--success);">vercajku</span></h1>
+              <p>Detail a stav vaší rezervace.</p>
+            </div>
           </div>
 
+          <!-- Status + bannery — full-width řádek -->
+          <div v-if="isDesktop" class="pending-desktop-status-row">
+            <div
+              class="pending-request-status"
+              :class="{
+                'is-waiting': pendingRequest.statusLabel === 'Čeká na schválení',
+                'is-approved': pendingRequest.statusLabel === 'Schváleno - čeká na platbu',
+                'is-payment-waiting': pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení',
+                'is-payment-confirmed': pendingRequest.statusLabel === 'Platba potvrzena - od majitele',
+                'is-pickup-waiting': pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení',
+                'is-return-waiting': pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení',
+                'is-return-done': pendingRequest.statusLabel === 'Vrácení potvrzeno',
+                'is-rejected': pendingRequest.statusLabel === 'Zamítnuto',
+                'is-canceled': pendingRequest.statusLabel === 'Zrušeno',
+              }"
+            >
+              <select v-model="pendingRequest.statusLabel" class="pending-request-select">
+                <option v-for="option in pendingStatusOptions" :key="option" :value="option">{{ option }}</option>
+              </select>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Zamítnuto'" class="pending-rejected-banner">
+              <div class="pending-rejected-icon"><i class="pi pi-times-circle"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong>Žádost zamítnuta</strong>
+                <span v-if="pendingRole === 'tenant'">Majitel tvou žádost zamítl. Zkus jinou nabídku v marketplace.</span>
+                <span v-else>Žádost byla zamítnuta. Věc je opět dostupná pro ostatní.</span>
+              </div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení'" class="pending-payment-wait">
+              <div class="pending-payment-wait-icon"><i class="pi pi-clock"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong v-if="pendingRole === 'tenant'">Čeká na potvrzení</strong>
+                <strong v-else>Platba přijata — potvrďte ji</strong>
+                <span v-if="pendingRole === 'tenant'">Majitel má 24 hodin na potvrzení.</span>
+                <span v-else>Nájemce odeslal platbu. Potvrďte přijetí do 24 hodin.</span>
+              </div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Platba potvrzena - od majitele'" class="pending-confirmed-banner">
+              <div class="pending-confirmed-icon"><i class="pi pi-check-circle"></i></div>
+              <div class="pending-payment-wait-copy"><strong>Platba potvrzena</strong><span>Vše je v pořádku. Domluvte si předání s majitelem.</span></div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'" class="pending-payment-wait">
+              <div class="pending-payment-wait-icon"><i class="pi pi-box"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong v-if="pendingRole === 'tenant'">Potvrďte převzetí</strong>
+                <strong v-else>Čeká na potvrzení nájemce</strong>
+                <span v-if="pendingRole === 'tenant'">Vercajk byl připraven k předání.</span>
+                <span v-else>Nájemce zatím nepotvrdil převzetí.</span>
+              </div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení'" class="pending-payment-wait">
+              <div class="pending-payment-wait-icon"><i class="pi pi-replay"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong v-if="pendingRole === 'tenant'">Potvrďte vrácení</strong>
+                <strong v-else>Čeká na potvrzení vrácení</strong>
+                <span v-if="pendingRole === 'tenant'">Výpůjčka skončila. Potvrďte vrácení.</span>
+                <span v-else>Nájemce vrací vercajk.</span>
+              </div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Zrušeno'" class="pending-rejected-banner">
+              <div class="pending-rejected-icon"><i class="pi pi-ban"></i></div>
+              <div class="pending-payment-wait-copy">
+                <strong>Rezervace zrušena</strong>
+                <span v-if="pendingRole === 'tenant'">Rezervaci jsi zrušil.</span>
+                <span v-else>Nájemce zrušil rezervaci.</span>
+              </div>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Vrácení potvrzeno'" class="pending-confirmed-banner">
+              <div class="pending-confirmed-icon"><i class="pi pi-check-circle"></i></div>
+              <div class="pending-payment-wait-copy"><strong>Vrácení potvrzeno</strong><span>Výpůjčka je uzavřena. Nezapomeň ohodnotit druhou stranu.</span></div>
+            </div>
+          </div><!-- /pending-desktop-status-row -->
+
+          <!-- ══ DESKTOP: levý sloupec ══ -->
+          <div v-if="isDesktop" class="pending-desktop-left">
+
+            <!-- Nástroj -->
+            <div class="request-desktop-card pending-tool-card-desktop">
+              <div class="request-tool-row">
+                <div class="request-tool-icon"><i class="pi pi-wrench"></i></div>
+                <div class="request-tool-copy">
+                  <span class="request-tool-category">{{ pendingListing.category }}</span>
+                  <strong class="request-tool-title">{{ pendingListing.title }}</strong>
+                  <span class="request-tool-price">{{ fmt(pendingListing.priceValue) }} Kč / den</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Termín -->
+            <div class="request-desktop-card">
+              <div class="pending-desktop-info-row">
+                <span>Termín</span>
+                <strong>{{ pendingRequest.dateRange }}</strong>
+              </div>
+              <div class="pending-desktop-info-row">
+                <span>Počet dní</span>
+                <strong>{{ pendingRequest.days }} dny</strong>
+              </div>
+            </div>
+
+            <!-- Majitel / nájemce -->
+            <div class="request-desktop-card">
+              <div class="pending-owner-desktop">
+                <div class="pending-owner-avatar">
+                  {{ (pendingRole === 'tenant' ? pendingRequest.ownerName : pendingRequest.renterName).charAt(0) }}
+                </div>
+                <div class="pending-owner-desktop-copy">
+                  <strong>{{ pendingRole === 'tenant' ? pendingRequest.ownerName : pendingRequest.renterName }}</strong>
+                  <span>{{ pendingRole === 'tenant' ? 'Majitel' : 'Nájemce' }}</span>
+                </div>
+                <div class="pending-owner-actions">
+                  <button type="button" aria-label="Telefon" :disabled="pendingRequestActionsDisabled" :class="{ 'is-disabled': pendingRequestActionsDisabled }"><i class="pi pi-phone"></i></button>
+                  <button type="button" aria-label="SMS" :disabled="pendingRequestActionsDisabled" :class="{ 'is-disabled': pendingRequestActionsDisabled }"><i class="pi pi-comment"></i></button>
+                  <button type="button" aria-label="E-mail" :disabled="pendingRequestActionsDisabled" :class="{ 'is-disabled': pendingRequestActionsDisabled }"><i class="pi pi-envelope"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Způsob předání -->
+            <div class="request-desktop-card">
+              <span class="request-calc-heading">ZPŮSOB PŘEDÁNÍ</span>
+              <p class="pending-desktop-delivery-note">{{ pendingRequest.pickupNote }}</p>
+            </div>
+
+          </div><!-- /pending-desktop-left -->
+
+          <!-- ══ DESKTOP: pravý sloupec ══ -->
+          <div v-if="isDesktop" class="pending-desktop-right">
+
+            <!-- Souhrn ceny -->
+            <div class="request-calc-card">
+              <span class="request-calc-heading">SOUHRN CENY</span>
+              <div class="request-calc-rows">
+                <div class="request-calc-row">
+                  <span>Cena za zapůjčení</span>
+                  <span>{{ fmt(pendingSummary.rental) }} Kč</span>
+                </div>
+                <div class="request-calc-row">
+                  <span>Servisní poplatek</span>
+                  <span>{{ fmt(pendingRequest.serviceFee) }} Kč</span>
+                </div>
+                <div class="request-calc-row">
+                  <span>Vratná kauce</span>
+                  <span>{{ fmt(pendingRequest.deposit) }} Kč</span>
+                </div>
+              </div>
+              <div class="request-calc-total">
+                <span>Celkem</span>
+                <strong>{{ fmt(pendingSummary.total) }} Kč</strong>
+              </div>
+            </div>
+
+            <!-- Platební údaje -->
+            <div v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Schváleno - čeká na platbu'" class="pending-payment-card">
+              <strong>Platební údaje</strong>
+              <div class="pending-payment-row">
+                <span>Číslo účtu</span>
+                <div class="pending-payment-value">
+                  <strong>{{ pendingRequest.accountNumber }}</strong>
+                  <button type="button" class="pending-payment-copy">Kopírovat</button>
+                </div>
+              </div>
+              <div class="pending-payment-row">
+                <span>Částka k úhradě</span>
+                <div class="pending-payment-value"><strong>{{ fmt(pendingSummary.total) }} Kč</strong></div>
+              </div>
+              <div class="pending-payment-row">
+                <span>Poznámka pro příjemce</span>
+                <div class="pending-payment-value">
+                  <strong>{{ pendingRequest.paymentNote }}</strong>
+                  <button type="button" class="pending-payment-copy">Kopírovat</button>
+                </div>
+              </div>
+              <div class="pending-payment-hint">Po odeslání platby potvrdíte akci tlačítkem níže.</div>
+            </div>
+
+            <!-- Vyzvednutí / vrácení -->
+            <div v-if="pendingRequest.statusLabel === 'Platba potvrzena - od majitele' || pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'" class="pending-handover-card">
+              <strong>Vyzvednutí</strong>
+              <div class="pending-handover-actions">
+                <button v-if="pendingRole === 'tenant'" type="button" class="pending-handover-primary" @click="confirmPickupOpen = true">Potvrdit převzetí</button>
+                <button v-else type="button" class="pending-handover-primary" @click="confirmPickupOpen = true">Potvrdit předání</button>
+              </div>
+              <button type="button" class="pending-handover-link" @click="openProblemReport">Nahlásit problém</button>
+            </div>
+            <div v-if="pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení' || pendingRequest.statusLabel === 'Vrácení potvrzeno'" class="pending-return-card">
+              <strong>Vrácení</strong>
+              <div class="pending-handover-actions">
+                <button v-if="pendingRole === 'tenant'" type="button" class="pending-handover-primary" @click="confirmReturnOpen = true">Potvrdit vrácení</button>
+                <button v-else type="button" class="pending-handover-primary" @click="confirmReturnOpen = true">Potvrdit převzetí zpět</button>
+              </div>
+              <button type="button" class="pending-handover-link" @click="openProblemReport">Nahlásit problém</button>
+            </div>
+
+            <!-- Akční tlačítka -->
+            <button v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Schváleno - čeká na platbu'" class="pending-payment-submit" type="button" @click="confirmPaymentOpen = true">Potvrdit odeslání platby</button>
+            <button v-if="pendingRole === 'owner' && pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení'" class="pending-payment-submit" type="button" @click="confirmPaymentOpen = true">Potvrdit přijetí platby</button>
+            <button v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-request-cancel" type="button" @click="cancelPendingRequestOpen = true">Zrušit žádost</button>
+
+          </div><!-- /pending-desktop-right -->
+
+          <!-- ══ MOBILE: původní layout (skrytý na desktopu přes CSS) ══ -->
           <div
             class="pending-request-status"
             :class="{
@@ -6029,8 +6467,119 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'request'" class="screen-inner">
-          <PvCard class="request-card">
+        <div v-else-if="screen === 'request'" class="screen-inner" :class="{ 'request-desktop-layout': isDesktop }">
+
+          <!-- ══ DESKTOP: dvousloupcový layout ══ -->
+          <template v-if="isDesktop">
+            <!-- Nadpis nad layoutem -->
+            <div class="request-desktop-header">
+              <h1>Odeslání žádosti o zápůjčku</h1>
+              <p>Majitel má 24 hodin na potvrzení vaší poptávky.</p>
+            </div>
+
+            <!-- Levý sloupec -->
+            <div class="request-desktop-left">
+
+              <!-- Karta nástroje -->
+              <div class="request-desktop-card">
+                <div class="request-tool-row">
+                  <div class="request-tool-icon">
+                    <i class="pi pi-wrench"></i>
+                  </div>
+                  <div class="request-tool-copy">
+                    <span class="request-tool-category">{{ selectedListing.category }}</span>
+                    <strong class="request-tool-title">{{ selectedListing.title }}</strong>
+                    <span class="request-tool-price">{{ selectedListing.price }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Karta data -->
+              <div class="request-desktop-card">
+                <div class="request-date-header">
+                  <span class="request-date-label">VYBRANÉ DATUM</span>
+                  <span class="request-date-range" v-if="requestDate">Od {{ formatDateCZ(requestDate) }} do {{ formatDateCZ(requestEndDate) }}</span>
+                </div>
+                <div class="request-date-fields">
+                  <label class="request-date-field">
+                    <span>ZAČÁTEK ZÁPŮJČKY</span>
+                    <input v-model="requestDate" class="native-input" type="date" @input="handleDateInput" />
+                  </label>
+                  <label class="request-date-field">
+                    <span>KONEC ZÁPŮJČKY</span>
+                    <input :value="requestEndDate" class="native-input" type="date" readonly />
+                  </label>
+                </div>
+                <div class="request-cancel-note">
+                  <i class="pi pi-info-circle"></i>
+                  <span>Flexibilní storno: Žádost můžete bezplatně zrušit, dokud ji majitel nepotvrdí.</span>
+                </div>
+              </div>
+
+              <!-- Poznámka -->
+              <div class="request-desktop-card">
+                <label class="field field-full">
+                  <span>Poznámka pro majitele</span>
+                  <textarea v-model="requestNote" class="native-input native-textarea" rows="3" placeholder="Nepovinné — uveďte, k čemu nástroj potřebujete nebo kdy plánujete vyzvednutí."></textarea>
+                </label>
+              </div>
+
+              <!-- Podmínky -->
+              <div class="request-desktop-card request-terms-card">
+                <label class="request-terms-row">
+                  <input v-model="requestTermsAccepted" type="checkbox" class="request-terms-checkbox" />
+                  <div class="request-terms-copy">
+                    <strong>Souhlasím s pravidly užívání a obchodními podmínkami.</strong>
+                    <span>Odesláním berete na vědomí povinnost vrátit nářadí v čistém a nepoškozeném stavu.</span>
+                  </div>
+                </label>
+              </div>
+
+            </div><!-- /request-desktop-left -->
+
+            <!-- Pravý sloupec (sticky kalkulace) -->
+            <div class="request-desktop-right">
+              <div class="request-calc-card">
+                <span class="request-calc-heading">PŘEHLED KALKULACE</span>
+                <div class="request-calc-rows">
+                  <div class="request-calc-row">
+                    <span>Cena za den</span>
+                    <span>{{ priceSummary.daily.toLocaleString('cs-CZ') }} Kč</span>
+                  </div>
+                  <div class="request-calc-row">
+                    <span>Počet dní</span>
+                    <span>{{ priceSummary.days }} dní</span>
+                  </div>
+                  <div class="request-calc-row">
+                    <span>Servisní poplatek</span>
+                    <span>{{ priceSummary.serviceFee }} Kč</span>
+                  </div>
+                  <div v-if="priceSummary.deposit" class="request-calc-row">
+                    <span>Vratná kauce</span>
+                    <span>{{ priceSummary.deposit.toLocaleString('cs-CZ') }} Kč</span>
+                  </div>
+                </div>
+                <div class="request-calc-total">
+                  <span>Celkem</span>
+                  <strong>{{ priceSummary.total.toLocaleString('cs-CZ') }} Kč</strong>
+                </div>
+                <button
+                  class="button-primary request-send-btn"
+                  :class="{ 'is-disabled': !requestTermsAccepted }"
+                  :disabled="!requestTermsAccepted"
+                  type="button"
+                  @click="completeRequest"
+                >
+                  <i class="pi pi-send"></i>
+                  Odeslat žádost
+                </button>
+                <p class="request-calc-note">Peníze budou na vaší kartě pouze zablokovány, dokud majitel žádost neschválí.</p>
+              </div>
+            </div><!-- /request-desktop-right -->
+          </template>
+
+          <!-- ══ MOBILE: původní stepper (beze změny) ══ -->
+          <PvCard v-else class="request-card">
             <template #content>
               <span class="eyebrow">Žádost o půjčení</span>
               <h1>{{ selectedListing.title }}</h1>

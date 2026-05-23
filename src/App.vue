@@ -557,7 +557,7 @@ function submitCardPayment() {
   // Simulace zpracování platby
   setTimeout(() => {
     cardForm.isProcessing = false;
-    pendingRequest.statusLabel = "Platba potvrzena - od majitele";
+    pendingRequest.statusLabel = "Vyzvednutí – čeká na potvrzení";
     setScreen("payment-confirmation");
   }, 2000);
 }
@@ -580,6 +580,8 @@ const rejectReasons = [
 const confirmPickupOpen = ref(false);
 const confirmReturnOpen = ref(false);
 const ratingSubmitted = ref(false);
+const ratingScore = ref(0);
+const ratingHover = ref(0);
 const requestStatusFilter = ref<"active" | "inactive">("active");
 const offerStatusFilter = ref<"active" | "inactive">("active");
 const problemReportOpen = ref(false);
@@ -706,12 +708,17 @@ const pendingStatusOptions: { key: string; statusLabel: string; label: string; r
   { key: "schvaleno-majitel", statusLabel: "Schváleno - čeká na platbu",          label: "Schváleno - čeká na platbu (majitel)",           role: "owner"  },
   { key: "platba-odesl-najemce", statusLabel: "Platba odeslána – čeká na potvrzení", label: "Platba odeslána – čeká na potvrzení (nájemce)", role: "tenant" },
   { key: "platba-odesl-majitel", statusLabel: "Platba odeslána – čeká na potvrzení", label: "Platba odeslána – čeká na potvrzení (majitel)", role: "owner"  },
-  { key: "platba-potvr",     statusLabel: "Platba potvrzena - od majitele",       label: "Platba potvrzena - od majitele (nájemce)",       role: "tenant" },
-  { key: "vyzvednutí",       statusLabel: "Vyzvednutí – čeká na potvrzení",       label: "Vyzvednutí – čeká na potvrzení (majitel)",       role: "owner"  },
-  { key: "vraceni-ceka",     statusLabel: "Vrácení – čeká na potvrzení",          label: "Vrácení – čeká na potvrzení (majitel)",          role: "owner"  },
-  { key: "vraceni-potvr",    statusLabel: "Vrácení potvrzeno",                    label: "Vrácení potvrzeno (majitel)",                    role: "owner"  },
+  { key: "platba-potvr",        statusLabel: "Vyzvednutí – čeká na potvrzení",  label: "Platba potvrzena → Vyzvednutí (nájemce)",        role: "tenant" },
+  { key: "vyzvednutí-majitel",  statusLabel: "Vyzvednutí – čeká na potvrzení",  label: "Vyzvednutí – čeká na potvrzení (majitel)",       role: "owner"  },
+  { key: "vyzvednutí-najemce",  statusLabel: "Vyzvednutí – čeká na potvrzení",  label: "Vyzvednutí – čeká na potvrzení (nájemce)",       role: "tenant" },
+  { key: "vraceni-ceka-majitel",statusLabel: "Vrácení – čeká na potvrzení",     label: "Vrácení – čeká na potvrzení (majitel)",          role: "owner"  },
+  { key: "vraceni-ceka-najemce",statusLabel: "Vrácení – čeká na potvrzení",     label: "Vrácení – čeká na potvrzení (nájemce)",          role: "tenant" },
+  { key: "vraceni-potvr-majitel",statusLabel: "Vrácení potvrzeno",              label: "Vrácení potvrzeno (majitel)",                    role: "owner"  },
+  { key: "vraceni-potvr-najemce",statusLabel: "Vrácení potvrzeno",              label: "Vrácení potvrzeno (nájemce)",                    role: "tenant" },
   { key: "zamitnuto",        statusLabel: "Zamítnuto",                            label: "Zamítnuto (majitel)",                            role: "owner"  },
   { key: "zruseno",          statusLabel: "Zrušeno",                              label: "Zrušeno (nájemce)",                              role: "tenant" },
+  { key: "ukoncen-majitel",  statusLabel: "Pronájem ukončen",                     label: "Pronájem ukončen (majitel)",                     role: "owner"  },
+  { key: "ukoncen-najemce",  statusLabel: "Pronájem ukončen",                     label: "Pronájem ukončen (nájemce)",                     role: "tenant" },
 ];
 const pendingStatusKey = ref("ceka-najemce");
 watch(pendingStatusKey, (key) => {
@@ -919,8 +926,7 @@ const isRequestReservationStatus = (statusLabel: string) =>
   statusLabel === "Čeká na schválení" ||
   statusLabel === "Schváleno - čeká na platbu" ||
   statusLabel === "Platba odeslána – čeká na potvrzení" ||
-  statusLabel === "Platba potvrzena - od majitele" ||
-  statusLabel === "Vyzvednutí – čeká na potvrzení" ||
+    statusLabel === "Vyzvednutí – čeká na potvrzení" ||
   statusLabel === "Vrácení – čeká na potvrzení" ||
   statusLabel === "Vrácení potvrzeno";
 const viewedPublicProfile = ref(selectedListing.value.owner);
@@ -4499,55 +4505,81 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'return-confirmation'" class="screen-inner confirmation-page">
-          <div class="confirmation-icon is-payment">
-            <i class="pi pi-check"></i>
-          </div>
-          <h1>Pronájem ukončen</h1>
-          <p v-if="pendingRole === 'tenant'">
-            Vercajk je vrácen a pronájem byl uzavřen. Kauci by měl majitel vercajku vrátit do 2
-            pracovních dnů zpět na váš účet.
-          </p>
-          <p v-else>
-            Vercajk je vrácen a pronájem byl uzavřen. Nezapomeňte vrátit kauci nájemci do 2
-            pracovních dnů.
-          </p>
-          <div class="return-rating">
-            <span>
-              <span v-if="pendingRole === 'tenant'">Ohodnotit majitele</span>
-              <span v-else>Ohodnotit nájemce</span>
-            </span>
-            <div class="return-rating-stars">
-              <i class="pi pi-star"></i>
-              <i class="pi pi-star"></i>
-              <i class="pi pi-star"></i>
-              <i class="pi pi-star"></i>
-              <i class="pi pi-star"></i>
+        <div v-else-if="screen === 'return-confirmation'" class="screen-inner return-confirmation-screen">
+          <!-- Sloupec 1: success info -->
+          <div class="add-success return-confirmation-info">
+            <div class="add-success-icon">
+              <i class="pi pi-check"></i>
             </div>
-            <textarea class="return-rating-note" rows="3" placeholder="Krátký komentář (volitelné)"></textarea>
-            <button type="button" class="confirmation-button" @click="confirmRating">
-              Odeslat hodnocení
-            </button>
-            <button type="button" class="return-rating-skip" @click="openProfileRequestsList">
-              Ohodnotit později
-            </button>
+            <span class="add-success-kicker">Výpůjčka dokončena</span>
+            <h1 class="add-success-title">Pronájem ukončen!</h1>
+            <p class="add-success-desc" style="margin-bottom: 0" v-if="pendingRole === 'tenant'">
+              Vercajk je vrácen a pronájem byl uzavřen. Kauci by měl majitel vercajku vrátit do 2 pracovních dnů zpět na váš účet.
+            </p>
+            <p class="add-success-desc" style="margin-bottom: 0" v-else>
+              Vercajk je vrácen a pronájem byl uzavřen. Nezapomeňte vrátit kauci nájemci do 2 pracovních dnů.
+            </p>
+          </div>
+          <!-- Sloupec 2: hodnocení -->
+          <div class="return-rating-card">
+            <div class="return-rating">
+              <span class="return-rating-label">
+                <span v-if="pendingRole === 'tenant'">Ohodnotit majitele</span>
+                <span v-else>Ohodnotit nájemce</span>
+              </span>
+              <div class="return-rating-stars">
+                <button
+                  v-for="n in 5"
+                  :key="n"
+                  type="button"
+                  class="return-rating-star"
+                  :class="{ 'is-filled': n <= (ratingHover || ratingScore) }"
+                  @click="ratingScore = n"
+                  @mouseenter="ratingHover = n"
+                  @mouseleave="ratingHover = 0"
+                  :aria-label="`${n} hvězd`"
+                >
+                  <i :class="n <= (ratingHover || ratingScore) ? 'pi pi-star-fill' : 'pi pi-star'"></i>
+                </button>
+              </div>
+              <textarea class="return-rating-note" rows="3" placeholder="Krátký komentář (volitelné)"></textarea>
+              <button type="button" class="add-flow-cta-primary" @click="confirmRating">
+                Odeslat hodnocení
+              </button>
+              <button type="button" class="return-rating-skip" @click="openProfileRequestsList">
+                Ohodnotit později
+              </button>
+            </div>
           </div>
         </div>
 
-        <div v-else-if="screen === 'rating-confirmation'" class="screen-inner confirmation-page">
-          <div class="confirmation-icon is-payment">
-            <i class="pi pi-check"></i>
+        <div v-else-if="screen === 'rating-confirmation'" class="screen-inner add-success-screen">
+          <div class="add-success">
+            <div class="add-success-icon">
+              <i class="pi pi-check"></i>
+            </div>
+            <span class="add-success-kicker">Děkujeme za zpětnou vazbu</span>
+            <h1 class="add-success-title">Hotovo!</h1>
+            <p class="add-success-desc">Vaše hodnocení bylo odesláno. Pomáháte tím zlepšovat komunitu.</p>
+            <div class="add-success-actions">
+              <button
+                type="button"
+                class="add-flow-cta-primary"
+                @click="pendingRole === 'tenant' ? openProfileRequestsList() : openProfileOffersList()"
+              >
+                <span v-if="pendingRole === 'tenant'">Moje poptávky</span>
+                <span v-else>Moje nabídky</span>
+              </button>
+              <button type="button" class="add-flow-cta-ghost" @click="setScreen('market')">
+                Marketplace
+              </button>
+            </div>
           </div>
-          <h1>Hodnocení odesláno</h1>
-          <p>Děkujeme za zpětnou vazbu. Pomáháte tím zlepšovat komunitu.</p>
-          <button
-            class="confirmation-button"
-            type="button"
-            @click="pendingRole === 'tenant' ? openProfileRequestsList() : openProfileOffersList()"
-          >
-            <span v-if="pendingRole === 'tenant'">Zpět na moje poptávky</span>
-            <span v-else>Zpět na moje nabídky</span>
-          </button>
+          <div class="add-success-ad">
+            <div class="ad-placeholder ad-placeholder-horizontal">
+              <span>Reklama</span>
+            </div>
+          </div>
         </div>
 
         <div v-else-if="screen === 'public-profile'" class="screen-inner public-profile-page" style="overflow-x: hidden;">
@@ -5069,7 +5101,38 @@ if (typeof window !== "undefined") {
           </template>
         </div>
 
-        <div v-else-if="screen === 'pending-request'" class="screen-inner pending-request-page" :class="{ 'pending-desktop-layout': isDesktop }">
+        <div v-else-if="screen === 'pending-request'" class="screen-inner pending-request-page" :class="{ 'pending-desktop-layout': isDesktop && pendingRequest.statusLabel !== 'Pronájem ukončen', 'add-success-screen': pendingRequest.statusLabel === 'Pronájem ukončen' }">
+
+          <!-- Pronájem ukončen: success screen -->
+          <template v-if="pendingRequest.statusLabel === 'Pronájem ukončen'">
+            <div class="add-success">
+              <div class="add-success-icon">
+                <i class="pi pi-check"></i>
+              </div>
+              <span class="add-success-kicker">Výpůjčka dokončena</span>
+              <h1 class="add-success-title">Pronájem ukončen!</h1>
+              <p class="add-success-desc">Výpůjčka byla úspěšně dokončena. Ohodnoť druhou stranu a vrať se do svého profilu.</p>
+              <div class="add-success-actions">
+                <button type="button" class="add-flow-cta-primary" @click="openRatingFlow(pendingRole)">
+                  <span v-if="pendingRole === 'tenant'">Ohodnotit majitele</span>
+                  <span v-else>Ohodnotit nájemce</span>
+                </button>
+                <button
+                  type="button"
+                  class="add-flow-cta-ghost"
+                  @click="() => { profileListTab = pendingRole === 'tenant' ? 'requests' : 'offers'; setScreen('profile-list') }"
+                >
+                  Do profilu
+                </button>
+              </div>
+            </div>
+            <div class="add-success-ad">
+              <div class="ad-placeholder ad-placeholder-horizontal">
+                <span>Reklama</span>
+              </div>
+            </div>
+          </template>
+          <template v-else>
 
           <!-- Desktop header -->
           <div v-if="isDesktop" class="detail-hero pending-desktop-hero">
@@ -5087,7 +5150,7 @@ if (typeof window !== "undefined") {
                 'is-waiting': pendingRequest.statusLabel === 'Čeká na schválení',
                 'is-approved': pendingRequest.statusLabel === 'Schváleno - čeká na platbu',
                 'is-payment-waiting': pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení',
-                'is-payment-confirmed': pendingRequest.statusLabel === 'Platba potvrzena - od majitele',
+                'is-payment-confirmed': false,
                 'is-pickup-waiting': pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení',
                 'is-return-waiting': pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení',
                 'is-return-done': pendingRequest.statusLabel === 'Vrácení potvrzeno',
@@ -5133,10 +5196,6 @@ if (typeof window !== "undefined") {
                 <span v-if="pendingRole === 'tenant'">Majitel má 24 hodin na potvrzení.</span>
                 <span v-else>Nájemce odeslal platbu. Potvrďte přijetí do 24 hodin.</span>
               </div>
-            </div>
-            <div v-if="pendingRequest.statusLabel === 'Platba potvrzena - od majitele'" class="pending-confirmed-banner">
-              <div class="pending-confirmed-icon"><i class="pi pi-check-circle"></i></div>
-              <div class="pending-payment-wait-copy"><strong>Platba potvrzena</strong><span>Vše je v pořádku. Domluvte si předání s majitelem.</span></div>
             </div>
             <div v-if="pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'" class="pending-payment-wait">
               <div class="pending-payment-wait-icon"><i class="pi pi-box"></i></div>
@@ -5279,7 +5338,7 @@ if (typeof window !== "undefined") {
             </div>
 
             <!-- Vyzvednutí / vrácení -->
-            <div v-if="pendingRequest.statusLabel === 'Platba potvrzena - od majitele' || pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'" class="pending-handover-card">
+            <div v-if="pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'" class="pending-handover-card">
               <strong>Vyzvednutí</strong>
               <div class="pending-handover-actions">
                 <button v-if="pendingRole === 'tenant'" type="button" class="pending-handover-primary" @click="confirmPickupOpen = true">Potvrdit převzetí</button>
@@ -5287,7 +5346,7 @@ if (typeof window !== "undefined") {
               </div>
               <button type="button" class="pending-handover-link" @click="openProblemReport">Nahlásit problém</button>
             </div>
-            <div v-if="pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení' || pendingRequest.statusLabel === 'Vrácení potvrzeno'" class="pending-return-card">
+            <div v-if="pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení'" class="pending-return-card">
               <strong>Vrácení</strong>
               <div class="pending-handover-actions">
                 <button v-if="pendingRole === 'tenant'" type="button" class="pending-handover-primary" @click="confirmReturnOpen = true">Potvrdit vrácení</button>
@@ -5302,6 +5361,10 @@ if (typeof window !== "undefined") {
             <div v-if="pendingRole === 'tenant' && pendingRequest.statusLabel === 'Čeká na schválení'" class="pending-approval-actions">
               <button class="pending-request-cancel" type="button" @click="cancelPendingRequestOpen = true">Zrušit žádost</button>
             </div>
+            <button v-if="pendingRequest.statusLabel === 'Vrácení potvrzeno'" class="pending-payment-submit" type="button" @click="openRatingFlow(pendingRole)">
+              <span v-if="pendingRole === 'tenant'">Ohodnotit majitele</span>
+              <span v-else>Ohodnotit nájemce</span>
+            </button>
 
           </div><!-- /pending-desktop-right -->
 
@@ -5313,8 +5376,7 @@ if (typeof window !== "undefined") {
               'is-approved': pendingRequest.statusLabel === 'Schváleno - čeká na platbu',
               'is-payment-waiting':
                 pendingRequest.statusLabel === 'Platba odeslána – čeká na potvrzení',
-              'is-payment-confirmed':
-                pendingRequest.statusLabel === 'Platba potvrzena - od majitele',
+              'is-payment-confirmed': false,
               'is-pickup-waiting': pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení',
               'is-return-waiting': pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení',
               'is-return-done': pendingRequest.statusLabel === 'Vrácení potvrzeno',
@@ -5374,14 +5436,6 @@ if (typeof window !== "undefined") {
             </div>
           </div>
 
-          <!-- Platba potvrzena -->
-          <div v-if="pendingRequest.statusLabel === 'Platba potvrzena - od majitele'" class="pending-confirmed-banner">
-            <div class="pending-confirmed-icon"><i class="pi pi-check-circle"></i></div>
-            <div class="pending-payment-wait-copy">
-              <strong>Platba potvrzena</strong>
-              <span>Vše je v pořádku. Domluvte si předání s majitelem.</span>
-            </div>
-          </div>
 
           <!-- Vyzvednutí čeká -->
           <div v-if="pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'" class="pending-payment-wait">
@@ -5538,10 +5592,7 @@ if (typeof window !== "undefined") {
           </details>
 
           <div
-            v-if="
-              pendingRequest.statusLabel === 'Platba potvrzena - od majitele' ||
-              pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'
-            "
+            v-if="pendingRequest.statusLabel === 'Vyzvednutí – čeká na potvrzení'"
             class="pending-handover-card"
           >
             <strong>Vyzvednutí</strong>
@@ -5591,10 +5642,7 @@ if (typeof window !== "undefined") {
           </div>
 
           <div
-            v-if="
-              pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení' ||
-              pendingRequest.statusLabel === 'Vrácení potvrzeno'
-            "
+            v-if="pendingRequest.statusLabel === 'Vrácení – čeká na potvrzení'"
             class="pending-return-card"
           >
             <strong>Vrácení</strong>
@@ -5713,6 +5761,12 @@ if (typeof window !== "undefined") {
             <button class="pending-payment-submit" type="button" @click="approvePendingRequest">Schválit rezervaci</button>
             <button class="pending-request-cancel" type="button" @click="rejectPendingRequest">Zamítnout</button>
           </div>
+          <div v-if="pendingRequest.statusLabel === 'Vrácení potvrzeno'" class="pending-approval-actions">
+            <button class="pending-payment-submit" type="button" @click="openRatingFlow(pendingRole)">
+              <span v-if="pendingRole === 'tenant'">Ohodnotit majitele</span>
+              <span v-else>Ohodnotit nájemce</span>
+            </button>
+          </div>
           <div v-if="cancelPendingRequestOpen" class="confirm-modal">
             <button
               class="confirm-modal-backdrop"
@@ -5766,6 +5820,7 @@ if (typeof window !== "undefined") {
               </div>
             </div>
           </div>
+          </template>
         </div>
 
         <!-- Modaly rezervace — mimo pending-request-page, aby nebyly schované na desktopu -->

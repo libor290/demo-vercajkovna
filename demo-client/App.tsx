@@ -1,4 +1,5 @@
 import { AdminMenuScreen } from "@/demo-client/components/AdminMenuScreen";
+import { SettingsScreen } from "@/demo-client/components/SettingsScreen";
 import { CheckDetailScreen } from "@/demo-client/components/CheckDetailScreen";
 import { DashboardScreen } from "@/demo-client/components/DashboardScreen";
 import { HistoryScreen } from "@/demo-client/components/HistoryScreen";
@@ -10,11 +11,11 @@ import { StatusChecksScreen } from "@/demo-client/components/StatusChecksScreen"
 import { SubmittedWorkScreen } from "@/demo-client/components/SubmittedWorkScreen";
 import { TenantManagementScreen } from "@/demo-client/components/TenantManagementScreen";
 import { UserManagementScreen } from "@/demo-client/components/UserManagementScreen";
-import { checks as initialChecks, machines as initialMachines, users as initialUsers, notifications as initialNotifications, submittedWork as initialSubmittedWork, tenants as initialTenants, locationEntries as initialLocationEntries, type Check, type Machine, type User, type Notification, type Tenant, type LocationEntry, type SubmittedWork } from "@/demo-client/data/mockData";
+import { checks as initialChecks, machines as initialMachines, users as initialUsers, notifications as initialNotifications, submittedWork as initialSubmittedWork, tenants as initialTenants, locationEntries as initialLocationEntries, initialPaymentSettings, type Check, type Machine, type User, type Notification, type Tenant, type LocationEntry, type SubmittedWork, type PaymentSettings } from "@/demo-client/data/mockData";
 import { createJiraIssueForCheck, isJiraConfigured } from "@/demo-client/lib/jira";
 import { useEffect, useState } from "react";
 
-type Screen = "login" | "register" | "location-selection" | "dashboard" | "check-detail" | "history" | "status-checks" | "machine-management" | "user-management" | "tenant-management" | "admin-menu" | "submitted-work";
+type Screen = "login" | "register" | "location-selection" | "dashboard" | "check-detail" | "history" | "status-checks" | "machine-management" | "user-management" | "tenant-management" | "admin-menu" | "submitted-work" | "settings";
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("login");
@@ -28,6 +29,7 @@ function App() {
   const [tenants, setTenants] = useState<Tenant[]>(initialTenants);
   const [locationEntries, setLocationEntries] = useState<LocationEntry[]>(initialLocationEntries);
   const [submittedWork, setSubmittedWork] = useState<SubmittedWork[]>(initialSubmittedWork);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(initialPaymentSettings);
   const [selectedCheck, setSelectedCheck] = useState<Check | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<Check["status"] | null>(null);
   const [selectedIssueDate, setSelectedIssueDate] = useState<Date | undefined>(undefined);
@@ -347,6 +349,18 @@ function App() {
     setCurrentScreen("admin-menu");
   };
 
+  const handleSettingsClick = () => {
+    setCurrentScreen("settings");
+  };
+
+  const handleBackFromSettings = () => {
+    setCurrentScreen("admin-menu");
+  };
+
+  const handleSavePaymentSettings = (settings: PaymentSettings) => {
+    setPaymentSettings(settings);
+  };
+
   // Machine management handlers
   const handleAddMachine = (machine: Omit<Machine, "id">) => {
     const newId = `m${machines.length + 1}`;
@@ -598,7 +612,16 @@ function App() {
           onTenantManagement={handleTenantManagementClick}
           onHistory={handleHistoryClick}
           onSubmittedWork={handleSubmittedWorkClick}
+          onSettings={handleSettingsClick}
           adminName={userRole === "admin" ? "Ing. Malá" : "Administrátor"}
+        />
+      )}
+
+      {currentScreen === "settings" && (
+        <SettingsScreen
+          paymentSettings={paymentSettings}
+          onBack={handleBackFromSettings}
+          onSavePaymentSettings={handleSavePaymentSettings}
         />
       )}
 

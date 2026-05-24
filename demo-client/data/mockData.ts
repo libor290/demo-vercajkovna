@@ -306,6 +306,26 @@ export const locationLabels: Record<Location, string> = {
   expedice: "Expedice",
 };
 
+// --- Payment settings ---
+
+export interface PaymentSettings {
+  accountNumber: string;
+  iban: string;
+  bankName: string;
+  bic: string;
+  variableSymbolNote: string;
+  paymentNote: string;
+}
+
+export const initialPaymentSettings: PaymentSettings = {
+  accountNumber: "123456789/0800",
+  iban: "CZ65 0800 0000 0012 3456 7890",
+  bankName: "Česká spořitelna",
+  bic: "GIBACZPX",
+  variableSymbolNote: "Použijte vaše IČO jako variabilní symbol",
+  paymentNote: "Platba za servisní služby",
+};
+
 // --- Tenant management ---
 
 export interface Tenant {

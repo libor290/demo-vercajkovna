@@ -3,6 +3,7 @@ import {
   Building2,
   ClipboardList,
   Settings,
+  SlidersHorizontal,
   User,
   Users,
   ChevronRight,
@@ -18,6 +19,7 @@ interface AdminMenuScreenProps {
   onTenantManagement: () => void;
   onHistory: () => void;
   onSubmittedWork?: () => void;
+  onSettings: () => void;
   adminName?: string;
 }
 
@@ -28,6 +30,7 @@ export function AdminMenuScreen({
   onTenantManagement,
   onHistory,
   onSubmittedWork,
+  onSettings,
   adminName = "Administrátor",
 }: AdminMenuScreenProps) {
 
@@ -172,6 +175,28 @@ export function AdminMenuScreen({
                 <h4 className="text-sm sm:text-base font-semibold mb-1">Správa tenantů a lokací</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   Přidávání a správa tenantů a jejich provozoven
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
+            </div>
+          </Card>
+
+          {/* Nastavení systému */}
+          <Card
+            className="p-3 sm:p-4 hover:shadow-md active:bg-muted/50 transition-all cursor-pointer"
+            onClick={onSettings}
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `var(--chart-1)15` }}
+              >
+                <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "var(--chart-1)" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm sm:text-base font-semibold mb-1">Nastavení systému</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Platební údaje zobrazované nájemcům
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />

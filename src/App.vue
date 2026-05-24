@@ -2205,6 +2205,29 @@ const newCardData = reactive({
   cvc: ""
 });
 
+const bankAccount = reactive({
+  iban: "",
+  variableSymbol: "",
+  saved: false,
+  savedIban: "",
+  savedVariableSymbol: ""
+});
+
+function saveBankAccount() {
+  if (!bankAccount.iban.trim()) return;
+  bankAccount.savedIban = bankAccount.iban.trim();
+  bankAccount.savedVariableSymbol = bankAccount.variableSymbol.trim();
+  bankAccount.saved = true;
+}
+
+function removeBankAccount() {
+  bankAccount.iban = "";
+  bankAccount.variableSymbol = "";
+  bankAccount.savedIban = "";
+  bankAccount.savedVariableSymbol = "";
+  bankAccount.saved = false;
+}
+
 function addNewCard() {
   if (!newCardData.number || !newCardData.expiry) return;
   const brand = newCardData.number.startsWith('4') ? 'Visa' : 'Mastercard';
@@ -7129,7 +7152,7 @@ if (typeof window !== "undefined") {
             <button class="profile-list-item" type="button" @click="openProfilePayments" :class="{'is-active-section': isDesktop && profileDesktopSection === 'payments'}">
               <div class="profile-list-item-icon"><i class="pi pi-credit-card"></i></div>
               <div class="profile-list-item-content">
-                <span class="profile-list-item-title">Platby</span>
+                <span class="profile-list-item-title">Platební metody</span>
                 <span class="profile-list-item-subtitle">•••• 4242</span>
               </div>
               <i class="pi pi-chevron-right"></i>
@@ -7267,7 +7290,7 @@ if (typeof window !== "undefined") {
 
             <!-- Platby -->
             <template v-else-if="profileDesktopSection === 'payments'">
-              <h3 class="profile-content-heading">Platby</h3>
+              <h3 class="profile-content-heading">Platební metody</h3>
               <div class="profile-section">
                 <div v-if="cardForm.savedCards.length" class="payments-card-list">
                   <div v-for="card in cardForm.savedCards" :key="card.id" class="payments-card-row">
@@ -7292,6 +7315,32 @@ if (typeof window !== "undefined") {
                 <div v-if="!isAddingCard" class="payments-add-btn-wrap">
                   <button class="payments-add-btn" type="button" @click="isAddingCard = true"><i class="pi pi-plus"></i> Přidat platební kartu</button>
                 </div>
+                <!-- Bankovní účet -->
+                <div class="payments-bank-section">
+                  <span class="personal-section-label">Bankovní účet pro příjem plateb</span>
+                  <p class="payments-bank-hint">Číslo účtu uvidí nájemci při rezervaci vercajku jako platební instrukce.</p>
+                  <div v-if="bankAccount.saved" class="payments-bank-saved-row">
+                    <div class="payments-bank-icon"><i class="pi pi-building-columns"></i></div>
+                    <div class="payments-card-info">
+                      <strong>{{ bankAccount.savedIban }}</strong>
+                      <span v-if="bankAccount.savedVariableSymbol">Variabilní symbol: {{ bankAccount.savedVariableSymbol }}</span>
+                      <span v-else>Bez variabilního symbolu</span>
+                    </div>
+                    <button type="button" class="payments-card-remove" @click="removeBankAccount" aria-label="Odebrat účet"><i class="pi pi-trash"></i></button>
+                  </div>
+                  <div v-else class="payments-bank-form">
+                    <div class="personal-field">
+                      <span class="personal-field-label">Číslo účtu</span>
+                      <div class="personal-input-box"><i class="pi pi-building-columns personal-input-icon"></i><input v-model="bankAccount.iban" class="payments-native-input" placeholder="123456789/0800" /></div>
+                    </div>
+                    <div class="personal-field">
+                      <span class="personal-field-label">Variabilní symbol <span class="personal-field-optional">(volitelné)</span></span>
+                      <div class="personal-input-box"><input v-model="bankAccount.variableSymbol" class="payments-native-input" placeholder="např. 20260001" /></div>
+                    </div>
+                    <button type="button" class="add-flow-cta-primary" @click="saveBankAccount">Uložit účet</button>
+                  </div>
+                </div>
+
                 <div class="payments-history">
                   <span class="personal-section-label">Historie transakcí</span>
                   <div class="payments-card-list">
@@ -7890,6 +7939,37 @@ if (typeof window !== "undefined") {
                 <i class="pi pi-plus"></i>
                 Přidat platební kartu
               </button>
+            </div>
+
+            <!-- Bankovní účet -->
+            <div class="payments-bank-section">
+              <span class="personal-section-label">Bankovní účet pro příjem plateb</span>
+              <p class="payments-bank-hint">Číslo účtu uvidí nájemci při rezervaci vercajku jako platební instrukce.</p>
+              <div v-if="bankAccount.saved" class="payments-bank-saved-row">
+                <div class="payments-bank-icon"><i class="pi pi-building-columns"></i></div>
+                <div class="payments-card-info">
+                  <strong>{{ bankAccount.savedIban }}</strong>
+                  <span v-if="bankAccount.savedVariableSymbol">Variabilní symbol: {{ bankAccount.savedVariableSymbol }}</span>
+                  <span v-else>Bez variabilního symbolu</span>
+                </div>
+                <button type="button" class="payments-card-remove" @click="removeBankAccount" aria-label="Odebrat účet"><i class="pi pi-trash"></i></button>
+              </div>
+              <div v-else class="payments-bank-form">
+                <div class="personal-field">
+                  <span class="personal-field-label">Číslo účtu</span>
+                  <div class="personal-input-box">
+                    <i class="pi pi-building-columns personal-input-icon"></i>
+                    <input v-model="bankAccount.iban" class="payments-native-input" placeholder="123456789/0800" />
+                  </div>
+                </div>
+                <div class="personal-field">
+                  <span class="personal-field-label">Variabilní symbol <span class="personal-field-optional">(volitelné)</span></span>
+                  <div class="personal-input-box">
+                    <input v-model="bankAccount.variableSymbol" class="payments-native-input" placeholder="např. 20260001" />
+                  </div>
+                </div>
+                <button type="button" class="add-flow-cta-primary" @click="saveBankAccount">Uložit účet</button>
+              </div>
             </div>
 
             <!-- Historie transakcí -->

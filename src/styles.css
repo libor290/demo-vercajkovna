@@ -7384,10 +7384,62 @@ a {
   opacity: 1;
   color: var(--brand-2);
 }
+.payments-bank-section {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  background: #F9F5EE;
+  border-radius: 20px;
+  border: 1px solid rgba(58, 37, 25, 0.08);
+  margin-bottom: 24px;
+}
+.payments-bank-hint {
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.6;
+}
+.payments-bank-form {
+  display: grid;
+  gap: 40px;
+  margin-top: 20px;
+}
+.payments-bank-form .personal-field {
+  gap: 20px;
+}
+.payments-bank-form .add-flow-cta-primary {
+  margin-top: 8px;
+}
+.payments-bank-saved-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid rgba(58, 37, 25, 0.10);
+}
+.payments-bank-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #EDE7DB;
+  border: 1px solid rgba(58, 37, 25, 0.10);
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.personal-field-optional {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
 .payments-history {
   display: grid;
-  gap: 10px;
-  margin-top: 6px;
+  gap: 14px;
+  margin-top: 12px;
 }
 .payments-tx-row {
   display: flex;

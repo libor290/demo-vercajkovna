@@ -620,6 +620,14 @@ const onboardingStep = ref(0);
 const onboardingRole = ref<"majitel" | "najemce" | null>("majitel");
 const onboardingCategories = ref<string[]>([]);
 const onboardingLocMode = ref<"gps" | "manual">("gps");
+const onboardingEmail = ref("");
+const onboardingEmailSent = ref(false);
+const onboardingEmailCode = ref("");
+const onboardingContactEmail = ref(false);
+const onboardingContactPhone = ref(true);
+const onboardingContactSms = ref(false);
+const onboardingPhone = ref("");
+const onboardingContactValid = computed(() => onboardingContactPhone.value || onboardingContactSms.value);
 const screenHistory = ref<Screen[]>([]);
 const lastListScreen = ref<Screen | null>(null);
 
@@ -4065,10 +4073,6 @@ if (typeof window !== "undefined") {
 
               <!-- Datum -->
               <div class="request-desktop-card">
-                <div class="request-date-header">
-                  <span class="request-date-label">VYBRANÉ DATUM</span>
-                  <span class="request-date-range" v-if="requestDate">Od {{ formatDateCZ(requestDate) }} do {{ formatDateCZ(requestEndDate) }}</span>
-                </div>
                 <div class="request-date-fields">
                   <label class="request-date-field">
                     <span>ZAČÁTEK ZÁPŮJČKY</span>
@@ -4078,6 +4082,10 @@ if (typeof window !== "undefined") {
                     <span>KONEC ZÁPŮJČKY</span>
                     <input :value="requestEndDate" class="native-input" type="date" readonly />
                   </label>
+                </div>
+                <div class="request-date-hint">
+                  <i class="pi pi-info-circle"></i>
+                  Termín je pouze orientační poptávka.
                 </div>
               </div>
 
@@ -4299,10 +4307,6 @@ if (typeof window !== "undefined") {
 
               <!-- Datum -->
               <div class="request-desktop-card">
-                <div class="request-date-header">
-                  <span class="request-date-label">VYBRANÉ DATUM</span>
-                  <span class="request-date-range" v-if="requestDate">Od {{ formatDateCZ(requestDate) }} do {{ formatDateCZ(requestEndDate) }}</span>
-                </div>
                 <div class="request-date-fields">
                   <label class="request-date-field">
                     <span>ZAČÁTEK ZÁPŮJČKY</span>
@@ -4312,6 +4316,10 @@ if (typeof window !== "undefined") {
                     <span>KONEC ZÁPŮJČKY</span>
                     <input :value="requestEndDate" class="native-input" type="date" readonly />
                   </label>
+                </div>
+                <div class="request-date-hint">
+                  <i class="pi pi-info-circle"></i>
+                  Termín je pouze orientační poptávka.
                 </div>
                 <div class="request-cancel-note">
                   <i class="pi pi-info-circle"></i>
@@ -4886,239 +4894,318 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'onboarding'" class="screen-inner" style="background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; padding: 0;">
+        <div v-else-if="screen === 'onboarding'" class="screen-inner ob-screen">
 
           <!-- KROK 0: Welcome -->
           <template v-if="onboardingStep === 0">
-            <div style="display: flex; justify-content: flex-end; padding: 16px 20px 0;">
-              <button type="button" style="background: transparent; border: 0; font-size: 0.88rem; color: var(--muted); cursor: pointer;" @click="skipOnboarding">Přeskočit</button>
+            <div class="ob-topbar ob-topbar--end">
+              <button type="button" class="ob-skip" @click="skipOnboarding">Přeskočit</button>
             </div>
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 24px 24px;">
-              <div style="width: 200px; height: 200px; background: #fff; border-radius: 32px; display: grid; place-items: center; margin-bottom: 40px;">
-                <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div class="ob-body" style="align-items: center; justify-content: center; text-align: center;">
+              <div class="ob-hero-icon">
+                <svg width="88" height="88" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M34 44l-8 8 22 22 32-32-8-8-24 24-14-14z" stroke="#1f1610" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                   <path d="M56 28c4-4 10-4 14 0l6 6-6 6" stroke="#1f1610" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                   <circle cx="30" cy="30" r="8" stroke="#1b5431" stroke-width="5" fill="none"/>
                   <path d="M22 38s-8 4-8 14" stroke="#1b5431" stroke-width="5" stroke-linecap="round" fill="none"/>
                 </svg>
               </div>
-              <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 10px;">Vítej ve Vercajkovně</span>
-              <h1 style="font-family: var(--font-raw); font-size: 2.2rem; font-weight: 800; color: var(--brand); line-height: 1.1; text-align: center; margin-bottom: 12px;">
+              <span class="ob-kicker">Vítej ve Vercajkovně</span>
+              <h1 class="ob-heading">
                 Ahoj {{ personal.firstName || user.name.split(' ')[0] }},<br>
-                <em style="color: var(--brand-2); font-style: italic;">pojď dál.</em>
+                <em>pojď dál.</em>
               </h1>
-              <p style="font-size: 0.9rem; color: var(--muted); text-align: center; line-height: 1.55; max-width: 280px;">Komunita sousedů, kteří si půjčují věci. Ať už vrtačku, vozík nebo reproduktor.</p>
+              <p class="ob-sub" style="max-width: 280px;">Komunita sousedů, kteří si půjčují věci. Ať už vrtačku, vozík nebo reproduktor.</p>
             </div>
-            <div style="padding: 0 20px 12px; display: flex; flex-direction: column; gap: 8px;">
-              <button type="button" style="background: var(--brand); color: #fff; border: 0; border-radius: 14px; padding: 16px; font-size: 0.95rem; font-weight: 600; cursor: pointer; width: 100%;" @click="onboardingStep = 1">Jdu do toho →</button>
-              <p style="text-align: center; font-size: 0.82rem; color: var(--muted);">Už máš účet? <button type="button" style="background: transparent; border: 0; font-weight: 700; color: var(--brand); cursor: pointer; font-size: inherit;" @click="goToLoginFromOnboarding">Přihlásit se</button></p>
+            <div class="ob-footer">
+              <button type="button" class="ob-cta-primary" @click="onboardingStep = 1">Jdu do toho →</button>
+              <p class="ob-login-hint">Už máš účet? <button type="button" @click="goToLoginFromOnboarding">Přihlásit se</button></p>
             </div>
           </template>
 
           <!-- KROK 1: Role -->
           <template v-else-if="onboardingStep === 1">
-            <div style="padding: 16px 20px 0;">
-              <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 6px;" @click="onboardingStep = 0"><i class="pi pi-arrow-left" style="font-size: 0.75rem;"></i> zpět</button>
+            <div class="ob-topbar">
+              <button type="button" class="ob-back" @click="onboardingStep = 0"><i class="pi pi-arrow-left"></i> zpět</button>
             </div>
-            <div style="flex: 1; padding: 20px 20px 0;">
-              <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); display: block; margin-bottom: 10px;">Vítej ve Vercajkovně</span>
-              <h1 style="font-family: var(--font-raw); font-size: 2.2rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">Půjčuješ,<br><em style="color: var(--brand-2); font-style: italic;">nebo hledáš?</em></h1>
-              <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 28px;">Roli můžeš kdykoliv změnit.</p>
+            <div class="ob-body">
+              <span class="ob-kicker">Vítej ve Vercajkovně</span>
+              <h1 class="ob-heading">Půjčuješ,<br><em>nebo hledáš?</em></h1>
+              <p class="ob-sub">Roli můžeš kdykoliv změnit.</p>
 
-              <!-- Karta Půjčuji -->
-              <div
-                :style="{
-                  background: onboardingRole === 'majitel' ? 'var(--brand)' : '#fff',
-                  border: '1.5px solid ' + (onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--border)'),
-                  borderRadius: '18px', padding: '20px 20px', marginBottom: '12px', cursor: 'pointer',
-                  transition: 'all 0.18s'
-                }"
-                @click="onboardingRole = 'majitel'; onboardingStep = 2"
-              >
-                <div style="display: flex; align-items: center; gap: 14px;">
-                  <div :style="{ width: '46px', height: '46px', background: onboardingRole === 'majitel' ? 'rgba(255,255,255,0.15)' : 'rgba(58,37,25,0.07)', borderRadius: '12px', display: 'grid', placeItems: 'center', flexShrink: '0' }">
-                    <i class="pi pi-wrench" :style="{ color: onboardingRole === 'majitel' ? '#fff' : 'var(--brand)', fontSize: '1.1rem' }"></i>
-                  </div>
-                  <div style="flex: 1;">
-                    <strong :style="{ fontSize: '1.15rem', color: onboardingRole === 'majitel' ? '#fff' : 'var(--brand)', display: 'block', marginBottom: '3px' }">Půjčuji</strong>
-                    <span :style="{ fontSize: '0.83rem', color: onboardingRole === 'majitel' ? 'rgba(255,255,255,0.7)' : 'var(--muted)' }">Mám věci pro sousedy</span>
-                  </div>
-                  <i class="pi pi-arrow-right" :style="{ color: onboardingRole === 'majitel' ? 'rgba(255,255,255,0.6)' : 'var(--muted-2)', fontSize: '0.85rem', flexShrink: '0' }"></i>
+              <div class="ob-role-card" :class="{ 'is-active': onboardingRole === 'majitel' }" @click="onboardingRole = 'majitel'; onboardingStep = 2">
+                <div class="ob-role-card-icon"><i class="pi pi-wrench"></i></div>
+                <div style="flex: 1;">
+                  <strong class="ob-role-card-title">Půjčuji</strong>
+                  <span class="ob-role-card-desc">Mám věci pro sousedy</span>
                 </div>
+                <i class="pi pi-arrow-right ob-role-card-arrow"></i>
               </div>
 
-              <!-- Karta Hledám -->
-              <div
-                :style="{
-                  background: onboardingRole === 'najemce' ? 'var(--brand)' : '#fff',
-                  border: '1.5px solid ' + (onboardingRole === 'najemce' ? 'var(--brand)' : 'var(--border)'),
-                  borderRadius: '18px', padding: '20px 20px', cursor: 'pointer',
-                  transition: 'all 0.18s'
-                }"
-                @click="onboardingRole = 'najemce'; onboardingStep = 2"
-              >
-                <div style="display: flex; align-items: center; gap: 14px;">
-                  <div :style="{ width: '46px', height: '46px', background: onboardingRole === 'najemce' ? 'rgba(255,255,255,0.15)' : 'rgba(58,37,25,0.07)', borderRadius: '12px', display: 'grid', placeItems: 'center', flexShrink: '0' }">
-                    <i class="pi pi-search" :style="{ color: onboardingRole === 'najemce' ? '#fff' : 'var(--brand)', fontSize: '1.1rem' }"></i>
-                  </div>
-                  <div style="flex: 1;">
-                    <strong :style="{ fontSize: '1.15rem', color: onboardingRole === 'najemce' ? '#fff' : 'var(--brand)', display: 'block', marginBottom: '3px' }">Hledám</strong>
-                    <span :style="{ fontSize: '0.83rem', color: onboardingRole === 'najemce' ? 'rgba(255,255,255,0.7)' : 'var(--muted)' }">Potřebuji si půjčit</span>
-                  </div>
-                  <i class="pi pi-arrow-right" :style="{ color: onboardingRole === 'najemce' ? 'rgba(255,255,255,0.6)' : 'var(--muted-2)', fontSize: '0.85rem', flexShrink: '0' }"></i>
+              <div class="ob-role-card" :class="{ 'is-active': onboardingRole === 'najemce' }" @click="onboardingRole = 'najemce'; onboardingStep = 2">
+                <div class="ob-role-card-icon"><i class="pi pi-search"></i></div>
+                <div style="flex: 1;">
+                  <strong class="ob-role-card-title">Hledám</strong>
+                  <span class="ob-role-card-desc">Potřebuji si půjčit</span>
                 </div>
+                <i class="pi pi-arrow-right ob-role-card-arrow"></i>
               </div>
             </div>
 
-            <div style="padding: 8px 20px 28px;">
-              <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; width: 100%; text-align: center;" @click="skipOnboarding">teď ne</button>
+            <div class="ob-footer">
+              <button type="button" class="ob-cta-ghost" @click="skipOnboarding">teď ne</button>
             </div>
           </template>
 
-          <!-- KROKY 2–5: progress bar + role badge -->
+          <!-- KROKY 2–6: progress bar + role badge -->
           <template v-else>
-            <!-- Back + progress bar + role badge -->
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 0; gap: 12px;">
-              <button type="button" style="background: transparent; border: 0; cursor: pointer; color: var(--muted); display: flex; align-items: center; gap: 4px; font-size: 0.82rem; flex-shrink: 0; padding: 0;" @click="onboardingStep > 2 ? onboardingStep-- : onboardingStep = 1">
-                <i class="pi pi-arrow-left" style="font-size: 0.75rem;"></i> zpět
+            <div class="ob-topbar">
+              <button type="button" class="ob-back" @click="onboardingStep > 2 ? onboardingStep-- : onboardingStep = 1">
+                <i class="pi pi-arrow-left"></i> zpět
               </button>
-              <div style="display: flex; gap: 4px; flex: 1;">
-                <div v-for="i in 4" :key="i" :style="{ flex: 1, height: '3px', borderRadius: '999px', background: i <= onboardingStep - 1 ? (onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)') : 'rgba(58,37,25,0.14)' }"></div>
+              <div class="ob-progress">
+                <div v-for="i in 7" :key="i" class="ob-progress-bar" :class="{ 'is-done': i <= onboardingStep - 1 && onboardingRole === 'majitel', 'is-done-green': i <= onboardingStep - 1 && onboardingRole === 'najemce' }"></div>
               </div>
-              <div :style="{ display: 'flex', alignItems: 'center', gap: '6px', background: onboardingRole === 'majitel' ? 'rgba(58,37,25,0.08)' : 'rgba(27,84,49,0.08)', border: '1px solid ' + (onboardingRole === 'majitel' ? 'rgba(58,37,25,0.2)' : 'rgba(27,84,49,0.2)'), borderRadius: '999px', padding: '4px 10px 4px 8px' }">
-                <i :class="onboardingRole === 'majitel' ? 'pi pi-wrench' : 'pi pi-search'" style="font-size: 0.72rem; color: var(--brand-2);"></i>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--brand);">{{ onboardingRole === 'majitel' ? 'Majitel' : 'Nájemce' }}</span>
-                <button type="button" style="background: transparent; border: 0; cursor: pointer; color: var(--muted-2); font-size: 0.72rem; padding: 0; margin-left: 2px; line-height: 1;" @click="onboardingStep = 1">×</button>
+              <div class="ob-role-pill" :class="{ 'is-green': onboardingRole === 'najemce' }">
+                <i :class="['pi', onboardingRole === 'majitel' ? 'pi-wrench' : 'pi-search', 'ob-role-pill-icon']"></i>
+                <span class="ob-role-pill-label">{{ onboardingRole === 'majitel' ? 'Majitel' : 'Nájemce' }}</span>
+                <button type="button" class="ob-role-pill-reset" @click="onboardingStep = 1">×</button>
               </div>
             </div>
 
             <!-- KROK 2: Jak to funguje -->
             <template v-if="onboardingStep === 2">
-              <div style="flex: 1; padding: 20px 24px 0;">
-                <h1 style="font-family: var(--font-raw); font-size: 2.2rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">
+              <div class="ob-body">
+                <h1 class="ob-heading">
                   {{ onboardingRole === 'majitel' ? 'Jak to' : 'Jak si' }}<br>
-                  <em :style="{ color: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', fontStyle: 'italic' }">{{ onboardingRole === 'majitel' ? 'funguje.' : 'půjčit.' }}</em>
+                  <em>{{ onboardingRole === 'majitel' ? 'funguje.' : 'půjčit.' }}</em>
                 </h1>
-                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 32px;">{{ onboardingRole === 'majitel' ? 'Čtyři kroky, aby ti vercajk vydělával.' : 'Pět kroků a vercajk je tvůj.' }}</p>
-
-                <div v-for="(step, i) in (onboardingRole === 'majitel'
-                  ? [{ label: 'Přidej nabídku', desc: 'Foto, popis, cena a kauce' }, { label: 'Schval žádost', desc: 'Přijde notifikace, ty rozhoduješ' }, { label: 'Potvrď platbu', desc: 'Nájemce zaplatí, ty potvrdíš' }, { label: 'Předej a převezmi', desc: 'Napiš hodnocení' }]
-                  : [{ label: 'Najdi', desc: 'Hledej podle kategorie nebo vzdálenosti' }, { label: 'Požádej', desc: 'Majitel tě schválí nebo odmítne' }, { label: 'Zaplať', desc: 'Pošli platbu, majitel potvrdí' }, { label: 'Vyzvedni a vrať', desc: 'Předání i vrácení probíhá osobně' }, { label: 'Ohodnoť', desc: 'Obě strany hodnotí — komunita stojí na důvěře' }])"
-                  :key="i"
-                  style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px;"
-                >
-                  <div :style="{ width: '34px', height: '34px', borderRadius: '999px', background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.85rem', fontWeight: '700', flexShrink: '0', marginTop: '1px' }">{{ i + 1 }}</div>
-                  <div>
-                    <strong style="font-size: 1rem; color: var(--brand); display: block; margin-bottom: 2px;">{{ step.label }}</strong>
-                    <span style="font-size: 0.83rem; color: var(--muted);">{{ step.desc }}</span>
+                <p class="ob-sub">{{ onboardingRole === 'majitel' ? 'Čtyři kroky, aby ti vercajk vydělával.' : 'Pět kroků a vercajk je tvůj.' }}</p>
+                <div class="ob-steps">
+                  <div v-for="(step, i) in (onboardingRole === 'majitel'
+                    ? [{ label: 'Přidej nabídku', desc: 'Foto, popis, cena a kauce' }, { label: 'Schval žádost', desc: 'Přijde notifikace, ty rozhoduješ' }, { label: 'Potvrď platbu', desc: 'Nájemce zaplatí, ty potvrdíš' }, { label: 'Předej a převezmi', desc: 'Napiš hodnocení' }]
+                    : [{ label: 'Najdi', desc: 'Hledej podle kategorie nebo vzdálenosti' }, { label: 'Požádej', desc: 'Majitel tě schválí nebo odmítne' }, { label: 'Zaplať', desc: 'Pošli platbu, majitel potvrdí' }, { label: 'Vyzvedni a vrať', desc: 'Předání i vrácení probíhá osobně' }, { label: 'Ohodnoť', desc: 'Obě strany hodnotí — komunita stojí na důvěře' }])"
+                    :key="i" class="ob-step">
+                    <div class="ob-step-num" :class="{ 'is-green': onboardingRole === 'najemce' }">{{ i + 1 }}</div>
+                    <div>
+                      <strong class="ob-step-title">{{ step.label }}</strong>
+                      <span class="ob-step-desc">{{ step.desc }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div style="padding: 16px 20px 28px; display: flex; flex-direction: column; gap: 8px;">
-                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 3">Pokračovat →</button>
-                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; padding: 4px; text-align: center;" @click="onboardingStep = 1">← zpět</button>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" @click="onboardingStep = 3">Pokračovat →</button>
               </div>
             </template>
 
             <!-- KROK 3: Komunita -->
             <template v-else-if="onboardingStep === 3">
-              <div style="flex: 1; padding: 20px 20px 0;">
-                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">Komunita,<br><em style="color: var(--brand-2); font-style: italic;">co si věří.</em></h1>
-                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 20px;">Ověřené profily, kauce a hodnocení po každé půjčce.</p>
-
-                <div v-for="item in (onboardingRole === 'majitel'
-                  ? [{ icon: 'pi-verified', label: 'Ověřené profily', desc: 'Každý uživatel projde ověřením e-mailu.' }, { icon: 'pi-credit-card', label: 'Kauce', desc: 'Jako majitel si volíš kauci v případě poškození.' }, { icon: 'pi-star', label: 'Hodnocení', desc: 'Na reputaci záleží.' }]
-                  : [{ icon: 'pi-verified', label: 'Ověřené profily', desc: 'Každý uživatel projde ověřením e-mailu.' }, { icon: 'pi-credit-card', label: 'Kauce', desc: 'Majitel může požadovat kauci. Vrátí se po vrácení vercajku.' }, { icon: 'pi-star', label: 'Hodnocení', desc: 'Na reputaci záleží.' }]
-                )" :key="item.label"
-                  style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px;">
-                  <div style="width: 40px; height: 40px; background: rgba(58,37,25,0.06); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; margin-top: 2px;"><i :class="['pi', item.icon]" style="color: var(--brand);"></i></div>
-                  <div><strong style="font-size: 0.9rem; color: var(--brand); display: block; margin-bottom: 2px;">{{ item.label }}</strong><span style="font-size: 0.8rem; color: var(--muted); line-height: 1.4;">{{ item.desc }}</span></div>
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">Komunita,<br><em>co si věří.</em></h1>
+                <p class="ob-sub">Ověřené profily, kauce a hodnocení po každé půjčce.</p>
+                <div class="ob-feature-list">
+                  <div v-for="item in (onboardingRole === 'majitel'
+                    ? [{ icon: 'pi-verified', label: 'Ověřené profily', desc: 'Každý uživatel projde ověřením e-mailu.' }, { icon: 'pi-credit-card', label: 'Kauce', desc: 'Jako majitel si volíš kauci v případě poškození.' }, { icon: 'pi-star', label: 'Hodnocení', desc: 'Na reputaci záleží.' }]
+                    : [{ icon: 'pi-verified', label: 'Ověřené profily', desc: 'Každý uživatel projde ověřením e-mailu.' }, { icon: 'pi-credit-card', label: 'Kauce', desc: 'Majitel může požadovat kauci. Vrátí se po vrácení vercajku.' }, { icon: 'pi-star', label: 'Hodnocení', desc: 'Na reputaci záleží.' }])"
+                    :key="item.label" class="ob-feature-card">
+                    <div class="ob-feature-icon"><i :class="['pi', item.icon]"></i></div>
+                    <div>
+                      <strong class="ob-feature-title">{{ item.label }}</strong>
+                      <span class="ob-feature-desc">{{ item.desc }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 4">Pokračovat →</button>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" @click="onboardingStep = 4">Pokračovat →</button>
               </div>
             </template>
 
-            <!-- KROK 4: Kategorie -->
+            <!-- KROK 4: Ověření e-mailu -->
             <template v-else-if="onboardingStep === 4">
-              <div style="flex: 1; padding: 20px 20px 0;">
-                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">{{ onboardingRole === 'majitel' ? 'Co budeš' : 'Co tě' }}<br><em style="color: var(--brand-2); font-style: italic;">{{ onboardingRole === 'majitel' ? 'půjčovat?' : 'zajímá?' }}</em></h1>
-                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 16px;">{{ onboardingRole === 'majitel' ? 'Vyber kategorie — tržiště ti ukáže, jak na tom jsi v okolí.' : 'Vyber kategorie a ukážeme ti nejlepší nabídky v okolí.' }}</p>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">Ověř svůj<br><em>e-mail.</em></h1>
+                <p class="ob-sub">Pošleme ti kód pro ověření. Stačí jedna zpráva.</p>
+                <div class="ob-feature-list">
+                  <div class="personal-field">
+                    <span class="personal-field-label">E-mailová adresa</span>
+                    <div class="personal-input-box">
+                      <i class="pi pi-envelope personal-input-icon"></i>
+                      <input v-model="onboardingEmail" class="payments-native-input" type="email" placeholder="vas@email.cz" />
+                    </div>
+                  </div>
+                  <template v-if="onboardingEmailSent">
+                    <div class="personal-field">
+                      <span class="personal-field-label">Ověřovací kód</span>
+                      <div class="personal-input-box">
+                        <i class="pi pi-key personal-input-icon"></i>
+                        <input v-model="onboardingEmailCode" class="payments-native-input" placeholder="123456" maxlength="6" />
+                      </div>
+                    </div>
+                    <div class="ob-note">Kód jsme odeslali na {{ onboardingEmail }}. Platí 10 minut.</div>
+                  </template>
+                  <button v-if="!onboardingEmailSent" type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" :disabled="!onboardingEmail" @click="onboardingEmailSent = true">Odeslat kód →</button>
+                </div>
+              </div>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" :disabled="!onboardingEmailSent || !onboardingEmailCode" @click="onboardingStep = 5">Ověřit a pokračovat →</button>
+                <button type="button" class="ob-cta-ghost" @click="onboardingStep = 5">přeskočit</button>
+              </div>
+            </template>
+
+            <!-- KROK 5: Kategorie -->
+            <template v-else-if="onboardingStep === 5">
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">{{ onboardingRole === 'majitel' ? 'Co budeš' : 'Co tě' }}<br><em>{{ onboardingRole === 'majitel' ? 'půjčovat?' : 'zajímá?' }}</em></h1>
+                <p class="ob-sub">{{ onboardingRole === 'majitel' ? 'Vyber kategorie — tržiště ti ukáže, jak na tom jsi v okolí.' : 'Vyber kategorie a ukážeme ti nejlepší nabídky v okolí.' }}</p>
+                <div class="ob-chips">
                   <button
                     v-for="cat in ['Elektrické nářadí','Ruční nářadí','Zahrada','Zvuk & světlo','Outdoor & stan','Vozíky & stěhování','Party výbava','Kola & sport','Dětské','Čištění & úklid']"
-                    :key="cat"
-                    type="button"
-                    :style="{ background: onboardingCategories.includes(cat) ? 'var(--brand-2)' : '#fff', color: onboardingCategories.includes(cat) ? '#fff' : 'var(--brand)', border: '1px solid ' + (onboardingCategories.includes(cat) ? 'var(--brand-2)' : 'var(--border)'), borderRadius: '999px', padding: '8px 14px', fontSize: '0.82rem', cursor: 'pointer' }"
+                    :key="cat" type="button"
+                    class="ob-chip" :class="{ 'is-selected': onboardingCategories.includes(cat) }"
                     @click="onboardingCategories.includes(cat) ? onboardingCategories.splice(onboardingCategories.indexOf(cat), 1) : onboardingCategories.push(cat)"
                   >{{ cat }}</button>
                 </div>
-                <p style="font-size: 0.78rem; color: var(--muted-2);">Vyber aspoň jednu — nebo pokračuj bez výběru.</p>
+                <p style="font-size: 0.78rem; color: var(--muted);">Vyber aspoň jednu — nebo pokračuj bez výběru.</p>
               </div>
-              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 5">Pokračovat →</button>
-                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; text-align: center;" @click="onboardingStep = 5">přeskočit</button>
-              </div>
-            </template>
-
-            <!-- KROK 5: Lokace -->
-            <template v-else-if="onboardingStep === 5">
-              <div style="flex: 1; padding: 20px 20px 0;">
-                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">{{ onboardingRole === 'majitel' ? 'Kde máš' : 'Kde hledáš' }}<br><em style="color: var(--brand-2); font-style: italic;">{{ onboardingRole === 'majitel' ? 'verštat?' : 'vercajk?' }}</em></h1>
-                <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 20px;">{{ onboardingRole === 'majitel' ? 'Nájemci uvidí čtvrť, ne adresu. Přesnost = víc zájemců.' : 'Najdeme sousedy s vercajkem co nejblíže tobě.' }}</p>
-
-                <div :style="{ background: '#fff', border: onboardingLocMode === 'gps' ? '2px solid var(--brand-2)' : '1px solid var(--border)', borderRadius: '14px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }" @click="onboardingLocMode = 'gps'">
-                  <div style="width: 40px; height: 40px; background: rgba(27,84,49,0.08); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;"><i class="pi pi-map-marker" style="color: var(--brand-2);"></i></div>
-                  <div><strong style="font-size: 0.9rem; color: var(--brand); display: block;">Použít moji polohu</strong><span style="font-size: 0.78rem; color: var(--muted);">Jedno kliknutí, nejpřesnější výsledek.</span></div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                  <div style="flex: 1; height: 1px; background: var(--border);"></div>
-                  <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted-2); text-transform: uppercase;">nebo</span>
-                  <div style="flex: 1; height: 1px; background: var(--border);"></div>
-                </div>
-
-                <div :style="{ background: '#fff', border: onboardingLocMode === 'manual' ? '2px solid var(--brand-2)' : '1px solid var(--border)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }" @click="onboardingLocMode = 'manual'">
-                  <div style="width: 40px; height: 40px; background: rgba(58,37,25,0.06); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;"><i class="pi pi-search" style="color: var(--muted);"></i></div>
-                  <span style="font-size: 0.84rem; color: var(--muted-2);">Praha 7 — Letná...</span>
-                </div>
-
-                <div style="background: rgba(58,37,25,0.05); border-radius: 10px; padding: 10px 14px; margin-top: 10px;">
-                  <span style="font-size: 0.78rem; color: var(--muted);">{{ onboardingRole === 'majitel' ? 'Nájemci uvidí čtvrť — přesnou adresu nikdo neuvidí.' : 'Tvoji polohu vidíš jen ty. Výsledky jsou anonymizované.' }}</span>
-                </div>
-              </div>
-              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }" @click="onboardingStep = 6">Pokračovat →</button>
-                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; text-align: center;" @click="onboardingStep = 6">přeskočit</button>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" @click="onboardingStep = 6">Pokračovat →</button>
+                <button type="button" class="ob-cta-ghost" @click="onboardingStep = 6">přeskočit</button>
               </div>
             </template>
 
-            <!-- KROK 6: CTA závěr -->
+            <!-- KROK 6: Lokace -->
             <template v-else-if="onboardingStep === 6">
-              <div style="flex: 1; padding: 20px 20px 0;">
-                <h1 style="font-family: var(--font-raw); font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1.1; margin-bottom: 8px;">
-                  <template v-if="onboardingRole === 'majitel'">Přidej první<br><em style="color: var(--brand-2); font-style: italic;">vercajk.</em></template>
-                  <template v-else>Najdi první<br><em style="color: var(--brand-2); font-style: italic;">vercajk.</em></template>
-                </h1>
-
-                <div style="background: rgba(27,84,49,0.07); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;">
-                  <p style="font-size: 0.86rem; font-weight: 600; color: var(--brand);">{{ onboardingRole === 'majitel' ? 'Skvělý start! Přidej první vercajk — za 2 minuty jsi v nabídce.' : 'Vítej v komunitě! Podívej se, co nabízejí sousedé v okolí.' }}</p>
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">{{ onboardingRole === 'majitel' ? 'Kde máš' : 'Kde hledáš' }}<br><em>{{ onboardingRole === 'majitel' ? 'verštat?' : 'vercajk?' }}</em></h1>
+                <p class="ob-sub">{{ onboardingRole === 'majitel' ? 'Nájemci uvidí čtvrť, ne adresu. Přesnost = víc zájemců.' : 'Najdeme sousedy s vercajkem co nejblíže tobě.' }}</p>
+                <div class="ob-loc-card" :class="{ 'is-active': onboardingLocMode === 'gps' }" @click="onboardingLocMode = 'gps'">
+                  <div class="ob-loc-icon"><i class="pi pi-map-marker"></i></div>
+                  <div>
+                    <strong class="ob-loc-title">Použít moji polohu</strong>
+                    <span class="ob-loc-desc">Jedno kliknutí, nejpřesnější výsledek.</span>
+                  </div>
                 </div>
+                <div class="ob-divider">
+                  <div class="ob-divider-line"></div>
+                  <span class="ob-divider-label">nebo</span>
+                  <div class="ob-divider-line"></div>
+                </div>
+                <div class="ob-loc-card" :class="{ 'is-active': onboardingLocMode === 'manual' }" @click="onboardingLocMode = 'manual'">
+                  <div class="ob-loc-icon is-neutral"><i class="pi pi-search"></i></div>
+                  <span class="ob-loc-desc">Praha 7 — Letná...</span>
+                </div>
+                <div class="ob-note">{{ onboardingRole === 'majitel' ? 'Nájemci uvidí čtvrť — přesnou adresu nikdo neuvidí.' : 'Tvoji polohu vidíš jen ty. Výsledky jsou anonymizované.' }}</div>
+              </div>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" @click="onboardingStep = 7">Pokračovat →</button>
+                <button type="button" class="ob-cta-ghost" @click="onboardingStep = 7">přeskočit</button>
+              </div>
+            </template>
 
-                <div v-for="(item, i) in (onboardingRole === 'majitel' ? [{ icon: 'pi-camera', label: 'Fotky', desc: 'Stačí 1–3 fotky.' }, { icon: 'pi-file-edit', label: 'Popis', desc: 'Co to je, stav, co přibalíš.' }, { icon: 'pi-credit-card', label: 'Cena a kauce', desc: 'Průměr v okolí ti poradíme.' }] : [{ icon: 'pi-search', label: 'Hledej v okolí', desc: 'Filtruj podle kategorie nebo vzdálenosti.' }, { icon: 'pi-heart', label: 'Ulož si oblíbené', desc: 'Věci, ke kterým se chceš vrátit.' }])" :key="i"
-                  style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 40px; height: 40px; background: rgba(58,37,25,0.06); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;"><i :class="['pi', item.icon]" style="color: var(--brand);"></i></div>
-                  <div style="flex: 1;"><strong style="font-size: 0.88rem; color: var(--brand); display: block;">{{ item.label }}</strong><span style="font-size: 0.78rem; color: var(--muted);">{{ item.desc }}</span></div>
-                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--muted-2);">0{{ i + 1 }}</span>
+            <!-- KROK 7: Způsob kontaktu -->
+            <template v-else-if="onboardingStep === 7">
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">Jak tě mají<br><em>kontaktovat?</em></h1>
+                <p class="ob-sub">Vyber jeden nebo více způsobů. Telefon nebo SMS musí být vybrán.</p>
+                <div class="ob-feature-list" style="gap: 10px;">
+                  <div class="ob-role-card" :class="{ 'is-active': onboardingContactEmail && onboardingRole === 'majitel', 'is-active-green': onboardingContactEmail && onboardingRole === 'najemce' }" @click="onboardingContactEmail = !onboardingContactEmail">
+                    <div class="ob-role-card-icon"><i class="pi pi-envelope"></i></div>
+                    <div style="flex: 1;">
+                      <strong class="ob-role-card-title">E-mail</strong>
+                      <span class="ob-role-card-desc">Dostaneš zprávu na svůj e-mail</span>
+                    </div>
+                    <i class="pi" :class="onboardingContactEmail ? 'pi-check-circle' : 'pi-circle'" style="font-size: 1.1rem; flex-shrink: 0;" :style="{ color: onboardingContactEmail ? 'currentColor' : 'var(--muted)' }"></i>
+                  </div>
+                  <div class="ob-role-card" :class="{ 'is-active': onboardingContactPhone && onboardingRole === 'majitel', 'is-active-green': onboardingContactPhone && onboardingRole === 'najemce' }" @click="onboardingContactPhone = !onboardingContactPhone">
+                    <div class="ob-role-card-icon"><i class="pi pi-phone"></i></div>
+                    <div style="flex: 1;">
+                      <strong class="ob-role-card-title">Telefon</strong>
+                      <span class="ob-role-card-desc">Číslo vidí jen schválení protistrana</span>
+                    </div>
+                    <i class="pi" :class="onboardingContactPhone ? 'pi-check-circle' : 'pi-circle'" style="font-size: 1.1rem; flex-shrink: 0;" :style="{ color: onboardingContactPhone ? 'currentColor' : 'var(--muted)' }"></i>
+                  </div>
+                  <div class="ob-role-card" :class="{ 'is-active': onboardingContactSms && onboardingRole === 'majitel', 'is-active-green': onboardingContactSms && onboardingRole === 'najemce' }" @click="onboardingContactSms = !onboardingContactSms">
+                    <div class="ob-role-card-icon"><i class="pi pi-comment"></i></div>
+                    <div style="flex: 1;">
+                      <strong class="ob-role-card-title">SMS</strong>
+                      <span class="ob-role-card-desc">Rychlá textová notifikace</span>
+                    </div>
+                    <i class="pi" :class="onboardingContactSms ? 'pi-check-circle' : 'pi-circle'" style="font-size: 1.1rem; flex-shrink: 0;" :style="{ color: onboardingContactSms ? 'currentColor' : 'var(--muted)' }"></i>
+                  </div>
+                  <div v-if="onboardingContactPhone || onboardingContactSms" class="personal-field" style="margin-top: 4px;">
+                    <span class="personal-field-label">Telefonní číslo</span>
+                    <div class="personal-input-box">
+                      <i class="pi pi-phone personal-input-icon"></i>
+                      <input v-model="onboardingPhone" class="payments-native-input" type="tel" placeholder="+420 777 000 111" />
+                    </div>
+                  </div>
+                  <div v-if="!onboardingContactValid" class="ob-note" style="color: #B44D38; background: rgba(180,77,56,0.06);">Vyber aspoň telefon nebo SMS.</div>
                 </div>
               </div>
-              <div style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-                <button type="button" :style="{ background: onboardingRole === 'majitel' ? 'var(--brand)' : 'var(--brand-2)', color: '#fff', border: '0', borderRadius: '14px', padding: '16px', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', width: '100%' }"
-                  @click="completeOnboarding">
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" :disabled="!onboardingContactValid" @click="onboardingRole === 'majitel' ? onboardingStep = 8 : onboardingStep = 9">Pokračovat →</button>
+              </div>
+            </template>
+
+            <!-- KROK 8: Platební údaje (jen majitel) -->
+            <template v-else-if="onboardingStep === 8">
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">Kam ti mají<br><em>posílat peníze?</em></h1>
+                <p class="ob-sub">Nájemci uvidí číslo účtu jako platební instrukci při schválené rezervaci.</p>
+                <div class="ob-feature-list" style="gap: 24px;">
+                  <div class="personal-field">
+                    <span class="personal-field-label">Číslo účtu</span>
+                    <div class="personal-input-box">
+                      <i class="pi pi-building-columns personal-input-icon"></i>
+                      <input v-model="bankAccount.iban" class="payments-native-input" placeholder="123456789/0800" />
+                    </div>
+                  </div>
+                  <div class="personal-field">
+                    <span class="personal-field-label">Variabilní symbol <span class="personal-field-optional">(volitelné)</span></span>
+                    <div class="personal-input-box">
+                      <input v-model="bankAccount.variableSymbol" class="payments-native-input" placeholder="např. 20260001" />
+                    </div>
+                  </div>
+                </div>
+                <div class="ob-note" style="margin-top: 24px;">Číslo účtu lze kdykoliv změnit v Nastavení → Platební metody.</div>
+              </div>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" @click="bankAccount.iban ? saveBankAccount() : null; onboardingStep = 9">Pokračovat →</button>
+                <button type="button" class="ob-cta-ghost" @click="onboardingStep = 9">přeskočit</button>
+              </div>
+            </template>
+
+            <!-- KROK 9: CTA závěr -->
+            <template v-else-if="onboardingStep === 9">
+              <div class="ob-body">
+                <h1 class="ob-heading ob-heading--md">
+                  <template v-if="onboardingRole === 'majitel'">Přidej první<br><em>vercajk.</em></template>
+                  <template v-else>Najdi první<br><em>vercajk.</em></template>
+                </h1>
+                <div class="ob-highlight">
+                  <p>{{ onboardingRole === 'majitel' ? 'Skvělý start! Přidej první vercajk — za 2 minuty jsi v nabídce.' : 'Vítej v komunitě! Podívej se, co nabízejí sousedé v okolí.' }}</p>
+                </div>
+                <div class="ob-feature-list">
+                  <div v-for="(item, i) in (onboardingRole === 'majitel'
+                    ? [{ icon: 'pi-camera', label: 'Fotky', desc: 'Stačí 1–3 fotky.' }, { icon: 'pi-file-edit', label: 'Popis', desc: 'Co to je, stav, co přibalíš.' }, { icon: 'pi-credit-card', label: 'Cena a kauce', desc: 'Průměr v okolí ti poradíme.' }]
+                    : [{ icon: 'pi-search', label: 'Hledej v okolí', desc: 'Filtruj podle kategorie nebo vzdálenosti.' }, { icon: 'pi-heart', label: 'Ulož si oblíbené', desc: 'Věci, ke kterým se chceš vrátit.' }])"
+                    :key="i" class="ob-feature-card">
+                    <div class="ob-feature-icon"><i :class="['pi', item.icon]"></i></div>
+                    <div style="flex: 1;">
+                      <strong class="ob-feature-title">{{ item.label }}</strong>
+                      <span class="ob-feature-desc">{{ item.desc }}</span>
+                    </div>
+                    <span class="ob-feature-num">0{{ i + 1 }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ob-footer">
+                <button type="button" class="ob-cta-primary" :class="{ 'is-green': onboardingRole === 'najemce' }" @click="completeOnboarding">
                   {{ onboardingRole === 'majitel' ? 'Přidat vercajk →' : 'Prohlížet nabídky →' }}
                 </button>
-                <button type="button" style="background: transparent; border: 0; font-size: 0.82rem; color: var(--muted); cursor: pointer; text-align: center;" @click="skipOnboarding">přeskočit</button>
+                <button type="button" class="ob-cta-ghost" @click="skipOnboarding">přeskočit</button>
               </div>
             </template>
           </template>
@@ -6704,10 +6791,6 @@ if (typeof window !== "undefined") {
 
               <!-- Karta data -->
               <div class="request-desktop-card">
-                <div class="request-date-header">
-                  <span class="request-date-label">VYBRANÉ DATUM</span>
-                  <span class="request-date-range" v-if="requestDate">Od {{ formatDateCZ(requestDate) }} do {{ formatDateCZ(requestEndDate) }}</span>
-                </div>
                 <div class="request-date-fields">
                   <label class="request-date-field">
                     <span>ZAČÁTEK ZÁPŮJČKY</span>
@@ -6817,6 +6900,10 @@ if (typeof window !== "undefined") {
                   <span>Počet dní</span>
                   <input v-model="requestDuration" class="native-input" type="number" min="1" />
                 </label>
+                <div class="request-date-hint">
+                  <i class="pi pi-info-circle"></i>
+                  Termín je pouze orientační poptávka.
+                </div>
               </div>
 
               <div v-else-if="requestStep === 2" class="request-grid">
@@ -6898,7 +6985,7 @@ if (typeof window !== "undefined") {
                     <span class="chat-list-time">{{ conv.lastTime }}</span>
                   </div>
                   <span class="chat-list-listing">{{ conv.listingTitle }}</span>
-                  <span class="chat-list-preview" :class="{ 'is-unread': conv.unread > 0 }">{{ conv.lastMessage }}</span>
+                  <span class="chat-list-preview" :class="{ 'is-unread': conv.unread > 0, 'is-rejected': conv.lastMessage === 'Rezervace zamítnuta' || conv.lastMessage === 'Rezervace zrušena' }">{{ conv.lastMessage }}</span>
                 </div>
               </button>
             </div>
@@ -6933,7 +7020,11 @@ if (typeof window !== "undefined") {
                   </div>
                 </template>
               </div>
-              <div class="chat-input-bar">
+              <div v-if="isChatClosed" class="chat-input-bar chat-input-bar--closed">
+                <i class="pi pi-lock"></i>
+                <span>Konverzace je uzavřena — rezervace nebyla přijata.</span>
+              </div>
+              <div v-else class="chat-input-bar">
                 <div class="chat-input-wrap">
                   <textarea v-model="chatInput" class="chat-input" placeholder="Napište zprávu…" rows="1" @keydown.enter.prevent="sendChatMessage"></textarea>
                   <button class="chat-send-btn chat-send-btn--inside" type="button" :disabled="!chatInput.trim()" @click="sendChatMessage" aria-label="Odeslat">

@@ -753,7 +753,7 @@ const screenLabels = computed<Record<Screen, string>>(() => ({
   "help-detail": "Nápověda",
   "help-contact": "Napište nám",
   "profile-list": "Moje nabídky a poptávky",
-  "public-profile-list": "Veřejné položky",
+  "public-profile-list": "Dostupný vercajk",
   "public-profile-reviews": "Hodnocení",
   onboarding: "",
   rules: "Pravidla užívání",
@@ -968,7 +968,7 @@ const publicProfiles: Record<
     response: "odpovídá do 2 hodin",
     location: "Praha 7",
     bio: "Majitel, který má doma víc vercajku než poliček. Půjčuje hlavně na víkendové projekty a menší opravy.",
-    listings: ["festool-ts55", "karcher-wash", "makita-drill", "bosch-drill", "hilti-breaker"],
+    listings: ["festool-ts55", "karcher-wash", "makita-drill", "bosch-drill", "hilti-breaker", "dewalt-sander", "ladder-8m", "jigsaw-bosch", "compressor-mini", "laser-level"],
     requests: ["laser-level", "bosch-drill"],
     feedback: [
       {
@@ -3026,7 +3026,7 @@ if (typeof window !== "undefined") {
           <span>Reklama</span>
         </div>
       </aside>
-    <main class="frame" :class="{'frame--profile-desktop': isProfileDesktop}" :style="isProfileDesktop ? {width: 'min(100vw - 48px, 1400px)', maxWidth: '1400px'} : {}">
+    <main class="frame" :class="{'frame--profile-desktop': isProfileDesktop}">
       <section v-if="screen === 'auth'" class="auth-shell">
         <div class="auth-page" :class="{ 'is-login': authMode === 'login', 'is-register': authMode === 'register' }">
 
@@ -4613,213 +4613,231 @@ if (typeof window !== "undefined") {
           </div>
         </div>
 
-        <div v-else-if="screen === 'public-profile'" class="screen-inner public-profile-page" style="overflow-x: hidden;">
+        <div v-else-if="screen === 'public-profile'" class="screen-inner public-profile-page" :class="{'public-profile-desktop': isDesktop}" style="overflow-x: hidden;">
 
-          <!-- Sticky header -->
-          <div style="position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 12px 16px;">
-            <button
-              type="button"
-              style="width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border); background: #fff; display: grid; place-items: center; color: var(--brand); cursor: pointer; flex-shrink: 0;"
-              aria-label="Zpět"
-              @click="goBack"
-            >
-              <i class="pi pi-arrow-left" style="font-size: 0.85rem;"></i>
-            </button>
-            <span style="font-family: var(--font-raw); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-2);">Profil</span>
-          </div>
-
-          <!-- Hero -->
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px 20px; background: linear-gradient(160deg, rgba(58,37,25,0.03) 0%, rgba(27,84,49,0.04) 100%); border-bottom: 1px solid var(--border);">
-            <div style="width: 80px; height: 80px; border-radius: 999px; border: 2px solid rgba(58,37,25,0.18); background: rgba(58,37,25,0.06); display: grid; place-items: center; font-family: var(--font-raw); font-size: 1.8rem; color: var(--brand); flex-shrink: 0;">
-              {{ viewedPublicProfile.charAt(0).toUpperCase() }}
+          <!-- ── MOBILE layout ── -->
+          <template v-if="!isDesktop">
+            <!-- Hero -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px 20px; background: linear-gradient(160deg, rgba(58,37,25,0.03) 0%, rgba(27,84,49,0.04) 100%); border-bottom: 1px solid var(--border);">
+              <div style="width: 80px; height: 80px; border-radius: 999px; border: 2px solid rgba(58,37,25,0.18); background: rgba(58,37,25,0.06); display: grid; place-items: center; font-family: var(--font-raw); font-size: 1.8rem; color: var(--brand); flex-shrink: 0;">{{ viewedPublicProfile.charAt(0).toUpperCase() }}</div>
+              <div style="text-align: center; display: grid; gap: 5px; width: 100%;">
+                <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h2>
+                <button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 0; cursor: pointer; padding: 0; font-size: 0.88rem; color: var(--brand);" @click="scrollToPublicReviews">
+                  <i class="pi pi-star-fill" style="font-size: 0.8rem;"></i>
+                  <span style="font-weight: 700;">{{ currentPublicProfile.rating }}</span>
+                  <span style="color: var(--muted);">· {{ currentPublicProfile.reviews }}</span>
+                </button>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; margin-top: 4px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;"><i class="pi pi-map-marker" style="color: var(--brand-2); font-size: 0.8rem;"></i><span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.location }}</span></div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;"><i class="pi pi-clock" style="color: var(--brand-2); font-size: 0.8rem;"></i><span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.response }}</span></div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;"><i class="pi pi-wrench" style="color: var(--brand-2); font-size: 0.8rem;"></i><span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.listings.length }} nabídek</span></div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;"><i class="pi pi-shopping-bag" style="color: var(--brand-2); font-size: 0.8rem;"></i><span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.requests.length }} půjčení</span></div>
+              </div>
             </div>
-            <div style="text-align: center; display: grid; gap: 5px; width: 100%;">
-              <h2 style="font-family: var(--font-raw); font-size: 1.35rem; color: var(--brand); margin: 0;">{{ viewedPublicProfile }}</h2>
-              <button
-                type="button"
-                style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 0; cursor: pointer; padding: 0; font-size: 0.88rem; color: var(--brand);"
-                @click="scrollToPublicReviews"
-              >
-                <i class="pi pi-star-fill" style="font-size: 0.8rem;"></i>
-                <span style="font-weight: 700;">{{ currentPublicProfile.rating }}</span>
-                <span style="color: var(--muted);">· {{ currentPublicProfile.reviews }}</span>
+            <!-- Bio -->
+            <div v-if="currentPublicProfile.bio" style="padding: 16px; border-bottom: 1px solid var(--border);">
+              <span class="profile-section-label" style="display: block; margin-bottom: 8px;">O majiteli</span>
+              <p style="margin: 0; color: var(--muted); line-height: 1.6; font-size: 0.9rem;">{{ currentPublicProfile.bio }}</p>
+            </div>
+            <!-- Nabídky -->
+            <div style="padding: 16px; display: grid; gap: 10px; border-bottom: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="profile-section-label">Nabídky</span>
+                <button v-if="currentPublicProfile.listings.length > 3" class="profile-panel-link" type="button" style="font-size: 0.72rem;" @click="openPublicProfileListPage('offers')">Zobrazit vše</button>
+              </div>
+              <div v-if="!currentPublicProfile.listings.length" class="profile-empty">Tento profil zatím nemá veřejné nabídky.</div>
+              <div v-else style="display: grid; gap: 8px;">
+                <button v-for="listingId in currentPublicProfile.listings.slice(0, 3)" :key="`pub-listing-${listingId}`" type="button" style="box-sizing: border-box; display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%;" @click="openListing(listingId)">
+                  <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(58,37,25,0.06); overflow: hidden;"><img v-if="listings.find(i => i.id === listingId)?.photo" :src="listings.find(i => i.id === listingId)?.photo" :alt="listings.find(i => i.id === listingId)?.title" style="width: 100%; height: 100%; object-fit: cover; display: block;" /></div>
+                  <div style="min-width: 0;"><div style="font-size: 0.88rem; font-weight: 600; color: var(--brand); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ listings.find(i => i.id === listingId)?.title ?? "Nabídka" }}</div><div style="font-size: 0.76rem; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ listings.find(i => i.id === listingId)?.location ?? "" }}</div></div>
+                </button>
+              </div>
+            </div>
+            <!-- Recenze -->
+            <div ref="publicReviewsSection" style="padding: 20px; display: grid; gap: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="profile-section-label">Recenze</span>
+                <button v-if="currentPublicProfile.feedback?.length" class="profile-panel-link" type="button" style="font-size: 0.72rem;" @click="openPublicProfileReviews('owners')">Ukázat všechna hodnocení</button>
+              </div>
+              <div class="profile-review-scroll">
+                <article v-for="review in currentPublicProfile.feedback" :key="`${review.author}-${review.date}`" class="profile-review-card">
+                  <div class="profile-review-head"><div class="profile-review-author"><div class="profile-review-avatar">{{ review.avatar }}</div><div class="profile-review-author-copy"><strong>{{ review.author }}</strong><span>{{ review.role }}</span></div></div><span class="profile-review-date">{{ review.date }}</span></div>
+                  <div class="profile-review-stars" :aria-label="`Hodnocení ${review.stars} z 5`"><i v-for="star in 5" :key="star" :class="['pi', star <= review.stars ? 'pi-star-fill' : 'pi-star']"></i></div>
+                  <p>{{ review.text }}</p>
+                </article>
+                <div v-if="!currentPublicProfile.feedback?.length" class="profile-empty" style="flex: 0 0 100%;">Zatím žádné recenze.</div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── DESKTOP layout ── -->
+          <template v-else>
+            <!-- Left col -->
+            <div class="pp-left">
+              <!-- Zpět -->
+              <button type="button" class="pp-back-btn" aria-label="Zpět" @click="goBack">
+                <i class="pi pi-arrow-left"></i>
               </button>
-            </div>
-
-            <!-- Stats — 2×2 grid -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; margin-top: 4px;">
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
-                <i class="pi pi-map-marker" style="color: var(--brand-2); font-size: 0.8rem;"></i>
-                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.location }}</span>
+              <!-- Hero -->
+              <div class="pp-hero-block">
+                <div class="pp-avatar-lg">{{ viewedPublicProfile.charAt(0).toUpperCase() }}</div>
+                <h2 class="pp-name">{{ viewedPublicProfile }}</h2>
+                <button type="button" class="pp-rating-btn" @click="scrollToPublicReviews">
+                  <i class="pi pi-star-fill"></i>
+                  <span>{{ currentPublicProfile.rating }}</span>
+                  <span class="pp-rating-count">· {{ currentPublicProfile.reviews }}</span>
+                </button>
               </div>
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
-                <i class="pi pi-clock" style="color: var(--brand-2); font-size: 0.8rem;"></i>
-                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.response }}</span>
-              </div>
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
-                <i class="pi pi-wrench" style="color: var(--brand-2); font-size: 0.8rem;"></i>
-                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.listings.length }} nabídek</span>
-              </div>
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; font-size: 0.76rem; text-align: center;">
-                <i class="pi pi-shopping-bag" style="color: var(--brand-2); font-size: 0.8rem;"></i>
-                <span style="color: var(--brand); font-weight: 600; line-height: 1.2;">{{ currentPublicProfile.requests.length }} půjčení</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bio -->
-          <div v-if="currentPublicProfile.bio" style="padding: 16px; border-bottom: 1px solid var(--border);">
-            <span class="profile-section-label" style="display: block; margin-bottom: 8px;">O majiteli</span>
-            <p style="margin: 0; color: var(--muted); line-height: 1.6; font-size: 0.9rem;">{{ currentPublicProfile.bio }}</p>
-          </div>
-
-          <!-- Nabídky -->
-          <div style="padding: 16px; display: grid; gap: 10px; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span class="profile-section-label">Nabídky</span>
-              <button
-                v-if="currentPublicProfile.listings.length > 3"
-                class="profile-panel-link"
-                type="button"
-                style="font-size: 0.72rem;"
-                @click="openPublicProfileListPage('offers')"
-              >Zobrazit vše</button>
-            </div>
-            <div v-if="!currentPublicProfile.listings.length" class="profile-empty">
-              Tento profil zatím nemá veřejné nabídky.
-            </div>
-            <div v-else style="display: grid; gap: 8px;">
-              <button
-                v-for="listingId in currentPublicProfile.listings.slice(0, 3)"
-                :key="`pub-listing-${listingId}`"
-                type="button"
-                style="box-sizing: border-box; display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%;"
-                @click="openListing(listingId)"
-              >
-                <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(58,37,25,0.06); overflow: hidden;">
-                  <img
-                    v-if="listings.find(i => i.id === listingId)?.photo"
-                    :src="listings.find(i => i.id === listingId)?.photo"
-                    :alt="listings.find(i => i.id === listingId)?.title"
-                    style="width: 100%; height: 100%; object-fit: cover; display: block;"
-                  />
+              <!-- Info řádky — otevřený styl -->
+              <div class="pp-info-list">
+                <div class="pp-info-row">
+                  <i class="pi pi-map-marker"></i>
+                  <span class="pp-info-label">Lokalita</span>
+                  <span class="pp-info-value">{{ currentPublicProfile.location }}</span>
                 </div>
-                <div style="min-width: 0;">
-                  <div style="font-size: 0.88rem; font-weight: 600; color: var(--brand); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ listings.find(i => i.id === listingId)?.title ?? "Nabídka" }}
-                  </div>
-                  <div style="font-size: 0.76rem; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ listings.find(i => i.id === listingId)?.location ?? "" }}
-                  </div>
+                <div class="pp-info-row">
+                  <i class="pi pi-bolt"></i>
+                  <span class="pp-info-label">Rychlost odpovědi</span>
+                  <span class="pp-info-value pp-info-green">{{ currentPublicProfile.response }}</span>
                 </div>
+                <div class="pp-info-row">
+                  <i class="pi pi-wrench"></i>
+                  <span class="pp-info-label">Aktivní nabídky</span>
+                  <span class="pp-info-value">{{ currentPublicProfile.listings.length }} strojů</span>
+                </div>
+                <div class="pp-info-row">
+                  <i class="pi pi-shopping-bag"></i>
+                  <span class="pp-info-label">Zapůjčení</span>
+                  <span class="pp-info-value">{{ currentPublicProfile.requests.length }} výpůjčky</span>
+                </div>
+              </div>
+              <!-- Bio -->
+              <div v-if="currentPublicProfile.bio" class="pp-bio-block">
+                <span class="pp-bio-label">O {{ viewedPublicProfile }}vi</span>
+                <p>"{{ currentPublicProfile.bio }}"</p>
+              </div>
+              <!-- CTA -->
+              <button type="button" class="pp-cta-btn" @click="startChat">
+                <i class="pi pi-send"></i>
+                Napsat zprávu majiteli
               </button>
+              <!-- Trust badge -->
+              <div class="pp-trust">
+                <i class="pi pi-shield pp-trust-icon"></i>
+                <div>
+                  <strong>Garance spolehlivosti</strong>
+                  <p>Veškeré zapůjčené nářadí je pojištěno proti poškození při běžném používání.</p>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- Recenze -->
-          <div ref="publicReviewsSection" style="padding: 20px; display: grid; gap: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span class="profile-section-label">Recenze</span>
-              <button
-                v-if="currentPublicProfile.feedback?.length"
-                class="profile-panel-link"
-                type="button"
-                style="font-size: 0.72rem;"
-                @click="openPublicProfileReviews('owners')"
-              >Ukázat všechna hodnocení</button>
-            </div>
-            <div class="profile-review-scroll">
-              <article
-                v-for="review in currentPublicProfile.feedback"
-                :key="`${review.author}-${review.date}`"
-                class="profile-review-card"
-              >
-                <div class="profile-review-head">
-                  <div class="profile-review-author">
-                    <div class="profile-review-avatar">{{ review.avatar }}</div>
-                    <div class="profile-review-author-copy">
-                      <strong>{{ review.author }}</strong>
-                      <span>{{ review.role }}</span>
+            <!-- Right col -->
+            <div class="pp-right">
+              <!-- Nabídky -->
+              <div class="pp-section">
+                <div class="pp-section-head">
+                  <div>
+                    <h2 class="pp-section-title">Nabídky majitele</h2>
+                    <p class="pp-section-sub">Klikněte na kartu pro simulaci rezervace</p>
+                  </div>
+                  <span class="pp-count-badge">{{ currentPublicProfile.listings.length }} aktivních</span>
+                </div>
+                <div v-if="!currentPublicProfile.listings.length" class="profile-empty">Tento profil zatím nemá veřejné nabídky.</div>
+                <div v-else class="market-card-grid pp-cards-grid">
+                  <div
+                    v-for="listingId in currentPublicProfile.listings.slice(0, 6)"
+                    :key="`pub-card-${listingId}`"
+                    class="market-item-card"
+                    @click="openListing(listingId)"
+                  >
+                    <div class="market-item-thumb" aria-hidden="true">
+                      <img v-if="listings.find(i => i.id === listingId)?.photo" :src="listings.find(i => i.id === listingId)?.photo" :alt="listings.find(i => i.id === listingId)?.title" class="market-item-thumb-img" />
+                    </div>
+                    <div class="market-item-copy">
+                      <div class="market-item-copy-head">
+                        <h3>{{ listings.find(i => i.id === listingId)?.title ?? 'Nabídka' }}</h3>
+                      </div>
+                      <p class="market-item-location">{{ listings.find(i => i.id === listingId)?.location ?? '' }}</p>
+                      <div class="market-item-meta">
+                        <span class="market-item-price">{{ listings.find(i => i.id === listingId)?.price ?? (listings.find(i => i.id === listingId)?.priceValue + ' Kč / den') }}</span>
+                      </div>
                     </div>
                   </div>
-                  <span class="profile-review-date">{{ review.date }}</span>
                 </div>
-                <div class="profile-review-stars" :aria-label="`Hodnocení ${review.stars} z 5`">
-                  <i v-for="star in 5" :key="star" :class="['pi', star <= review.stars ? 'pi-star-fill' : 'pi-star']"></i>
+                <button
+                  v-if="currentPublicProfile.listings.length > 6"
+                  type="button"
+                  class="pp-show-all-btn"
+                  style="width: 100%; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; background: #fff;"
+                  @click="openPublicProfileListPage('offers')"
+                >
+                  Zobrazit všechny nabídky ({{ currentPublicProfile.listings.length }})
+                  <i class="pi pi-arrow-right"></i>
+                </button>
+              </div>
+
+              <!-- Recenze -->
+              <div ref="publicReviewsSection" class="pp-section">
+                <div class="pp-section-head">
+                  <div>
+                    <h2 class="pp-section-title">Hodnocení uživatelů</h2>
+                    <p class="pp-section-sub">Zkušenosti majitelů i nájemců</p>
+                  </div>
+                  <button v-if="currentPublicProfile.feedback?.length" type="button" class="pp-show-all-btn" @click="openPublicProfileReviews('owners')">
+                    Ukázat všech {{ currentPublicProfile.reviews }} <i class="pi pi-chevron-right"></i>
+                  </button>
                 </div>
-                <p>{{ review.text }}</p>
-              </article>
-              <div v-if="!currentPublicProfile.feedback?.length" class="profile-empty" style="flex: 0 0 100%;">
-                Zatím žádné recenze.
+                <div v-if="!currentPublicProfile.feedback?.length" class="profile-empty">Zatím žádné recenze.</div>
+                <div v-else class="pp-reviews-grid">
+                  <article v-for="review in currentPublicProfile.feedback" :key="`${review.author}-${review.date}`" class="profile-review-card">
+                    <div class="profile-review-head">
+                      <div class="profile-review-author">
+                        <div class="profile-review-avatar">{{ review.avatar }}</div>
+                        <div class="profile-review-author-copy">
+                          <strong>{{ review.author }}</strong>
+                          <span class="pp-review-role-badge" :class="review.role === 'Majitel' ? 'is-owner' : 'is-renter'">{{ review.role.toUpperCase() }}</span>
+                        </div>
+                      </div>
+                      <span class="profile-review-date">{{ review.date }}</span>
+                    </div>
+                    <div class="profile-review-stars" :aria-label="`Hodnocení ${review.stars} z 5`">
+                      <i v-for="star in 5" :key="star" :class="['pi', star <= review.stars ? 'pi-star-fill' : 'pi-star']"></i>
+                    </div>
+                    <p>"{{ review.text }}"</p>
+                  </article>
+                </div>
               </div>
             </div>
-          </div>
+          </template>
+
         </div>
 
-        <div v-else-if="screen === 'public-profile-list'" class="screen-inner profile-page profile-list-page public-profile-list-page">
-          <div class="profile-list-tabs">
-            <button
-              class="profile-list-tab"
-              :class="{ 'is-active': publicProfileListTab === 'offers' }"
-              type="button"
-              @click="publicProfileListTab = 'offers'"
-            >
-              Nabídky
-            </button>
-            <button
-              class="profile-list-tab"
-              :class="{ 'is-active': publicProfileListTab === 'requests' }"
-              type="button"
-              @click="publicProfileListTab = 'requests'"
-            >
-              Poptávky
-            </button>
-          </div>
-          <div class="profile-list-body">
-            <div v-if="publicProfileListTab === 'offers'" class="profile-panel-list">
-              <button
-                v-for="listingId in currentPublicProfile.listings"
-                :key="`public-page-offer-${listingId}`"
-                class="profile-item"
-                type="button"
-                @click="openListing(listingId)"
-              >
-                <div class="profile-item-copy">
-                  <span class="profile-item-title">
-                    {{ listings.find((item) => item.id === listingId)?.title ?? "Nabídka" }}
-                  </span>
-                  <span class="profile-item-meta">
-                    {{ listings.find((item) => item.id === listingId)?.priceValue ?? 0 }} Kč / den ·
-                    {{ listings.find((item) => item.id === listingId)?.location ?? "Neuvedeno" }}
-                  </span>
-                </div>
-                <span class="profile-item-status is-brown">Veřejné</span>
-              </button>
-              <div v-if="!currentPublicProfile.listings.length" class="profile-empty">
-                Tento profil zatím nemá veřejné nabídky.
-              </div>
+        <div v-else-if="screen === 'public-profile-list'" class="screen-inner">
+          <div v-if="isDesktop" class="detail-hero">
+            <div class="detail-hero-copy">
+              <h1>Dostupný <span style="color: var(--brand-2)">vercajk</span></h1>
+              <p class="detail-hero-sub">Nářadí a vybavení od {{ currentPublicProfile.name }}</p>
             </div>
-            <div v-else class="profile-panel-list">
-              <button
-                v-for="listingId in currentPublicProfile.requests"
-                :key="`public-page-request-${listingId}`"
-                class="profile-item"
-                type="button"
-                @click="openListing(listingId)"
-              >
-                <div class="profile-item-copy">
-                  <span class="profile-item-title">
-                    {{ listings.find((item) => item.id === listingId)?.title ?? "Poptávka" }}
-                  </span>
-                  <span class="profile-item-meta">
-                    {{ listings.find((item) => item.id === listingId)?.priceValue ?? 0 }} Kč / den ·
-                    {{ listings.find((item) => item.id === listingId)?.location ?? "Neuvedeno" }}
-                  </span>
+          </div>
+          <div class="market-card-grid" style="margin-top: 24px;">
+            <div
+              v-for="listingId in currentPublicProfile.listings"
+              :key="`public-page-offer-${listingId}`"
+              class="market-item-card"
+              @click="openListing(listingId)"
+            >
+              <div class="market-item-thumb" aria-hidden="true">
+                <img v-if="listings.find(i => i.id === listingId)?.photo" :src="listings.find(i => i.id === listingId)?.photo" :alt="listings.find(i => i.id === listingId)?.title" class="market-item-thumb-img" />
+              </div>
+              <div class="market-item-copy">
+                <div class="market-item-copy-head">
+                  <h3>{{ listings.find(i => i.id === listingId)?.title ?? 'Nabídka' }}</h3>
                 </div>
-                <span class="profile-item-status is-muted">Poptávka</span>
-              </button>
-              <div v-if="!currentPublicProfile.requests.length" class="profile-empty">
-                Tento profil zatím nemá veřejné poptávky.
+                <p class="market-item-location">{{ listings.find(i => i.id === listingId)?.location ?? '' }}</p>
+                <div class="market-item-meta">
+                  <span class="market-item-price">{{ listings.find(i => i.id === listingId)?.price ?? (listings.find(i => i.id === listingId)?.priceValue + ' Kč / den') }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -7210,7 +7228,7 @@ if (typeof window !== "undefined") {
                 <i class="pi pi-star-fill"></i>
                 4.8
               </div>
-              <button class="profile-public-button" type="button" style="white-space: nowrap;" @click="openPublicProfile(user.name)">
+              <button class="profile-public-button" type="button" @click="openPublicProfile(user.name)">
                 Zobrazit veřejný profil
               </button>
             </div>

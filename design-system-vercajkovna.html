@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design System — Vercajkovna</title>
+  <!-- Aplikace používá systémové fonty (Iowan Old Style / Helvetica Neue), externí fonty se nenačítají. -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+      --font-body:    'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --font-mono:    'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+      --bg:     #fff9f0;
+      --fg:     #352116;
+      --border: rgba(58,37,25,0.14);
+      --muted:  #6d584a;
+      --subtle: #9a8a7c;
+      --sidebar-w: 230px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      min-height: 100vh;
+      font-size: 15px;
+    }
+
+    /* ── Sidebar ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      border-right: 1px solid var(--border);
+      padding: 32px 20px;
+      overflow-y: auto;
+      background: #fdf5ef;
+    }
+
+    nav .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    nav .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: #3a2519;
+      color: #fff8f1;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      display: grid;
+      place-items: center;
+    }
+    nav .logo-text {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: #3a2519;
+      letter-spacing: -0.01em;
+    }
+    nav .logo-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+      display: block;
+      margin-top: 1px;
+    }
+
+    nav ul { list-style: none; }
+    nav ul li + li { margin-top: 2px; }
+
+    nav a {
+      display: block;
+      font-size: 13.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 7px;
+      transition: background .15s, color .15s;
+    }
+    nav a:hover { background: rgba(58,37,25,.07); color: var(--fg); }
+    nav a.active { background: rgba(58,37,25,.10); color: var(--fg); font-weight: 500; }
+
+    nav .section-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #c4a98e;
+      padding: 16px 10px 6px;
+    }
+
+    /* ── Main ── */
+    main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 64px 72px;
+      max-width: 980px;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      margin-bottom: 64px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: #3a2519;
+      margin-bottom: 8px;
+    }
+    .page-header p {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .page-header code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: rgba(58,37,25,.07);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* ── Section ── */
+    .ds-section {
+      margin-bottom: 80px;
+      scroll-margin-top: 40px;
+    }
+
+    .ds-section-header {
+      margin-bottom: 36px;
+    }
+    .ds-section-header h2 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      color: #3a2519;
+      margin-bottom: 6px;
+    }
+    .ds-source-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 22px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .ds-source-tag.primevue {
+      background: rgba(99,102,241,.10);
+      color: #4338ca;
+      border: 1px solid rgba(99,102,241,.20);
+    }
+    .ds-source-tag.custom {
+      background: rgba(58,37,25,.08);
+      color: #6d584a;
+      border: 1px solid rgba(58,37,25,.16);
+    }
+    .ds-source-tag svg { flex-shrink: 0; }
+
+    .ds-section-header p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .ds-section-header code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: rgba(58,37,25,.07);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── Color group ── */
+    .color-group { margin-bottom: 40px; }
+    .color-group-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .color-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      width: 72px;
+    }
+
+    .color-chip-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.08);
+      margin-bottom: 14px;
+    }
+    .color-chip-main .color-swatch-main {
+      width: 72px;
+      height: 72px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,.06);
+    }
+    .color-chip-main .color-info-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .color-chip-main .color-step-main {
+      font-size: 13px;
+      font-weight: 700;
+      color: inherit;
+      font-family: var(--font-mono);
+    }
+    .color-chip-main .color-hex-main {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      display: block;
+    }
+    .color-chip-main .color-token-main {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      opacity: .65;
+    }
+    .color-scale-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-bottom: 10px;
+    }
+
+    .color-swatch {
+      width: 72px;
+      height: 56px;
+      border-radius: 9px;
+      border: 1px solid rgba(0,0,0,.06);
+    }
+
+    .color-info { text-align: center; }
+    .color-step {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--fg);
+      display: block;
+      font-family: var(--font-mono);
+    }
+    .color-hex {
+      font-size: 10.5px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Semantic chips */
+    .color-semantic {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .color-semantic-chip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      min-width: 200px;
+    }
+    .semantic-swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .semantic-name {
+      font-size: 13px;
+      font-weight: 600;
+      display: block;
+      color: #352116;
+    }
+    .semantic-hex {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      display: block;
+      margin-top: 2px;
+    }
+    .semantic-token {
+      font-size: 11px;
+      color: #b89e8e;
+      font-family: var(--font-mono);
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* Surfaces */
+    .surface-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .surface-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 140px;
+    }
+    .surface-swatch {
+      height: 72px;
+      border-radius: 10px;
+      border: 1px solid rgba(58,37,25,.10);
+    }
+    .surface-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      display: block;
+    }
+    .surface-token {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* ── Divider ── */
+    .ds-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 36px 0;
+    }
+
+    /* ── Typography ── */
+    .type-scale { display: flex; flex-direction: column; gap: 0; }
+    .type-row {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      align-items: center;
+      gap: 32px;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .type-row:first-child { border-top: 1px solid var(--border); }
+    .type-sample { overflow: hidden; }
+    .type-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .type-meta-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .type-meta-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .type-tag {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      background: rgba(58,37,25,.07);
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .type-meta-desc {
+      font-size: 12px;
+      color: #b89e8e;
+    }
+
+    /* ── Spacing ── */
+    .spacing-table { display: flex; flex-direction: column; gap: 0; }
+    .spacing-row {
+      display: grid;
+      grid-template-columns: 80px 80px 1fr 200px;
+      align-items: center;
+      gap: 24px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .spacing-row:first-child { border-top: 1px solid var(--border); }
+    .spacing-token {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #3a2519;
+      font-weight: 500;
+    }
+    .spacing-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .spacing-bar-wrap { display: flex; align-items: center; }
+    .spacing-bar {
+      height: 10px;
+      background: rgba(58,37,25,.18);
+      border-radius: 3px;
+    }
+    .spacing-desc {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── Radius ── */
+    .radius-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .radius-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .radius-swatch {
+      width: 72px;
+      height: 72px;
+      background: rgba(58,37,25,.10);
+      border: 1.5px solid rgba(58,37,25,.18);
+    }
+    .radius-label {
+      text-align: center;
+    }
+    .radius-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      font-family: var(--font-mono);
+      display: block;
+    }
+    .radius-px {
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* ── Shadows ── */
+    .shadow-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .shadow-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .shadow-swatch {
+      width: 100px;
+      height: 80px;
+      background: #ffffff;
+      border-radius: 12px;
+    }
+    .shadow-label { text-align: center; }
+    .shadow-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      font-family: var(--font-mono);
+      display: block;
+    }
+    .shadow-desc {
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* ── Components shared ── */
+    .comp-group { margin-bottom: 40px; }
+    .comp-group-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .comp-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .state-label {
+      font-size: 11px;
+      color: #b89e8e;
+      font-family: var(--font-mono);
+      display: block;
+      margin-top: 6px;
+      text-align: center;
+    }
+    .comp-cell { display: flex; flex-direction: column; align-items: center; }
+
+    /* ── Buttons ── */
+    .vk-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 52px;
+      padding: 0 24px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      font-weight: 800;
+      font-family: var(--font-body);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .vk-btn-sm {
+      min-height: 44px;
+      padding: 0 18px;
+      font-size: 12px;
+      border-radius: 12px;
+    }
+    .vk-btn-lg {
+      min-height: 60px;
+      padding: 0 32px;
+      font-size: 15px;
+      border-radius: 16px;
+    }
+    .vk-btn-icon {
+      min-height: 44px;
+      width: 44px;
+      padding: 0;
+      border-radius: 14px;
+      min-width: unset;
+    }
+
+    /* Primary */
+    .vk-btn-primary { background: #3a2519; color: #fff8f1; box-shadow: 0 4px 14px rgba(58,37,25,.18); }
+    .vk-btn-primary:hover { background: #24140d; box-shadow: 0 8px 20px rgba(58,37,25,.24); transform: translateY(-1px); }
+    .vk-btn-primary.state-focus { background: #3a2519; color: #fff8f1; box-shadow: 0 0 0 3px rgba(58,37,25,.20); }
+    .vk-btn-primary.state-disabled { background: #9a8a7c; box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* Secondary */
+    .vk-btn-secondary {
+      background: #fff;
+      color: #3a2519;
+      border: 1.5px solid rgba(58,37,25,.22);
+      box-shadow: 0 1px 3px rgba(58,37,25,.06);
+    }
+    .vk-btn-secondary:hover { border-color: #3a2519; box-shadow: 0 4px 14px rgba(58,37,25,.10); transform: translateY(-1px); }
+    .vk-btn-secondary.state-focus { box-shadow: 0 0 0 3px rgba(58,37,25,.15); }
+    .vk-btn-secondary.state-disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* Green */
+    .vk-btn-green { background: #1b5431; color: #fff8f1; box-shadow: 0 4px 14px rgba(27,84,49,.20); }
+    .vk-btn-green:hover { background: #134024; box-shadow: 0 8px 20px rgba(27,84,49,.26); transform: translateY(-1px); }
+    .vk-btn-green.state-focus { background: #1b5431; box-shadow: 0 0 0 3px rgba(27,84,49,.22); }
+    .vk-btn-green.state-disabled { background: #7aaa8e; box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* Ghost */
+    .vk-btn-ghost { background: transparent; color: #3a2519; border: none; box-shadow: none; }
+    .vk-btn-ghost:hover { background: rgba(58,37,25,.07); }
+    .vk-btn-ghost.state-focus { background: transparent; box-shadow: 0 0 0 3px rgba(58,37,25,.15); }
+    .vk-btn-ghost.state-disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Destructive */
+    .vk-btn-destructive { background: #b44d38; color: #fff; box-shadow: 0 4px 14px rgba(180,77,56,.20); }
+    .vk-btn-destructive:hover { background: #8f3329; box-shadow: 0 8px 20px rgba(180,77,56,.26); transform: translateY(-1px); }
+    .vk-btn-destructive.state-focus { box-shadow: 0 0 0 3px rgba(180,77,56,.22); }
+    .vk-btn-destructive.state-disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* Unready (form not filled) */
+    .vk-btn-unready { background: #9a8a7c; color: #fff; box-shadow: none; cursor: default; }
+
+    /* ── Input ── */
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 24px;
+    }
+    .input-cell { display: flex; flex-direction: column; gap: 7px; }
+    .input-cell-label {
+      font-size: 11px;
+      color: #b89e8e;
+      font-family: var(--font-mono);
+    }
+    .vk-input {
+      height: 52px;
+      width: 100%;
+      border-radius: 14px;
+      border: 1.5px solid rgba(58,37,25,.14);
+      background: #ffffff;
+      padding: 0 16px;
+      font-size: 14.5px;
+      font-family: var(--font-body);
+      font-weight: 500;
+      color: #352116;
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+    .vk-input::placeholder { color: rgba(154,138,124,.45); }
+    .vk-input.state-hover { border-color: rgba(58,37,25,.28); background: #fffdf9; box-shadow: 0 1px 3px rgba(58,37,25,.06); }
+    .vk-input.state-focus { border-color: #3a2519; background: #ffffff; box-shadow: 0 0 0 3px rgba(58,37,25,.10); }
+    .vk-input.state-error { border-color: #b44d38; box-shadow: 0 0 0 3px rgba(180,77,56,.12); }
+    .vk-input.state-disabled { opacity: .5; cursor: not-allowed; background: #ede4d9; }
+
+    .vk-label { font-size: 13px; font-weight: 700; color: #352116; }
+    .vk-helper { font-size: 12px; color: #6d584a; margin-top: 4px; }
+    .vk-helper.error { color: #b44d38; }
+
+    /* Input with icon */
+    .vk-input-shell {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .vk-input-shell .vk-input { padding-left: 44px; }
+    .vk-input-icon {
+      position: absolute;
+      left: 14px;
+      color: #9a8a7c;
+      pointer-events: none;
+    }
+
+    /* ── Badge / Chip ── */
+    .badge-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    .vk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .vk-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Loan statuses */
+    .vk-badge-pending  { background: rgba(181,119,52,.12); color: #7a4e1a; border-color: rgba(181,119,52,.22); }
+    .vk-badge-pending .vk-badge-dot { background: #b57734; }
+
+    .vk-badge-approved { background: rgba(27,84,49,.10); color: #134024; border-color: rgba(27,84,49,.18); }
+    .vk-badge-approved .vk-badge-dot { background: #1b5431; }
+
+    .vk-badge-rejected { background: rgba(180,77,56,.10); color: #7a2e10; border-color: rgba(180,77,56,.18); }
+    .vk-badge-rejected .vk-badge-dot { background: #b44d38; }
+
+    .vk-badge-returned { background: rgba(58,37,25,.07); color: #6d584a; border-color: rgba(58,37,25,.14); }
+    .vk-badge-returned .vk-badge-dot { background: #9a8a7c; }
+
+    .vk-badge-new { background: rgba(212,154,74,.14); color: #7a4e1a; border-color: rgba(212,154,74,.24); }
+    .vk-badge-new .vk-badge-dot { background: #d49a4a; }
+
+    /* Category chip */
+    .vk-chip {
+      display: inline-flex;
+      align-items: center;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      border: 1px solid rgba(58,37,25,.14);
+      background: #fff;
+      color: #6d584a;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+    .vk-chip.is-active {
+      background: #3a2519;
+      color: #fff8f1;
+      border-color: transparent;
+    }
+    .vk-chip:hover:not(.is-active) { border-color: rgba(58,37,25,.28); color: #352116; }
+
+    /* ── Card ── */
+    .card-showcase {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .vk-card {
+      background: #ffffff;
+      border-radius: 18px;
+      border: 1px solid rgba(58,37,25,.08);
+      box-shadow: 0 4px 14px rgba(58,37,25,.09), 0 2px 4px rgba(58,37,25,.05);
+      overflow: hidden;
+      width: 220px;
+      transition: box-shadow 140ms ease, transform 140ms ease;
+    }
+    .vk-card:hover {
+      box-shadow: 0 12px 32px rgba(58,37,25,.12), 0 4px 8px rgba(58,37,25,.06);
+      transform: translateY(-2px);
+    }
+    .vk-card-img {
+      width: 100%;
+      height: 130px;
+      background: linear-gradient(135deg, #ede4d9 0%, #d4c4b4 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9a8a7c;
+    }
+    .vk-card-body {
+      padding: 14px 16px 16px;
+    }
+    .vk-card-kicker {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9a8a7c;
+      margin-bottom: 4px;
+    }
+    .vk-card-title {
+      font-family: var(--font-display);
+      font-size: 15.5px;
+      font-weight: 700;
+      color: #352116;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .vk-card-desc {
+      font-size: 12.5px;
+      color: #6d584a;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .vk-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .vk-card-action {
+      flex: 1;
+      height: 38px;
+      border-radius: 10px;
+      background: #3a2519;
+      color: #fff8f1;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 140ms ease;
+    }
+    .vk-card-action:hover { background: #24140d; }
+    .vk-card-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: transparent;
+      border: 1.5px solid rgba(58,37,25,.18);
+      color: #6d584a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease;
+    }
+    .vk-card-icon-btn:hover { border-color: #3a2519; background: rgba(58,37,25,.04); }
+
+    /* Card state: disabled/unavailable */
+    .vk-card.is-unavailable { opacity: .6; }
+    .vk-card.is-unavailable .vk-card-action { background: #9a8a7c; cursor: not-allowed; }
+
+    /* ── Alert ── */
+    .alert-stack { display: flex; flex-direction: column; gap: 12px; max-width: 500px; }
+    .vk-alert {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 0 12px;
+      align-items: start;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid;
+      font-size: 14px;
+      font-family: var(--font-body);
+    }
+    .vk-alert svg { margin-top: 1px; flex-shrink: 0; }
+    .vk-alert-title { font-weight: 700; line-height: 1.4; }
+    .vk-alert-desc { font-size: 13px; margin-top: 3px; line-height: 1.5; opacity: .85; }
+
+    .vk-alert.alert-default { background: #fff; color: #352116; border-color: rgba(58,37,25,.14); }
+    .vk-alert.alert-error   { background: rgba(180,77,56,.08); color: #7a2e10; border-color: rgba(180,77,56,.20); }
+    .vk-alert.alert-warning { background: rgba(181,119,52,.10); color: #6b3a10; border-color: rgba(181,119,52,.22); }
+    .vk-alert.alert-success { background: rgba(27,84,49,.08); color: #134024; border-color: rgba(27,84,49,.18); }
+
+    /* ── Tabs ── */
+    .ds-tabs-list {
+      display: inline-flex;
+      align-items: center;
+      background: #ede4d9;
+      border-radius: 18px;
+      padding: 5px;
+      gap: 3px;
+      border: 1px solid rgba(58,37,25,.10);
+    }
+    .ds-tabs-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 13px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: var(--font-body);
+      color: #6d584a;
+      border: 1px solid transparent;
+      cursor: pointer;
+      background: transparent;
+      transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+      white-space: nowrap;
+    }
+    .ds-tabs-trigger.state-active {
+      background: #ffffff;
+      color: #3a2519;
+      border-color: rgba(58,37,25,.10);
+      box-shadow: 0 1px 3px rgba(58,37,25,.08);
+    }
+    .ds-tabs-trigger:hover:not(.state-active) {
+      color: #352116;
+      background: rgba(255,255,255,.5);
+    }
+    .ds-tabs-trigger.state-disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    /* ── Checkbox ── */
+    .checkbox-row-ds { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+    .checkbox-cell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .vk-checkbox {
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      border: 1.5px solid rgba(58,37,25,.28);
+      background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 140ms ease, border 140ms ease, box-shadow 140ms ease;
+      cursor: pointer;
+    }
+    .vk-checkbox.state-checked { background: #1b5431; border-color: #1b5431; }
+    .vk-checkbox.state-focus { box-shadow: 0 0 0 3px rgba(27,84,49,.20); }
+    .vk-checkbox.state-disabled { opacity: .4; cursor: not-allowed; background: #ede4d9; }
+    .vk-checkbox svg { display: none; }
+    .vk-checkbox.state-checked svg { display: block; }
+    .checkbox-lbl { font-size: 14px; color: #352116; font-family: var(--font-body); }
+
+    /* ── Dialog ── */
+    .dialog-showcase { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+    .vk-dialog {
+      background: #ffffff;
+      border: 1px solid rgba(58,37,25,.10);
+      border-radius: 20px;
+      box-shadow: 0 12px 32px rgba(58,37,25,.12), 0 4px 8px rgba(58,37,25,.06);
+      padding: 28px;
+      width: 360px;
+      font-family: var(--font-body);
+    }
+    .vk-dialog-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #3a2519;
+      margin-bottom: 8px;
+    }
+    .vk-dialog-desc {
+      font-size: 14px;
+      color: #6d584a;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+    .vk-dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* ── Toast ── */
+    .toast-stack { display: flex; flex-direction: column; gap: 10px; max-width: 340px; }
+    .vk-toast {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #3a2519;
+      color: #fff8f1;
+      box-shadow: 0 12px 32px rgba(58,37,25,.22);
+      font-size: 13.5px;
+    }
+    .vk-toast-icon { flex-shrink: 0; margin-top: 1px; }
+    .vk-toast-title { font-weight: 700; line-height: 1.4; }
+    .vk-toast-desc { font-size: 12.5px; opacity: .75; margin-top: 2px; line-height: 1.4; }
+    .vk-toast-success { background: #1b5431; }
+    .vk-toast-error   { background: #8f3329; }
+    .vk-toast-warning { background: #7a4e1a; }
+
+    /* ── Code snippet ── */
+    .code-snippet {
+      margin-top: 14px;
+      background: rgba(58,37,25,.05);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #5a3e2e;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+      border: 1px solid rgba(58,37,25,.08);
+    }
+    .code-snippet .token-tag  { color: #7c3aed; }
+    .code-snippet .token-attr { color: #0369a1; }
+    .code-snippet .token-val  { color: #1b5431; }
+    .code-snippet .token-text { color: #5a3e2e; }
+    .code-snippet .token-var  { color: #b57734; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">V</div>
+    <div>
+      <span class="logo-text">Vercajkovna</span>
+      <span class="logo-sub">Design System</span>
+    </div>
+  </div>
+  <ul>
+    <li class="section-label">Základy</li>
+    <li><a href="#colors" class="active">Barvy</a></li>
+    <li><a href="#typography">Typografie</a></li>
+    <li><a href="#spacing">Spacing</a></li>
+    <li><a href="#radius">Radius & Stíny</a></li>
+    <li class="section-label">Komponenty</li>
+    <li><a href="#button">Button</a></li>
+    <li><a href="#input">Input / Form</a></li>
+    <li><a href="#badge">Badge & Chip</a></li>
+    <li><a href="#card">Card</a></li>
+    <li><a href="#alert">Alert</a></li>
+    <li><a href="#tabs">Tabs</a></li>
+    <li><a href="#checkbox">Checkbox</a></li>
+    <li><a href="#dialog">Dialog</a></li>
+    <li><a href="#toast">Toast</a></li>
+  </ul>
+</nav>
+
+<!-- ── Main ── -->
+<main>
+
+  <header class="page-header">
+    <h1>Design System</h1>
+    <p>Jednotný zdroj pravdy pro vizuální jazyk Vercajkovny.<br>
+    Stack: Vue 3 · PrimeVue · CSS Variables · <code>dsn.css</code></p>
+  </header>
+
+  <!-- ════════════
+       BARVY
+       ════════════ -->
+  <section id="colors" class="ds-section">
+    <div class="ds-section-header">
+      <h2>Barevné tokeny</h2>
+      <p>Teplá, řemeslná paleta — hnědá, zelená a okrová. Škály jsou určeny pro design variables ve Figmě, token odpovídá CSS proměnné v <code>dsn.css</code>.</p>
+    </div>
+
+    <!-- Brand Brown -->
+    <div class="color-group">
+      <div class="color-group-label">Primary — Brand · Teplá hnědá</div>
+      <div class="color-chip-main" style="background:#fdf5ef;color:#3a2519">
+        <div class="color-swatch-main" style="background:#3a2519"></div>
+        <div class="color-info-main">
+          <span class="color-step-main">800 · Hlavní</span>
+          <span class="color-hex-main">#3a2519</span>
+          <span class="color-token-main">--dsn-brand</span>
+        </div>
+      </div>
+      <div class="color-scale-label">Celá škála</div>
+      <div class="color-row">
+        <div class="color-chip"><div class="color-swatch" style="background:#fdf5ef"></div><div class="color-info"><span class="color-step">100</span><span class="color-hex">#fdf5ef</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#f5e4d3"></div><div class="color-info"><span class="color-step">200</span><span class="color-hex">#f5e4d3</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#e8c8ae"></div><div class="color-info"><span class="color-step">300</span><span class="color-hex">#e8c8ae</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#d4a07a"></div><div class="color-info"><span class="color-step">400</span><span class="color-hex">#d4a07a</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#b07050"></div><div class="color-info"><span class="color-step">500</span><span class="color-hex">#b07050</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#8a5035"></div><div class="color-info"><span class="color-step">600</span><span class="color-hex">#8a5035</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#6a3824"></div><div class="color-info"><span class="color-step">700</span><span class="color-hex">#6a3824</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#3a2519;outline:2px solid rgba(58,37,25,.35);outline-offset:2px"></div><div class="color-info"><span class="color-step">800</span><span class="color-hex">#3a2519</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#24140d"></div><div class="color-info"><span class="color-step">900</span><span class="color-hex">#24140d</span></div></div>
+      </div>
+    </div>
+
+    <!-- Green -->
+    <div class="color-group">
+      <div class="color-group-label">Secondary — Green · Lesní zelená</div>
+      <div class="color-chip-main" style="background:#edf8f2;color:#1b5431">
+        <div class="color-swatch-main" style="background:#1b5431"></div>
+        <div class="color-info-main">
+          <span class="color-step-main">600 · Hlavní</span>
+          <span class="color-hex-main">#1b5431</span>
+          <span class="color-token-main">--dsn-green</span>
+        </div>
+      </div>
+      <div class="color-scale-label">Celá škála</div>
+      <div class="color-row">
+        <div class="color-chip"><div class="color-swatch" style="background:#edf8f2"></div><div class="color-info"><span class="color-step">100</span><span class="color-hex">#edf8f2</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#c5ebd8"></div><div class="color-info"><span class="color-step">200</span><span class="color-hex">#c5ebd8</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#8ed5b4"></div><div class="color-info"><span class="color-step">300</span><span class="color-hex">#8ed5b4</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#4bb888"></div><div class="color-info"><span class="color-step">400</span><span class="color-hex">#4bb888</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#27916a"></div><div class="color-info"><span class="color-step">500</span><span class="color-hex">#27916a</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#1b5431;outline:2px solid rgba(27,84,49,.35);outline-offset:2px"></div><div class="color-info"><span class="color-step">600</span><span class="color-hex">#1b5431</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#134024"></div><div class="color-info"><span class="color-step">700</span><span class="color-hex">#134024</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#0d2d18"></div><div class="color-info"><span class="color-step">800</span><span class="color-hex">#0d2d18</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#081a0e"></div><div class="color-info"><span class="color-step">900</span><span class="color-hex">#081a0e</span></div></div>
+      </div>
+    </div>
+
+    <!-- Amber -->
+    <div class="color-group">
+      <div class="color-group-label">Tertiary — Amber · Okrová <span style="font-weight:400;opacity:.7">(zatím není token v kódu — používá se jako literál)</span></div>
+      <div class="color-chip-main" style="background:#fef9ec;color:#7a4e1a">
+        <div class="color-swatch-main" style="background:#d49a4a"></div>
+        <div class="color-info-main">
+          <span class="color-step-main">500 · Hlavní</span>
+          <span class="color-hex-main">#d49a4a</span>
+          <span class="color-token-main">--accent</span>
+        </div>
+      </div>
+      <div class="color-scale-label">Celá škála</div>
+      <div class="color-row">
+        <div class="color-chip"><div class="color-swatch" style="background:#fef9ec"></div><div class="color-info"><span class="color-step">100</span><span class="color-hex">#fef9ec</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#fdeec8"></div><div class="color-info"><span class="color-step">200</span><span class="color-hex">#fdeec8</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#fada96"></div><div class="color-info"><span class="color-step">300</span><span class="color-hex">#fada96</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#f4bf60"></div><div class="color-info"><span class="color-step">400</span><span class="color-hex">#f4bf60</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#d49a4a;outline:2px solid rgba(212,154,74,.5);outline-offset:2px"></div><div class="color-info"><span class="color-step">500</span><span class="color-hex">#d49a4a</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#b07a35"></div><div class="color-info"><span class="color-step">600</span><span class="color-hex">#b07a35</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#8c6028"></div><div class="color-info"><span class="color-step">700</span><span class="color-hex">#8c6028</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#6a471a"></div><div class="color-info"><span class="color-step">800</span><span class="color-hex">#6a471a</span></div></div>
+        <div class="color-chip"><div class="color-swatch" style="background:#4a300e"></div><div class="color-info"><span class="color-step">900</span><span class="color-hex">#4a300e</span></div></div>
+      </div>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <!-- Surfaces -->
+    <div class="color-group">
+      <div class="color-group-label">Povrchy</div>
+      <div class="surface-row">
+        <div class="surface-chip">
+          <div class="surface-swatch" style="background:#fff9f0"></div>
+          <span class="surface-name">Pozadí stránky</span>
+          <span class="surface-token">--dsn-bg · #fff9f0</span>
+        </div>
+        <div class="surface-chip">
+          <div class="surface-swatch" style="background:#ffffff"></div>
+          <span class="surface-name">Surface / Karty</span>
+          <span class="surface-token">--dsn-surface · #ffffff</span>
+        </div>
+        <div class="surface-chip">
+          <div class="surface-swatch" style="background:#ede4d9"></div>
+          <span class="surface-name">Surface Dim</span>
+          <span class="surface-token">--dsn-surface-dim · #ede4d9</span>
+        </div>
+        <div class="surface-chip">
+          <div class="surface-swatch" style="background:#3a2519"></div>
+          <span class="surface-name">Brand Mark</span>
+          <span class="surface-token">--dsn-brand · #3a2519</span>
+        </div>
+        <div class="surface-chip">
+          <div class="surface-swatch" style="background:#24140d"></div>
+          <span class="surface-name">Bottom Nav</span>
+          <span class="surface-token">--dsn-brand-dark · #24140d</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <!-- Semantic -->
+    <div class="color-group">
+      <div class="color-group-label">Semantic <span style="font-weight:400;opacity:.7">(<code>--accent</code> a <code>--warning</code> zatím nejsou definované jako CSS tokeny — v kódu existují jen <code>--danger</code> a <code>--success</code>)</span></div>
+      <div class="color-semantic">
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#b44d38"></div>
+          <div>
+            <span class="semantic-name">Error</span>
+            <span class="semantic-hex">#b44d38</span>
+            <span class="semantic-token">--danger</span>
+          </div>
+        </div>
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#b57734"></div>
+          <div>
+            <span class="semantic-name">Warning</span>
+            <span class="semantic-hex">#b57734</span>
+            <span class="semantic-token">--warning</span>
+          </div>
+        </div>
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#1b5431"></div>
+          <div>
+            <span class="semantic-name">Success</span>
+            <span class="semantic-hex">#1b5431</span>
+            <span class="semantic-token">--dsn-green</span>
+          </div>
+        </div>
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#d49a4a"></div>
+          <div>
+            <span class="semantic-name">Accent</span>
+            <span class="semantic-hex">#d49a4a</span>
+            <span class="semantic-token">--accent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text colors -->
+    <div class="color-group" style="margin-bottom:0">
+      <div class="color-group-label">Text</div>
+      <div class="color-semantic">
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#352116"></div>
+          <div>
+            <span class="semantic-name">Text</span>
+            <span class="semantic-hex">#352116</span>
+            <span class="semantic-token">--dsn-text</span>
+          </div>
+        </div>
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#6d584a"></div>
+          <div>
+            <span class="semantic-name">Muted</span>
+            <span class="semantic-hex">#6d584a</span>
+            <span class="semantic-token">--dsn-muted</span>
+          </div>
+        </div>
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#9a8a7c"></div>
+          <div>
+            <span class="semantic-name">Subtle</span>
+            <span class="semantic-hex">#9a8a7c</span>
+            <span class="semantic-token">--dsn-subtle</span>
+          </div>
+        </div>
+        <div class="color-semantic-chip">
+          <div class="semantic-swatch" style="background:#fff8f1"></div>
+          <div>
+            <span class="semantic-name">Brand Ink</span>
+            <span class="semantic-hex">#fff8f1</span>
+            <span class="semantic-token">--dsn-brand-ink</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       TYPOGRAFIE
+       ════════════ -->
+  <section id="typography" class="ds-section">
+    <div class="ds-section-header">
+      <h2>Typografie</h2>
+      <p>Dva fonty: <strong>Iowan Old Style</strong> (serif, display) pro nadpisy a brand texty · <strong>Helvetica Neue</strong> (sans-serif) pro UI text. Base: 1rem = 16px.</p>
+    </div>
+
+    <div class="color-group-label" style="margin-bottom:12px">Display — Iowan Old Style (serif)</div>
+    <div class="type-scale">
+      <div class="type-row">
+        <div class="type-sample"><span style="font-family:'Iowan Old Style',Georgia,serif;font-size:38px;font-weight:700;line-height:1.15;letter-spacing:-.02em;display:block;color:#3a2519;">Vercajkovna</span></div>
+        <div class="type-meta">
+          <span class="type-meta-name">Display / Hero</span>
+          <div class="type-meta-values"><span class="type-tag">--t-3xl · 2.4rem · 38px</span></div>
+          <div class="type-meta-values"><span class="type-tag">weight 700</span><span class="type-tag">lh 1.15</span></div>
+          <span class="type-meta-desc">Auth hero, landing tituly</span>
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-sample"><span style="font-family:'Iowan Old Style',Georgia,serif;font-size:29px;font-weight:700;line-height:1.2;display:block;color:#3a2519;">Nadpis sekce</span></div>
+        <div class="type-meta">
+          <span class="type-meta-name">Heading 1</span>
+          <div class="type-meta-values"><span class="type-tag">--t-2xl · 1.85rem · 29px</span></div>
+          <div class="type-meta-values"><span class="type-tag">weight 700</span><span class="type-tag">lh 1.2</span></div>
+          <span class="type-meta-desc">Tituly stránek a sekcí</span>
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-sample"><span style="font-family:'Iowan Old Style',Georgia,serif;font-size:23px;font-weight:700;line-height:1.25;display:block;color:#3a2519;">Název karty nebo panelu</span></div>
+        <div class="type-meta">
+          <span class="type-meta-name">Heading 2</span>
+          <div class="type-meta-values"><span class="type-tag">--t-xl · 1.45rem · 23px</span></div>
+          <div class="type-meta-values"><span class="type-tag">weight 700</span><span class="type-tag">lh 1.25</span></div>
+          <span class="type-meta-desc">Karty, detail produktu</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:40px">
+      <div class="color-group-label" style="margin-bottom:12px">UI Text — Helvetica Neue (sans-serif)</div>
+      <div class="type-scale">
+        <div class="type-row">
+          <div class="type-sample"><span style="font-size:18px;font-weight:700;line-height:1.4;display:block;">Subtitle — zvýrazněný UI text</span></div>
+          <div class="type-meta">
+            <span class="type-meta-name">Subtitle</span>
+            <div class="type-meta-values"><span class="type-tag">--t-lg · 1.15rem · 18px</span></div>
+            <div class="type-meta-values"><span class="type-tag">weight 700</span><span class="type-tag">lh 1.4</span></div>
+            <span class="type-meta-desc">Podnázev, důležitý popis</span>
+          </div>
+        </div>
+        <div class="type-row">
+          <div class="type-sample"><span style="font-size:16px;font-weight:400;line-height:1.5;display:block;">Body — základní text stránky a popisky v UI.</span></div>
+          <div class="type-meta">
+            <span class="type-meta-name">Body</span>
+            <div class="type-meta-values"><span class="type-tag">--t-md · 1rem · 16px</span></div>
+            <div class="type-meta-values"><span class="type-tag">weight 400</span><span class="type-tag">lh 1.5</span></div>
+            <span class="type-meta-desc">Odstavce, obecný obsah</span>
+          </div>
+        </div>
+        <div class="type-row">
+          <div class="type-sample"><span style="font-size:14.7px;font-weight:500;line-height:1.5;display:block;">Body Base — formuláře, popisky polí a sekundární info</span></div>
+          <div class="type-meta">
+            <span class="type-meta-name">Body Base</span>
+            <div class="type-meta-values"><span class="type-tag">--t-base · 0.92rem · 14.7px</span></div>
+            <div class="type-meta-values"><span class="type-tag">weight 400–500</span><span class="type-tag">lh 1.5</span></div>
+            <span class="type-meta-desc">Input text, popisky, card body</span>
+          </div>
+        </div>
+        <div class="type-row">
+          <div class="type-sample"><span style="font-size:13.1px;font-weight:400;line-height:1.45;display:block;">Body Small — helper text, pomocné informace pod polem</span></div>
+          <div class="type-meta">
+            <span class="type-meta-name">Body Small</span>
+            <div class="type-meta-values"><span class="type-tag">--t-sm · 0.82rem · 13px</span></div>
+            <div class="type-meta-values"><span class="type-tag">weight 400</span><span class="type-tag">lh 1.45</span></div>
+            <span class="type-meta-desc">Helper text, chybová hlášení</span>
+          </div>
+        </div>
+        <div class="type-row">
+          <div class="type-sample"><span style="font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:block;">Overline — kicker, metadata, labely</span></div>
+          <div class="type-meta">
+            <span class="type-meta-name">Overline / Caption</span>
+            <div class="type-meta-values"><span class="type-tag">--t-xs · 0.72rem · 11.5px</span></div>
+            <div class="type-meta-values"><span class="type-tag">weight 700</span><span class="type-tag">uppercase</span><span class="type-tag">ls .08</span></div>
+            <span class="type-meta-desc">Štítky kategorií, sekce, kickery</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       SPACING
+       ════════════ -->
+  <section id="spacing" class="ds-section">
+    <div class="ds-section-header">
+      <h2>Spacing</h2>
+      <p>Škála na bázi 4px. Tokeny <code>--sp-*</code> v <code>dsn.css</code>.</p>
+    </div>
+
+    <div class="spacing-table">
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-1</span>
+        <span class="spacing-value">4px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:4px"></div></div>
+        <span class="spacing-desc">Tight gap, ikony</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-2</span>
+        <span class="spacing-value">8px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:8px"></div></div>
+        <span class="spacing-desc">Gap mezi inline elementy</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-3</span>
+        <span class="spacing-value">12px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:12px"></div></div>
+        <span class="spacing-desc">Vnitřní padding chipů, tagů</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-4</span>
+        <span class="spacing-value">16px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:16px"></div></div>
+        <span class="spacing-desc">Padding karet, inputů</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-5</span>
+        <span class="spacing-value">20px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:20px"></div></div>
+        <span class="spacing-desc">Sekce padding, gap</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-6</span>
+        <span class="spacing-value">24px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:24px"></div></div>
+        <span class="spacing-desc">Panel padding, dialog padding</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-8</span>
+        <span class="spacing-value">32px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:32px"></div></div>
+        <span class="spacing-desc">Vnější mezery sekcí</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-token">--sp-10</span>
+        <span class="spacing-value">40px</span>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:40px"></div></div>
+        <span class="spacing-desc">Oddělení bloků stránky</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       RADIUS & STÍNY
+       ════════════ -->
+  <section id="radius" class="ds-section">
+    <div class="ds-section-header">
+      <h2>Radius &amp; Stíny</h2>
+      <p>Zaoblení je výraznější než v generickém DS — dává aplikaci teplý, organický charakter.</p>
+    </div>
+
+    <div class="comp-group">
+      <div class="comp-group-label">Border Radius</div>
+      <div class="radius-row">
+        <div class="radius-chip">
+          <div class="radius-swatch" style="border-radius:6px"></div>
+          <div class="radius-label"><span class="radius-name">—</span><span class="radius-px">6px · micro</span></div>
+        </div>
+        <div class="radius-chip">
+          <div class="radius-swatch" style="border-radius:10px"></div>
+          <div class="radius-label"><span class="radius-name">--r-sm</span><span class="radius-px">10px</span></div>
+        </div>
+        <div class="radius-chip">
+          <div class="radius-swatch" style="border-radius:14px"></div>
+          <div class="radius-label"><span class="radius-name">--r-md</span><span class="radius-px">14px</span></div>
+        </div>
+        <div class="radius-chip">
+          <div class="radius-swatch" style="border-radius:18px"></div>
+          <div class="radius-label"><span class="radius-name">--r-lg</span><span class="radius-px">18px</span></div>
+        </div>
+        <div class="radius-chip">
+          <div class="radius-swatch" style="border-radius:24px"></div>
+          <div class="radius-label"><span class="radius-name">--r-xl</span><span class="radius-px">24px</span></div>
+        </div>
+        <div class="radius-chip">
+          <div class="radius-swatch" style="border-radius:999px;width:100px"></div>
+          <div class="radius-label"><span class="radius-name">--r-pill</span><span class="radius-px">999px</span></div>
+        </div>
+      </div>
+      <p style="margin-top:16px;font-size:13px;color:var(--muted)">Použití: <strong>--r-md</strong> pro inputy, tlačítka, menší karty · <strong>--r-lg</strong> pro listing karty · <strong>--r-xl</strong> pro dialogy, velké panely · <strong>--r-pill</strong> pro badge, chip filtry.</p>
+      <p style="margin-top:10px;font-size:13px;color:var(--muted)"><strong>Pozn.:</strong> v kódu existuje vedle <code>--r-*</code> (dsn.css) i starší škála <code>--radius-*</code> (styles.css): <code>--radius-sm 11px</code> · <code>--radius-md 15px</code> · <code>--radius-lg 20px</code> · <code>--radius-xl 28px</code>. Stále se používá v částech aplikace — cílem je postupný přechod na <code>--r-*</code>.</p>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <div class="comp-group" style="margin-bottom:0">
+      <div class="comp-group-label">Stíny</div>
+      <div class="shadow-row">
+        <div class="shadow-chip">
+          <div class="shadow-swatch" style="box-shadow:0 1px 3px rgba(58,37,25,.06),0 1px 2px rgba(58,37,25,.04)"></div>
+          <div class="shadow-label"><span class="shadow-name">--sh-1</span><span class="shadow-desc">Jemný · ikony, butons, lehký obrys</span></div>
+        </div>
+        <div class="shadow-chip">
+          <div class="shadow-swatch" style="box-shadow:0 4px 14px rgba(58,37,25,.09),0 2px 4px rgba(58,37,25,.05)"></div>
+          <div class="shadow-label"><span class="shadow-name">--sh-2</span><span class="shadow-desc">Karta · listing card default</span></div>
+        </div>
+        <div class="shadow-chip">
+          <div class="shadow-swatch" style="box-shadow:0 12px 32px rgba(58,37,25,.12),0 4px 8px rgba(58,37,25,.06)"></div>
+          <div class="shadow-label"><span class="shadow-name">--sh-3</span><span class="shadow-desc">Elevated · dialog, modal, toast</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       BUTTON
+       ════════════ -->
+  <section id="button" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag primevue">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        PrimeVue · PvButton
+      </div>
+      <h2>Button</h2>
+      <p>Tlačítka mají velkorysou výšku (<code>--h-btn: 52px</code>), uppercase text a silný font-weight — odpovídá charakteru řemeslné aplikace. Zdroj: <code>dsn.css → .button-primary / .button-secondary</code></p>
+    </div>
+
+    <!-- Primary -->
+    <div class="comp-group">
+      <div class="comp-group-label">Primary</div>
+      <div class="comp-row">
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary">Půjčit</button><span class="state-label">Default</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary" style="background:#24140d;box-shadow:0 8px 20px rgba(58,37,25,.24);transform:translateY(-1px)">Půjčit</button><span class="state-label">Hover</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary state-focus">Půjčit</button><span class="state-label">Focus</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary state-disabled" disabled>Půjčit</button><span class="state-label">Disabled</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-unready">Vyplňte</button><span class="state-label">Unready</span></div>
+      </div>
+      <div class="code-snippet"><span class="token-tag">&lt;button</span> <span class="token-attr">class=</span><span class="token-val">"button-primary"</span><span class="token-tag">&gt;</span><span class="token-text">Půjčit</span><span class="token-tag">&lt;/button&gt;</span></div>
+    </div>
+
+    <!-- Secondary -->
+    <div class="comp-group">
+      <div class="comp-group-label">Secondary (outline)</div>
+      <div class="comp-row">
+        <div class="comp-cell"><button class="vk-btn vk-btn-secondary">Zrušit</button><span class="state-label">Default</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-secondary" style="border-color:#3a2519;box-shadow:0 4px 14px rgba(58,37,25,.10);transform:translateY(-1px)">Zrušit</button><span class="state-label">Hover</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-secondary state-focus">Zrušit</button><span class="state-label">Focus</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-secondary state-disabled" disabled>Zrušit</button><span class="state-label">Disabled</span></div>
+      </div>
+      <div class="code-snippet"><span class="token-tag">&lt;button</span> <span class="token-attr">class=</span><span class="token-val">"button-secondary"</span><span class="token-tag">&gt;</span><span class="token-text">Zrušit</span><span class="token-tag">&lt;/button&gt;</span></div>
+    </div>
+
+    <!-- Green -->
+    <div class="comp-group">
+      <div class="comp-group-label">Green — potvrzení, schválení</div>
+      <div class="comp-row">
+        <div class="comp-cell"><button class="vk-btn vk-btn-green">Schválit</button><span class="state-label">Default</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-green" style="background:#134024;box-shadow:0 8px 20px rgba(27,84,49,.26);transform:translateY(-1px)">Schválit</button><span class="state-label">Hover</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-green state-focus">Schválit</button><span class="state-label">Focus</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-green state-disabled" disabled>Schválit</button><span class="state-label">Disabled</span></div>
+      </div>
+    </div>
+
+    <!-- Ghost -->
+    <div class="comp-group">
+      <div class="comp-group-label">Ghost</div>
+      <div class="comp-row">
+        <div class="comp-cell"><button class="vk-btn vk-btn-ghost">Více info</button><span class="state-label">Default</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-ghost" style="background:rgba(58,37,25,.07)">Více info</button><span class="state-label">Hover</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-ghost state-focus">Více info</button><span class="state-label">Focus</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-ghost state-disabled" disabled>Více info</button><span class="state-label">Disabled</span></div>
+      </div>
+    </div>
+
+    <!-- Destructive -->
+    <div class="comp-group">
+      <div class="comp-group-label">Destructive</div>
+      <div class="comp-row">
+        <div class="comp-cell"><button class="vk-btn vk-btn-destructive">Smazat</button><span class="state-label">Default</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-destructive" style="background:#8f3329;transform:translateY(-1px)">Smazat</button><span class="state-label">Hover</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-destructive state-focus">Smazat</button><span class="state-label">Focus</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-destructive state-disabled" disabled>Smazat</button><span class="state-label">Disabled</span></div>
+      </div>
+    </div>
+
+    <!-- Icon button -->
+    <div class="comp-group">
+      <div class="comp-group-label">Icon Button</div>
+      <div class="comp-row">
+        <div class="comp-cell">
+          <button class="vk-btn vk-btn-secondary vk-btn-icon" style="border-radius:14px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <span class="state-label">Outline</span>
+        </div>
+        <div class="comp-cell">
+          <button class="vk-btn vk-btn-ghost vk-btn-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="state-label">Ghost</span>
+        </div>
+        <div class="comp-cell">
+          <button class="vk-btn vk-btn-primary vk-btn-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span class="state-label">Primary</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <!-- Sizes -->
+    <div class="comp-group" style="margin-bottom:0">
+      <div class="comp-group-label">Velikosti</div>
+      <div class="comp-row" style="align-items:flex-end">
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary vk-btn-sm">Small</button><span class="state-label">sm · 44px</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary">Default</button><span class="state-label">default · 52px</span></div>
+        <div class="comp-cell"><button class="vk-btn vk-btn-primary vk-btn-lg">Large</button><span class="state-label">lg · 60px</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       INPUT / FORM
+       ════════════ -->
+  <section id="input" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag primevue">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        PrimeVue · PvInputText
+      </div>
+      <h2>Input / Form</h2>
+      <p>Velkorysá výška <code>52px</code>, silné zaoblení <code>14px</code>, teplá barva borderu. Focus ring hnědý, chybový stav červený.</p>
+    </div>
+
+    <div class="comp-group">
+      <div class="comp-group-label">Stavy</div>
+      <div class="input-grid">
+        <div class="input-cell">
+          <span class="input-cell-label">Default</span>
+          <input class="vk-input" type="text" placeholder="Název nářadí…" />
+        </div>
+        <div class="input-cell">
+          <span class="input-cell-label">Hover</span>
+          <input class="vk-input state-hover" type="text" placeholder="Název nářadí…" />
+        </div>
+        <div class="input-cell">
+          <span class="input-cell-label">Focus</span>
+          <input class="vk-input state-focus" type="text" value="Vrtačka Bosch" />
+        </div>
+        <div class="input-cell">
+          <span class="input-cell-label">Error</span>
+          <input class="vk-input state-error" type="text" value="Neplatný datum" />
+        </div>
+        <div class="input-cell">
+          <span class="input-cell-label">Disabled</span>
+          <input class="vk-input state-disabled" type="text" placeholder="Nedostupné" disabled />
+        </div>
+      </div>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <div class="comp-group">
+      <div class="comp-group-label">Input s labelem a helper textem</div>
+      <div style="max-width:320px;display:grid;gap:6px">
+        <label class="vk-label" for="ex1">Datum půjčení</label>
+        <input class="vk-input" id="ex1" type="text" placeholder="dd.mm.rrrr" />
+        <span class="vk-helper">Zadejte datum, od kdy chcete nářadí půjčit.</span>
+      </div>
+      <div style="max-width:320px;display:grid;gap:6px;margin-top:20px">
+        <label class="vk-label" for="ex2">E-mail</label>
+        <input class="vk-input state-error" id="ex2" type="email" value="neplatny@" />
+        <span class="vk-helper error">Zadejte platnou e-mailovou adresu.</span>
+      </div>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <div class="comp-group" style="margin-bottom:0">
+      <div class="comp-group-label">Input s ikonou</div>
+      <div style="max-width:300px">
+        <div class="vk-input-shell">
+          <svg class="vk-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="vk-input" type="text" placeholder="Hledat nářadí…" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       BADGE & CHIP
+       ════════════ -->
+  <section id="badge" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag custom">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Custom CSS
+      </div>
+      <h2>Badge &amp; Chip</h2>
+      <p>Stavy žádostí o půjčení + filtry kategorií. Teplé tóny odpovídají brandové paletě.</p>
+    </div>
+
+    <div class="comp-group">
+      <div class="comp-group-label">Status Badge — reálné stavy žádostí v appce</div>
+      <div class="badge-row" style="flex-wrap:wrap;gap:10px 10px">
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-pending"><span class="vk-badge-dot"></span>Čeká na schválení</span>
+          <span class="state-label">pending</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-approved"><span class="vk-badge-dot"></span>Schváleno – čeká na platbu</span>
+          <span class="state-label">approved</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-pending"><span class="vk-badge-dot"></span>Platba odeslána – čeká na potvrzení</span>
+          <span class="state-label">payment-sent</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-approved"><span class="vk-badge-dot"></span>Vyzvednutí – čeká na potvrzení</span>
+          <span class="state-label">pickup</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-pending"><span class="vk-badge-dot"></span>Vrácení – čeká na potvrzení</span>
+          <span class="state-label">return-pending</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-returned"><span class="vk-badge-dot"></span>Vrácení potvrzeno</span>
+          <span class="state-label">returned</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-returned"><span class="vk-badge-dot"></span>Pronájem ukončen</span>
+          <span class="state-label">ended</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-rejected"><span class="vk-badge-dot"></span>Zamítnuto</span>
+          <span class="state-label">rejected</span>
+        </div>
+        <div class="comp-cell">
+          <span class="vk-badge vk-badge-rejected"><span class="vk-badge-dot"></span>Zrušeno</span>
+          <span class="state-label">cancelled</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="ds-divider" />
+
+    <div class="comp-group" style="margin-bottom:0">
+      <div class="comp-group-label">Category Chip — filtr katalogu</div>
+      <div class="badge-row">
+        <span class="vk-chip is-active">Vše</span>
+        <span class="vk-chip">Vrtání</span>
+        <span class="vk-chip">Řezání</span>
+        <span class="vk-chip">Měření</span>
+        <span class="vk-chip">Zahrada</span>
+        <span class="vk-chip">Elektro</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       CARD
+       ════════════ -->
+  <section id="card" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag primevue">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        PrimeVue · PvCard
+      </div>
+      <h2>Card — Listing karta</h2>
+      <p>Základní karta katalogu nářadí. Radius <code>--r-lg (18px)</code>, stín <code>--sh-1</code> (na hover <code>--sh-2</code>), hover efekt s <code>translateY(-2px)</code>.</p>
+    </div>
+
+    <div class="card-showcase">
+      <!-- Available -->
+      <div>
+        <div class="vk-card">
+          <div class="vk-card-img">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <div class="vk-card-body">
+            <div class="vk-card-kicker">Nářadí</div>
+            <div class="vk-card-title">Vrtačka Bosch GSB 18V</div>
+            <div class="vk-card-desc">Příklepová vrtačka, baterie 2×18V, kufr.</div>
+            <div class="vk-card-footer">
+              <button class="vk-card-action">Půjčit</button>
+              <button class="vk-card-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <span class="state-label" style="text-align:left;margin-top:8px">Dostupné</span>
+      </div>
+
+      <!-- With badge -->
+      <div>
+        <div class="vk-card">
+          <div class="vk-card-img">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="vk-card-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div class="vk-card-kicker">Zahrada</div>
+              <span class="vk-badge vk-badge-pending" style="height:22px;font-size:10px;padding:0 8px"><span class="vk-badge-dot"></span>Čeká</span>
+            </div>
+            <div class="vk-card-title">Travní sekačka Honda</div>
+            <div class="vk-card-desc">Benzínová sekačka, záběr 46 cm.</div>
+            <div class="vk-card-footer">
+              <button class="vk-card-action">Detail</button>
+            </div>
+          </div>
+        </div>
+        <span class="state-label" style="text-align:left;margin-top:8px">S badge stavem</span>
+      </div>
+
+      <!-- Unavailable -->
+      <div>
+        <div class="vk-card is-unavailable">
+          <div class="vk-card-img">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          </div>
+          <div class="vk-card-body">
+            <div class="vk-card-kicker">Elektro</div>
+            <div class="vk-card-title">Bruska Makita GA7020</div>
+            <div class="vk-card-desc">Úhlová bruska, kotouč 180 mm.</div>
+            <div class="vk-card-footer">
+              <button class="vk-card-action" disabled>Nedostupné</button>
+            </div>
+          </div>
+        </div>
+        <span class="state-label" style="text-align:left;margin-top:8px">Nedostupné</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       ALERT
+       ════════════ -->
+  <section id="alert" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag custom">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Custom CSS · V appce: pouze <code style="font-size:11px">auth-error</code>
+      </div>
+      <h2>Alert</h2>
+      <p>V appce existuje zatím jen <code>.auth-error</code> (chybová hláška ve formuláři přihlášení). Ostatní varianty jsou připravené pro budoucí použití.</p>
+    </div>
+
+    <div class="alert-stack">
+      <div class="vk-alert alert-default">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="vk-alert-title">Informace</div>
+          <div class="vk-alert-desc">Půjčka je aktivní do 28. června 2026. Nezapomeňte nářadí vrátit včas.</div>
+        </div>
+      </div>
+      <div class="vk-alert alert-success">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>
+          <div class="vk-alert-title">Žádost schválena</div>
+          <div class="vk-alert-desc">Vrtačka Bosch je připravena k vyzvednutí od pátku 20. 6.</div>
+        </div>
+      </div>
+      <div class="vk-alert alert-warning">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+          <div class="vk-alert-title">Blíží se konec výpůjční doby</div>
+          <div class="vk-alert-desc">Lhůta pro vrácení vyprší za 2 dny. Prodloužení je možné přes profil.</div>
+        </div>
+      </div>
+      <div class="vk-alert alert-error">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div>
+          <div class="vk-alert-title">Žádost zamítnuta</div>
+          <div class="vk-alert-desc">Nářadí není dostupné ve zvoleném termínu. Zkuste jiný datum.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       TABS
+       ════════════ -->
+  <section id="tabs" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag custom">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Custom CSS
+      </div>
+      <h2>Tabs</h2>
+      <p>Přepínač na teplém béžovém pozadí (<code>--dsn-surface-dim</code>). Aktivní tab má bílé pozadí a jemný stín.</p>
+    </div>
+
+    <div class="comp-group">
+      <div class="comp-group-label">Přihlášení / Registrace</div>
+      <div class="ds-tabs-list">
+        <button class="ds-tabs-trigger state-active">Přihlásit se</button>
+        <button class="ds-tabs-trigger">Registrace</button>
+      </div>
+    </div>
+
+    <div class="comp-group" style="margin-bottom:0">
+      <div class="comp-group-label">Profil / Žádosti</div>
+      <div class="ds-tabs-list">
+        <button class="ds-tabs-trigger state-active">Moje žádosti</button>
+        <button class="ds-tabs-trigger">Profil</button>
+        <button class="ds-tabs-trigger">Historie</button>
+        <button class="ds-tabs-trigger state-disabled">Nastavení</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       CHECKBOX
+       ════════════ -->
+  <section id="checkbox" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag primevue">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        PrimeVue · PvCheckbox
+      </div>
+      <h2>Checkbox</h2>
+      <p>Zaškrtnutý stav má zelenou barvu (<code>--dsn-green</code>) — konzistentní s "potvrzující" akcí.</p>
+    </div>
+
+    <div class="checkbox-row-ds">
+      <div class="checkbox-cell">
+        <div class="vk-checkbox">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="state-label">Unchecked</span>
+      </div>
+      <div class="checkbox-cell">
+        <div class="vk-checkbox state-checked">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="state-label">Checked</span>
+      </div>
+      <div class="checkbox-cell">
+        <div class="vk-checkbox state-checked state-focus">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="state-label">Focus</span>
+      </div>
+      <div class="checkbox-cell">
+        <div class="vk-checkbox state-disabled">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="state-label">Disabled</span>
+      </div>
+      <div class="checkbox-cell" style="align-items:flex-start">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <div class="vk-checkbox state-checked">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span class="checkbox-lbl">Souhlasím s podmínkami</span>
+        </label>
+        <span class="state-label">S labelem</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       DIALOG
+       ════════════ -->
+  <section id="dialog" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag custom">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Custom CSS
+      </div>
+      <h2>Dialog / Modal</h2>
+      <p>Radius <code>--r-xl (24px)</code>, silný stín <code>--sh-3</code>. Serif font pro title.</p>
+    </div>
+
+    <div class="dialog-showcase">
+      <div class="vk-dialog">
+        <div class="vk-dialog-title">Schválit rezervaci?</div>
+        <div class="vk-dialog-desc">Nájemce dostane pokyn k platbě. Po potvrzení platby bude pronájem zahájen.</div>
+        <div class="vk-dialog-footer">
+          <button class="vk-btn vk-btn-ghost vk-btn-sm">Zpět</button>
+          <button class="vk-btn vk-btn-green vk-btn-sm">Ano, schválit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="comp-group" style="margin-top:28px;margin-bottom:0">
+      <div class="comp-group-label">Varianty footeru podle akce</div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 16px;background:#fff;border:1px solid rgba(58,37,25,.10);border-radius:12px">
+          <button class="vk-btn vk-btn-ghost vk-btn-sm">Zpět</button>
+          <button class="vk-btn vk-btn-green vk-btn-sm">Ano, schválit</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 16px;background:#fff;border:1px solid rgba(58,37,25,.10);border-radius:12px">
+          <button class="vk-btn vk-btn-ghost vk-btn-sm">Zpět</button>
+          <button class="vk-btn vk-btn-destructive vk-btn-sm">Ano, zamítnout</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 16px;background:#fff;border:1px solid rgba(58,37,25,.10);border-radius:12px">
+          <button class="vk-btn vk-btn-ghost vk-btn-sm">Zpět</button>
+          <button class="vk-btn vk-btn-primary vk-btn-sm">Ano, převzato</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════
+       TOAST
+       ════════════ -->
+  <section id="toast" class="ds-section">
+    <div class="ds-section-header">
+      <div class="ds-source-tag custom">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Custom CSS · Aspirační — v appce zatím není
+      </div>
+      <h2>Toast</h2>
+      <p>Tmavé toasty na brandové barvě — přirozené na světlém pozadí aplikace. Výrazný stín zajišťuje čitelnost. <strong style="color:#b57734">Komponenta zatím není implementována.</strong></p>
+    </div>
+
+    <div class="toast-stack">
+      <div class="vk-toast">
+        <svg class="vk-toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="vk-toast-title">Žádost odeslána</div>
+          <div class="vk-toast-desc">Správce ji vyřídí do 24 hodin.</div>
+        </div>
+      </div>
+      <div class="vk-toast vk-toast-success">
+        <svg class="vk-toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>
+          <div class="vk-toast-title">Žádost schválena</div>
+          <div class="vk-toast-desc">Vrtačka je připravena k vyzvednutí.</div>
+        </div>
+      </div>
+      <div class="vk-toast vk-toast-warning">
+        <svg class="vk-toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        <div>
+          <div class="vk-toast-title">Blíží se lhůta vrácení</div>
+          <div class="vk-toast-desc">Vraťte nářadí do pátku.</div>
+        </div>
+      </div>
+      <div class="vk-toast vk-toast-error">
+        <svg class="vk-toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div>
+          <div class="vk-toast-title">Nepodařilo se odeslat</div>
+          <div class="vk-toast-desc">Zkontrolujte připojení a zkuste znovu.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('.ds-section[id]');
+  const links = document.querySelectorAll('nav a[href^="#"]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
